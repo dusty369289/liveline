@@ -42,6 +42,8 @@ export interface KeyValueStore {
 
 const STATE_KEY = "rtt.access";
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+/** RTT's /api/info answer, not just any 200 (a captive portal or a misrouted relay answers 200 with a web page). */
+const isInfo = (v: unknown): v is Record<string, unknown> => isObj(v) && (isObj(v.credentials) || typeof v.api_version === "string");
 
 function info(body: unknown, kind: TokenInfo["kind"]): TokenInfo {
   const cred = isObj(body) && isObj(body.credentials) ? body.credentials : {};
@@ -165,7 +167,7 @@ export class RttClient {
     if (!this.token) throw new AuthError("No Realtime Trains key is set.");
     this.loaded = true;
     const r = await this.raw("/api/info", {}, this.token);
-    if (r.status === 200 && isObj(r.body)) {
+    if (r.status === 200 && isInfo(r.body)) {
       this.info = info(r.body, "access");
       await this.save();
       return this.info;

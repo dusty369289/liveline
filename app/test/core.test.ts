@@ -242,6 +242,12 @@ describe("the app's key", () => {
     expect(rail.demo).toBe(true);
     expect(store.data.size).toBe(0);
   });
+  it("a 200 that isn't RTT's answer (a captive portal, a misrouted relay) doesn't pass as a working key", async () => {
+    const page: Http = { async get() { return { status: 200, headers: {}, body: { error: "<!doctype html><html>…" } }; } };
+    const rail = new Rail(page, new MemStore(), stations, clock.now);
+    await expect(rail.setKey(GOOD)).rejects.toThrow(RttError);
+    expect(rail.demo).toBe(true);
+  });
   it("junk is refused before any call", () => {
     for (const bad of ["", "short", "has spaces in the middle of it ok", "x".repeat(3000)]) {
       expect(() => cleanToken(bad)).toThrow(RttError);
