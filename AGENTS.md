@@ -87,7 +87,18 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
   mode, headcodes, units), a full-allocation entitlement or over 100 an hour means Team or above, nothing means Free.
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
 - **Updates:** Settings > "Check for updates" (and a once-a-day automatic check) reads
-  `api.github.com/repos/dusty369289/liveline/releases/latest` and links the `.apk` asset if it's newer.
+  `api.github.com/repos/dusty369289/liveline/releases/latest`. If it's newer, one tap ("Update now" in the banner on
+  any page, or "Update to X" in Settings) runs `UpdaterPlugin` (`app/android/.../UpdaterPlugin.java`): download the
+  APK, check its SHA-256 (GitHub's asset digest, else the release's `.apk.sha256`), install with PackageInstaller
+  over the running version. Android asks once to allow installs from LiveLine (the plugin opens that screen and carries
+  on when the user returns), shows its own confirmation unless it allows `USER_ACTION_NOT_REQUIRED` (Android 12+), and
+  refuses an APK signed with another key. A browser build links to the release instead.
+- **Updates keep the user's data.** Android keeps app data when the same package, signed with the same key, is
+  installed over itself: the key (Capacitor Preferences) and journeys, recent stations and prefs (WebView
+  localStorage at `https://localhost`). So never change `appId`, `server.androidScheme`, `server.hostname`, the
+  signing key, or a storage key name (`rtt.key`, `rtt.access`, `liveline.*`) without a migration.
+  `app/test/persistence.test.ts` pins them. A debug build is signed with a different key, so going from a debug
+  build to a release needs one uninstall (which loses the data once).
 
 ## UI
 

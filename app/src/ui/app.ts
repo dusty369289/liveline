@@ -3,7 +3,7 @@ import { stopSummary } from "../core/engine";
 import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { fromLondon, isoDate, londonParts, type Ms } from "../core/time";
 import { isNewer, readRelease, RELEASES_API } from "../core/update";
-import { APP_VERSION, getJson, native } from "../platform";
+import { APP_VERSION, canSelfUpdate, getJson, installUpdate, native } from "../platform";
 import { type Html, html, qs } from "./html";
 import { LiveTrain } from "./live";
 import { prefs } from "./prefs";
@@ -75,9 +75,14 @@ export class App {
   }
 
   private paint(route: string, main: Html, title: string) {
-    const banner = this.update.state === "available"
-      ? html`<p class="banner" role="note">Version ${this.update.latest} of LiveLine is available. <a href="#/settings">Update</a></p>` : null;
+    const u = this.update;
+    const oneTap = canSelfUpdate && !!u.apk && route !== "settings";
+    const banner = u.state === "available" && route !== "settings"
+      ? html`<p class="banner" role="note">Version ${u.latest} of LiveLine is available. ${oneTap
+        ? html`<button type="button" class="linkish" data-banner-update ${u.progress ? html`disabled` : ""}>${u.progress ?? "Update now"}</button>`
+        : html`<a href="#/settings">Update</a>`}</p>` : null;
     this.root.innerHTML = chrome(route, this.rail.demo, this.rail.budget.state(), main, banner).value;
+    this.root.querySelector("[data-banner-update]")?.addEventListener("click", () => void this.installNow());
     document.title = title ? `${title} · LiveLine` : "LiveLine";
   }
 
@@ -186,7 +191,7 @@ export class App {
     const info = await this.rail.tokenInfo();
     if (stale()) return;
     this.paint("settings", settingsView({ demo: this.rail.demo, tier, info, hint: this.rail.tokenHint, tokenError: this.rail.lastTokenError,
-      budget: this.rail.budget.state(), ...this.settingsMsg, update: this.update, native }), "Settings");
+      budget: this.rail.budget.state(), ...this.settingsMsg, update: this.update, native, selfUpdate: canSelfUpdate }), "Settings");
     this.settingsMsg = {};
     this.wireCommon();
     const form = this.root.querySelector<HTMLFormElement>("[data-key-form]")!;
@@ -209,6 +214,7 @@ export class App {
       void this.render();
     });
     this.root.querySelector("[data-check-update]")!.addEventListener("click", () => void this.checkUpdate(true));
+    this.root.querySelector("[data-install-update]")?.addEventListener("click", () => void this.installNow());
   }
 
   private async about(stale: () => boolean) {
@@ -230,7 +236,8 @@ export class App {
         const rel = readRelease(r.body);
         if (!rel) throw new Error("GitHub's answer didn't make sense");
         this.update = isNewer(rel.version, APP_VERSION)
-          ? { state: "available", current: APP_VERSION, latest: rel.version, url: rel.apkUrl ?? rel.pageUrl, page: rel.pageUrl, notes: rel.notes }
+          ? { state: "available", current: APP_VERSION, latest: rel.version, url: rel.apkUrl ?? rel.pageUrl, page: rel.pageUrl, notes: rel.notes,
+              apk: rel.apkUrl, sha256: rel.sha256, sha256Url: rel.sha256Url }
           : { state: "current", current: APP_VERSION, latest: rel.version };
       }
     } catch (e) {
@@ -239,6 +246,32 @@ export class App {
     this.update.checkedAt = Date.now();
     prefs.set("liveline.update", this.update);
     if (show || this.update.state === "available") void this.render();
+  }
+
+  /** One tap: download, check, install over this version. Key and journeys are app data, so they stay. */
+  private async installNow(): Promise<void> {
+    const u = this.update;
+    if (u.state !== "available" || !u.apk || u.progress) return;
+    const show = (text: string) => {
+      this.update = { ...this.update, progress: text };
+      const el = this.root.querySelector("[data-update-progress], [data-banner-update]");
+      if (el) el.textContent = text;
+      this.root.querySelectorAll<HTMLButtonElement>("[data-install-update], [data-banner-update]").forEach((b) => (b.disabled = true));
+    };
+    show("Starting…");
+    try {
+      await installUpdate({ url: u.apk, sha256: u.sha256 ?? null, sha256Url: u.sha256Url ?? null }, (p) => {
+        if (p.stage === "permission") show("Allow LiveLine to install updates (Android asks once), then come back.");
+        else if (p.stage === "downloading") show(p.fraction != null && p.fraction >= 0 ? `Downloading… ${Math.round(p.fraction * 100)}%` : "Downloading…");
+        else if (p.stage === "installing") show("Installing…");
+        else show("Confirm the update in Android's dialog.");
+      });
+      show("Updated. LiveLine restarts with the new version.");
+    } catch (e) {
+      this.update = { ...this.update, progress: undefined, message: e instanceof Error ? e.message : String(e) };
+      void this.render();
+      return;
+    }
   }
 
   /** Once a day, quietly. If there's a new version, a banner says so on every page. */

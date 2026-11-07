@@ -352,19 +352,29 @@ export interface UpdateInfo {
   notes?: string;
   message?: string;
   checkedAt?: Ms;
+  apk?: string | null; // direct APK link, for the one-tap install
+  sha256?: string | null;
+  sha256Url?: string | null;
+  progress?: string; // while installing
 }
 
 export function settingsView(o: {
   demo: boolean; tier: Tier; info: TokenInfo | null; hint: string | null; tokenError: string | null; budget: BudgetState;
-  message?: string | null; error?: string | null; update: UpdateInfo; native: boolean;
+  message?: string | null; error?: string | null; update: UpdateInfo; native: boolean; selfUpdate?: boolean;
 }): Html {
   const isCurrent = (name: string) => o.tier.name === name || (name === "Team" && o.tier.name === "Team or above");
   const u = o.update;
   const updateBody =
     u.state === "available" ? html`<p><strong>Version ${u.latest} is available</strong> (you have ${u.current}).</p>
         ${u.notes ? html`<p class="hint">${u.notes}</p>` : ""}
-        <p><a class="button" href="${u.url ?? u.page}" target="_blank" rel="noopener" data-download>Download ${u.latest}</a></p>
-        <p class="hint">Android asks to install it over this version. Your key and journeys stay.</p>`
+        ${o.selfUpdate && u.apk
+          ? html`<p><button class="button" type="button" data-install-update ${u.progress ? html`disabled` : ""}>Update to ${u.latest}</button></p>
+            <p class="hint" data-update-progress role="status" aria-live="polite">${u.progress ?? ""}</p>
+            ${u.message ? html`<p class="problem">${u.message}</p>` : ""}
+            <p class="hint">Installs over this version. Your key, journeys and settings stay. Android checks it's signed by the same
+              developer, and asks you once to allow LiveLine to install updates.</p>`
+          : html`<p><a class="button" href="${u.url ?? u.page}" target="_blank" rel="noopener" data-download>Download ${u.latest}</a></p>
+            <p class="hint">Android asks to install it over this version. Your key and journeys stay.</p>`}`
     : u.state === "current" ? html`<p>${u.message ? `${u.message} You have ${u.current}.` : `You have the latest version (${u.current}).`}</p>`
     : u.state === "checking" ? html`<p>Checking…</p>`
     : u.state === "error" ? html`<p class="problem">${u.message}</p>`
