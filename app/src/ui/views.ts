@@ -164,7 +164,7 @@ export function boardView(res: BoardResult, q: Query, nav: Record<string, string
       r.operatorName || "No operator",
       r.headcode && r.headcode !== "0B00" ? ` · ${r.headcode}` : "",
       r.branding ? ` · ${r.branding}` : "",
-      r.vehicles ? ` · ${r.vehicles} coaches` : "",
+      r.vehicles ? ` · ${r.vehicles}\u00a0coaches` : "",
       r.status === "APPROACHING" ? " · Approaching" : ["AT_PLATFORM", "DEPART_PREPARING", "DEPART_READY"].includes(r.status ?? "") ? " · At platform" : "",
     ];
     const href = `#/train/${encodeURIComponent(r.uniqueId)}${qs({ at: here, to: res.to?.crs })}`;
@@ -205,7 +205,7 @@ export function boardView(res: BoardResult, q: Query, nav: Record<string, string
   ${res.rows.length === 0
     ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in this hour${res.to ? ` ${arr ? "from" : "calling at"} ${res.to.name}` : ""}. Try <a href="${nav.later}">later</a>.</p>`
     : html`<ol class="trains" aria-label="Trains">${rows}</ol>`}
-  <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", refreshes every minute" : ""}. An outlined platform isn't confirmed yet.${
+  <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", updates every 2 minutes while open" : ""}. An outlined platform isn't confirmed yet.${
     res.hidden ? html` ${res.hidden} empty or staff-only train${res.hidden !== 1 ? "s" : ""} hidden: <a href="${nav.all}">show all</a>.`
       : res.showAll ? html` <a href="${nav.all}">Passenger trains only</a>.` : ""}</p>
 </div>`;
@@ -272,7 +272,9 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     if (main) {
       const src = main.source === "actual" ? "actual" : main.source === "est" ? "est" : main.source === "booked" ? "booked" : "forecast";
       let shownTime: Html | "" = "";
-      if (!isCancelled(pt) && main.source !== "booked" && !(main.source === "est" && !changed(main))) {
+      if (!isCancelled(pt) && main.source === "forecast" && !changed(main) && pt.kind === "call") {
+        shownTime = html`<span class="route__ontime">On time</span>`;
+      } else if (!isCancelled(pt) && main.source !== "booked" && !(main.source === "est" && !changed(main)) && !(main.source === "forecast" && !changed(main))) {
         shownTime = html`${main.source === "est" ? hm(main.time) : hmh(main.time)}${main.source === "est" ? html`<span class="est">est</span>` : ""}${
           main.delayMin ? html`<span class="route__delay">${main.delayMin > 0 ? "+" : "−"}${Math.abs(main.delayMin)}</span>` : ""}`;
       }
@@ -281,18 +283,19 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     return html`
     <li class="route__pt ${cls}" data-index="${v.index}" id="${isAt ? "your-stop" : null}" data-t-in="${tin?.time ?? ""}" data-t-out="${tout?.time ?? ""}">
       <span class="route__mark" aria-hidden="true"></span>
-      <span class="route__name"><span class="route__place">${pt.name}</span><span class="route__meta">${meta}</span></span>
+      <span class="route__name"><span class="route__place">${pt.name}</span><span class="route__meta">${isAt ? html`<span class="route__tag">Board</span>` : isTo ? html`<span class="route__tag">Alight</span>` : ""}${meta}</span></span>
       ${times}
     </li>`;
   });
   return html`
 <section class="live" aria-labelledby="live-h" data-state="${p.state}" data-from="${p.fromIndex ?? ""}" data-to="${p.toIndex ?? ""}"
   data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}" data-hold="0.95"
-  data-refresh="${Math.floor(res.refreshAfter)}" data-fetched="${res.fetched.fetchedAt}">
+  data-refresh="${res.refreshAfter == null ? "" : Math.floor(res.refreshAfter)}" data-fetched="${res.fetched.fetchedAt}">
   <div class="live__status" role="status">
     <h2 id="live-h" class="visually-hidden">Where the train is</h2>
     ${heroHtml}
-    <p class="live__headline state-${p.state}">${p.headline}</p>
+    ${hs && hs.index === p.toIndex && p.state === "not-started" ? "" /* the big number already says when it leaves */
+      : html`<p class="live__headline state-${p.state}">${p.headline}</p>`}
     ${lines}
     ${tl.worst ? html`<p class="live__stop hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
     <p class="live__age hint"><span data-age>Updated ${ago((tl.now - res.fetched.fetchedAt) / 1000)}</span>${res.fetched.stale ? ` (${res.fetched.note})` : ""}</p>
@@ -310,7 +313,7 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   const start = s.origins[0]?.time ?? null;
   const ends = s.destinations[0]?.time ?? null;
   const title = `${start != null ? `${hm(start)} ` : ""}${originName(s)} to ${destinationName(s)}`;
-  const label = [s.operatorName, s.headcode ? ` · ${s.headcode}` : "", s.vehicles ? ` · ${s.vehicles} coaches` : "",
+  const label = [s.operatorName, s.headcode ? ` · ${s.headcode}` : "", s.vehicles ? ` · ${s.vehicles}\u00a0coaches` : "",
     s.leadingClass ? ` · Class ${s.leadingClass}` : "", s.branding ? ` · ${s.branding}` : ""];
   return html`
 <article class="stack train" data-train data-uid="${uid}" data-at="${at}" data-to="${to}" data-title="${title}" data-day="${s.runDate}" data-ends="${ends ?? ""}">
