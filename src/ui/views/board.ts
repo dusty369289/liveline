@@ -2,10 +2,11 @@
 import { booked, type BoardRow, forPassengers, isBus, rowCancelled, statusMessage } from "../../core/models";
 import type { BoardResult } from "../../core/rail";
 import { hm, isoDate, type Ms } from "../../core/time";
+import { REFRESH_ICON, STAR_ICON } from "../components/icons";
 import { timeMark } from "../components/marks";
 import { ago, dayLabel } from "../format";
 import { type Html, html } from "../html";
-import { type Query, qs } from "../routes";
+import { qs } from "../routes";
 
 /** The board's own links: an hour either side, refresh, the other direction, show all. */
 export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string }
@@ -55,7 +56,7 @@ function row(r: BoardRow, res: BoardResult, here: string): Html {
     </li>`;
 }
 
-export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boolean, now: Ms): Html {
+export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: Ms): Html {
   const b = res.board;
   const arr = res.mode === "arr";
   const here = res.station?.crs ?? b.stationCrs ?? "";
@@ -67,24 +68,25 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
      data-station="${res.station?.name ?? b.stationName}" data-crs="${here}"
      data-to-name="${res.to?.name ?? null}" data-to-crs="${res.to?.crs ?? null}">
   <header class="board__head">
-    <h1>${b.stationName}</h1>
-    <p class="board__sub">${arr ? "Arrivals" : "Departures"}${other}, ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}</p>
-    <p class="cluster board__nav">
+    <div class="board__plate">
+      <h1>${b.stationName}</h1>
+      ${res.to && res.station ? html`<button type="button" class="board__star" data-save-journey aria-label="Save this journey" aria-pressed="false">${STAR_ICON}</button>` : ""}
+    </div>
+    <p class="board__sub">${arr ? "Arrivals" : "Departures"}${other} · ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}</p>
+    <nav class="board__nav" aria-label="This board">
       <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
       <a class="board__step" href="${nav.later}">Later<span aria-hidden="true">\u00a0›</span></a>
-      <a href="${nav.refresh}" data-board-refresh>Refresh</a>
-      <a href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
-      <a href="#/${qs({ station: q.station })}">Change</a>
-    </p>
-    ${res.to && res.station ? html`<p class="board__save"><button type="button" class="linkish" data-save-journey>Save this journey</button>
-      <span class="hint" data-save-note role="status" aria-live="polite"></span></p>` : ""}
+      <a class="board__step" href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
+      <a class="board__refresh" href="${nav.refresh}" data-board-refresh aria-label="Refresh" title="Refresh">${REFRESH_ICON}</a>
+    </nav>
+    ${res.to && res.station ? html`<p class="hint" data-save-note role="status" aria-live="polite"></p>` : ""}
   </header>
   ${sm ? html`<p class="banner" role="note">${sm}</p>` : ""}
   ${res.fetched.stale ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${res.fetched.note}.</p>` : ""}
   ${res.rows.length === 0
     ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in this hour${other}. Try <a href="${nav.later}">later</a>.</p>`
     : html`<ol class="trains" aria-label="Trains">${res.rows.map((r) => row(r, res, here))}</ol>`}
-  <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", updates every 2 minutes while open" : ""}. An outlined platform isn't confirmed yet.${
+  <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", and every 2 minutes while open" : ""}.${
     res.hidden ? html` ${res.hidden} empty or staff-only train${res.hidden !== 1 ? "s" : ""} hidden: <a href="${nav.all}">show all</a>.`
       : res.showAll ? html` <a href="${nav.all}">Passenger trains only</a>.` : ""}</p>
 </div>`;

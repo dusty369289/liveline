@@ -1,14 +1,24 @@
 .board__head { display: grid; gap: var(--s-1); }
 /* The station name is the heading, but the trains are the page: big enough to read at arm's length, not two lines */
-.board__head h1 { /* a station nameboard: you can tell a board from any other page at a glance */
-  font-size: 2rem; line-height: 1.05; padding: var(--s-3) var(--s-4); border-radius: var(--radius);
-  background: var(--sign); color: var(--on-sign);
+/* A station nameboard (you can tell a board from any other page at a glance), with the save star on it */
+.board__plate {
+  display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
+  border-radius: var(--radius); background: var(--sign); color: var(--on-sign);
 }
+.board__plate h1 { flex: 1; min-width: 0; font-size: 2rem; line-height: 1.05; padding-block: var(--s-1); }
+.board__star {
+  flex: none; width: var(--tap); height: var(--tap); display: grid; place-items: center;
+  background: none; border: 0; color: var(--on-sign); cursor: pointer; border-radius: var(--radius);
+}
+.board__star .icon--star { fill: none; }
+.board__star[aria-pressed="true"] .icon--star { fill: var(--train); stroke: var(--train); }
+.board__star:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
 .board__sub { color: var(--muted); }
-/* One row of controls at 360 px: an hour back and forward first, then the rest */
-.board__nav { margin-top: var(--s-1); gap: 0 var(--s-3); font-size: var(--t-sm); }
+/* Few controls, in plain words rather than a row of underlines; refresh is an icon at the end */
+.board__nav { display: flex; align-items: center; gap: 0 var(--s-4); margin-top: var(--s-1); font-size: var(--t-sm); }
 .board__nav a { min-height: var(--tap); display: inline-flex; align-items: center; }
-.board__nav .board__step { font-weight: 600; }
+.board__nav .board__step { font-weight: 600; text-decoration: none; color: var(--ink); }
+.board__nav .board__refresh { margin-left: auto; min-width: var(--tap); justify-content: center; color: var(--ink); }
 
 /* Rows read like a departure board: time, where it's going, and a platform plate. */
 .trains__row + .trains__row { border-top: 1px solid var(--line); }

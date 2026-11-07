@@ -39,7 +39,7 @@ export class BoardPage extends Page {
     this.nav = this.links(res);
     this.live = !q.time;
     if (force) history.replaceState(null, "", this.nav.refresh.replace(/&refresh=1|refresh=1&?/, "")); // don't refetch on back
-    return boardView(res, q, this.nav, this.live, this.ctx.rail.clock());
+    return boardView(res, this.nav, this.live, this.ctx.rail.clock());
   }
 
   mount(root: HTMLElement): void {
@@ -75,12 +75,17 @@ export class BoardPage extends Page {
     if (!save) return;
     const j = { from: d.crs!, fromName: d.station!, to: d.toCrs!, toName: d.toName! };
     const note = root.querySelector("[data-save-note]")!;
-    const label = (saved: boolean) => (saved ? "Saved. Remove this journey" : "Save this journey");
-    save.textContent = label(this.ctx.journeys.has(j));
+    // A star on the nameboard: filled once saved. Its name says what a tap does; the note says what happened.
+    const show = (saved: boolean) => {
+      save.setAttribute("aria-pressed", saved ? "true" : "false");
+      save.setAttribute("aria-label", saved ? "Saved journey: tap to remove" : "Save this journey");
+      save.title = saved ? "Remove this journey" : "Save this journey";
+    };
+    show(this.ctx.journeys.has(j));
     save.addEventListener("click", () => {
       const saved = this.ctx.journeys.toggle(j);
-      save.textContent = label(saved);
-      note.textContent = saved ? "It's on the home screen now." : "Removed.";
+      show(saved);
+      note.textContent = saved ? "Saved: it's on the search page now." : "Removed from your journeys.";
     });
   }
 
@@ -95,7 +100,7 @@ export class BoardPage extends Page {
         return;
       }
       try {
-        const fresh = fragment(boardView(await this.request({ background: true }), this.query, this.nav!, true, this.ctx.rail.clock()));
+        const fresh = fragment(boardView(await this.request({ background: true }), this.nav!, true, this.ctx.rail.clock()));
         for (const sel of [".trains", ".board__foot", ".empty"]) {
           const now = root.querySelector(sel);
           const next = fresh.querySelector(sel);

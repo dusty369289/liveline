@@ -19,7 +19,7 @@ test("station suggestions", async ({ page, errors }, info) => {
 
 test("board", async ({ page, errors }, info) => {
   await open(page, "/board?station=PAD&to=OXF&time=09:00");
-  await expect(page.locator(".board__sub")).toContainText("Departures calling at Oxford, 09:00 to 10:00");
+  await expect(page.locator(".board__sub")).toContainText("Departures calling at Oxford · 09:00 to 10:00");
   await expect(page.locator(".trains__row").first()).toBeVisible();
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "03-board");

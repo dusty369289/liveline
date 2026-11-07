@@ -38,11 +38,13 @@ export function aboutView(d: AboutData): Html {
   ${source(d)}
   <h2>Allowance</h2>
   <p>Realtime Trains limits how often your key can ask. Answers are kept for a minute (boards) or 30 seconds (trains), and calls go straight from this device to Realtime Trains.</p>
-  <dl class="facts tnum">
+  ${d.demo ? html`<p>None in demo mode: the simulated trains don't use any calls.</p>` : html`<dl class="facts tnum">
     <dt>This minute</dt><dd>${b.remaining.minute} of ${b.limits.minute} left</dd>
     <dt>This hour</dt><dd>${b.remaining.hour} of ${b.limits.hour} left</dd>
     <dt>Today</dt><dd>${b.remaining.day} of ${b.limits.day} left</dd>
-  </dl>
+  </dl>`}
+  <h2>Reading a board</h2>
+  <p>A solid platform plate is confirmed. An outlined one is expected but not confirmed yet, so it can still change.</p>
   <h2>Limits, plainly</h2>
   <ul class="bullets">
     <li>Signals and track circuits aren't in Realtime Trains' data, only timing points. Between two timing points, where the train is shown is our estimate.</li>

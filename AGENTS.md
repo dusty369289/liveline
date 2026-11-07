@@ -86,7 +86,13 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
+  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all". Its controls are few and plain:
+  Earlier, Later and the other direction as words, Refresh as an icon, and a star on the nameboard to save a journey.
+
+**Calm pages** (owner, 2026-11-07: the UI felt overstimulating; `test/ui/calm.spec.ts`): the answer first, each fact
+said once, few controls in view, small print only where it's wanted. A train's status is the big number, one line
+and any delay reason: stops already passed aren't restated, and "lost most time" sits below the route. Its header is
+one line of facts; class and units are in the Train view. Explanations (an outlined platform plate) live on About.
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or

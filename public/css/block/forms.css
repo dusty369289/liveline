@@ -85,4 +85,3 @@
 .journeys__item { display: flex; align-items: center; gap: var(--s-3); border-bottom: 1px solid var(--line); }
 .journeys__go { flex: 1; display: flex; align-items: center; min-height: 3.25rem; text-decoration: none; font: 600 var(--t-md)/1.2 var(--sign-font); }
 .journeys__back { display: inline-flex; align-items: center; min-height: var(--tap); padding-left: var(--s-3); color: var(--muted); font-size: var(--t-sm); }
-.board__save { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }
