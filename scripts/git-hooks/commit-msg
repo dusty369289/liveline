@@ -1,0 +1,17 @@
+#!/bin/sh
+# Every commit message (installed by `npm install`). All work is attributed to the owner: no AI co-author trailers,
+# no "Generated with" lines, no session links. A short subject line (72 characters at most), then a body if needed.
+msg="$1"
+if grep -qiE '^co-authored-by:.*(claude|anthropic|openai|copilot|gpt|noreply@anthropic)|generated with|claude-session:|claude\.ai/code' "$msg"; then
+  echo "commit-msg: remove the AI attribution (co-author trailer, 'Generated with' or session link)." >&2
+  exit 1
+fi
+subject=$(grep -v '^#' "$msg" | head -n 1)
+if [ -z "$subject" ]; then
+  echo "commit-msg: the subject line is empty." >&2
+  exit 1
+fi
+if [ "${#subject}" -gt 72 ]; then
+  echo "commit-msg: keep the subject to 72 characters (it's ${#subject}); put detail in the body." >&2
+  exit 1
+fi
