@@ -56,8 +56,10 @@ export function when(time: string, day: string, now: Ms): Ms | null {
   }
   const tm = /^(\d{1,2})[:.](\d{2})$/.exec(t);
   if (!tm || Number(tm[1]) > 23 || Number(tm[2]) > 59) throw new RangeError("bad time");
-  let at = fromLondon(y, mo, dd, Number(tm[1]), Number(tm[2]));
-  if (!d && at < now - 6 * 3_600_000) at += 86_400_000;
+  const at = fromLondon(y, mo, dd, Number(tm[1]), Number(tm[2]));
+  // The next calendar day (fromLondon rolls 32 March over to 1 April), not 24 hours on: across a clock change those
+  // differ by an hour
+  if (!d && at < now - 6 * 3_600_000) return fromLondon(y, mo, dd + 1, Number(tm[1]), Number(tm[2]));
   return at;
 }
 
