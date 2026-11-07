@@ -21,6 +21,9 @@ export function isNewer(latest: string, current: string): boolean {
 export interface Release {
   version: string;
   apkUrl: string | null;
+  /** The APK's SHA-256: GitHub's own asset digest, else our published .sha256 file (checked before installing). */
+  sha256: string | null;
+  sha256Url: string | null;
   pageUrl: string;
   notes: string;
 }
@@ -31,10 +34,14 @@ export function readRelease(body: unknown): Release | null {
   if (typeof b.tag_name !== "string" || b.draft) return null;
   const assets = Array.isArray(b.assets) ? (b.assets as Array<Record<string, unknown>>) : [];
   const apk = assets.find((a) => typeof a.name === "string" && a.name.endsWith(".apk"));
+  const sumFile = assets.find((a) => typeof a.name === "string" && a.name.endsWith(".apk.sha256"));
+  const digest = apk && typeof apk.digest === "string" && apk.digest.startsWith("sha256:") ? apk.digest.slice(7) : null;
   const notes = typeof b.body === "string" ? b.body.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim() ?? "" : "";
   return {
     version: b.tag_name.replace(/^v/, ""),
     apkUrl: apk && typeof apk.browser_download_url === "string" ? apk.browser_download_url : null,
+    sha256: digest && /^[0-9a-f]{64}$/i.test(digest) ? digest.toLowerCase() : null,
+    sha256Url: sumFile && typeof sumFile.browser_download_url === "string" ? sumFile.browser_download_url : null,
     pageUrl: typeof b.html_url === "string" ? b.html_url : "https://github.com/dusty369289/liveline/releases",
     notes: notes.slice(0, 300),
   };

@@ -2,7 +2,7 @@
 //   Android (Capacitor): native HTTP straight to data.rtt.io (no CORS), key in the app's private Preferences.
 //   Browser (dev, tests, a future desktop build): fetch through the host's /rtt relay, localStorage.
 // An iOS build would reuse the Capacitor branch as it stands.
-import { Capacitor, CapacitorHttp } from "@capacitor/core";
+import { Capacitor, CapacitorHttp, registerPlugin } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { API_VERSION, FetchHttp, type Http, type HttpResponse, NetworkError, RTT_BASE } from "../core/http";
 import type { KeyValueStore } from "../core/rtt";
@@ -89,4 +89,34 @@ export async function getJson(url: string): Promise<{ status: number; body: unkn
   }
   const r = await fetch(url, { headers: { Accept: "application/vnd.github+json" } });
   return { status: r.status, body: await r.json().catch(() => null) };
+}
+
+// ---- one-tap update (Android) ----
+export interface UpdateProgress {
+  stage: "permission" | "downloading" | "installing" | "confirm";
+  fraction?: number;
+}
+interface UpdaterPlugin {
+  install(o: { url: string; sha256?: string | null; sha256Url?: string | null }): Promise<{ message: string }>;
+  addListener(ev: "progress", fn: (p: UpdateProgress) => void): Promise<{ remove: () => Promise<void> }>;
+}
+const Updater = registerPlugin<UpdaterPlugin>("Updater");
+
+/** Can this build install its own updates? Android only; a browser build links to the release page instead. */
+export const canSelfUpdate = native && platformName === "android";
+
+/**
+ * Download the APK, check its SHA-256 and install it over this version. App data (the key in Preferences, and
+ * journeys and recent stations in WebView storage) is kept: Android replaces only the code of the same app.
+ */
+export async function installUpdate(
+  o: { url: string; sha256: string | null; sha256Url: string | null },
+  onProgress: (p: UpdateProgress) => void,
+): Promise<void> {
+  const sub = await Updater.addListener("progress", onProgress);
+  try {
+    await Updater.install(o);
+  } finally {
+    await sub.remove();
+  }
 }
