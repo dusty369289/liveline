@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:ui": "playwright test",
     "review": "node scripts/review.mjs",
+    "merge": "sh scripts/merge-pr.sh",
     "leak-check": "node scripts/leak-check.mjs",
     "check": "npm run typecheck && npm test && npm run leak-check && vite build",
     "android:sync": "npm run build && cap sync android",
