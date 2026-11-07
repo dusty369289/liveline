@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+# Android build output and machine-specific files (the android/ project itself is committed, as Capacitor intends)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/capacitor-cordova-android-plugins/build/
+android/app/src/main/assets/public/
+# never commit signing material
+*.jks
+*.keystore
+keystore.properties

@@ -1,0 +1,20 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.test-review/
+.ui-report/
+.ui-report-previous/
+.ui-baselines/
+/recordings/
+/data/
+.claude/worktrees/
+
+# Dev notes and agent briefs: local only (AGENTS.md is the tracked one)
+CLAUDE.md
+CLAUDE.local.md
+/notes/
+.claude/
