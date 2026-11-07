@@ -1,19 +1,28 @@
 name: CI
 
-# Every PR and every push to main. The two job names, "Checks" and "Browser", are the required checks in the
-# "main" ruleset: rename a job and the ruleset must change with it, or no PR can merge.
+# Runs on pull requests that are ready for review, and when a release calls it. Not on drafts (open a PR as a draft
+# while it's being worked on, and mark it ready once), and not on main after a merge: a rebase merge of an up-to-date
+# branch puts exactly the tested commits on main, and a release runs everything again itself.
+# The two job names, "Checks" and "Browser", are the required checks in the "main" ruleset: rename a job and the
+# ruleset must change with it, or no PR can merge.
 on:
-  push:
-    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_call:
+  workflow_dispatch: # run by hand on any branch
 
 permissions:
   contents: read
 
+# A new push to the same PR cancels the run it makes pointless.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     name: Checks
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,6 +37,7 @@ jobs:
 
   browser:
     name: Browser
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

@@ -1,0 +1,27 @@
+#!/bin/sh
+# Before every commit (installed by `npm install`: core.hooksPath = scripts/git-hooks).
+# 1. Show what is staged, so a commit can't quietly carry deletions or renames from earlier `git rm`/`git mv`.
+# 2. Nothing personal goes in (leak check).
+# 3. Every commit passes the full check on its own, so history can be bisected.
+# Never skip this with --no-verify: fix what it finds instead.
+set -e
+
+staged=$(git diff --cached --name-status)
+if [ -z "$staged" ]; then
+  echo "pre-commit: nothing staged." >&2
+  exit 1
+fi
+added=$(printf '%s\n' "$staged" | grep -c '^A' || true)
+modified=$(printf '%s\n' "$staged" | grep -c '^M' || true)
+deleted=$(printf '%s\n' "$staged" | grep -c '^D' || true)
+renamed=$(printf '%s\n' "$staged" | grep -c '^R' || true)
+echo "pre-commit: committing $added added, $modified modified, $deleted deleted, $renamed renamed." >&2
+printf '%s\n' "$staged" | grep -E '^(D|R)' | sed 's/^/  /' >&2 || true
+
+npm run --silent leak-check
+npm run --silent check > .git-check.log 2>&1 || {
+  echo "pre-commit: npm run check failed; the output is in .git-check.log. Fix it before committing." >&2
+  tail -20 .git-check.log >&2
+  exit 1
+}
+rm -f .git-check.log
