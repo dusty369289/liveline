@@ -10,6 +10,8 @@ export const POLL = {
   running: 60, // between points: just after the next report is due, but not more than once a minute
   max: 120, // never later while it's moving, so a surprise (cancellation, platform change) shows within 2 minutes
   notStartedMax: 180, // before it sets off: platform changes and cancellations still show within 3 minutes
+  wakeBefore: 2 * 3600, // ...but only from 2 hours before: earlier, nothing you'd act on changes minute to minute
+  notStartedFar: 30 * 60, // further off (a train tomorrow): every half hour, two an hour instead of twenty
   afterDue: 20, // a report lands in RTT a little after the event
   overdue: 60, // no report where one was expected: check every minute
   farAway: 120, // your stop is over 40 minutes off: no need to be quicker than this
@@ -47,7 +49,9 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
   let s: number;
   if (p.state === "not-started") {
     const due = secsTo(p.expected);
-    s = due == null ? POLL.notStartedMax : clamp(due - 60, 60, POLL.notStartedMax);
+    if (due == null) s = POLL.notStartedMax;
+    else if (due > POLL.wakeBefore) s = Math.max(POLL.notStartedMax, Math.min(due - POLL.wakeBefore, POLL.notStartedFar));
+    else s = clamp(due - 60, 60, POLL.notStartedMax);
   } else if (p.state === "overdue" || p.state === "at-origin") {
     s = POLL.overdue;
   } else if (p.state === "at-station") {

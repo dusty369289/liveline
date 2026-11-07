@@ -103,7 +103,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   30 s, never leaving an advertised stop early. Used only where RTT gives no forecast or gives an impossible one. Not
   backtested: it's a reasoned guess.
 - **Polling** (`core/poll.ts`): never more than once a minute; 20 s after the next report is due while running; just
-  after departure at a station; shortly before it's due when not started (at least every 3 minutes); every minute when
+  after departure at a station; shortly before it's due when not started (at least every 3 minutes, but every half hour
+  while it's over 2 hours off, waking in time to be on the 3-minute beat at 2 hours); every minute when
   overdue; every 2 minutes while your stop is over 40 minutes off. Stops when the train arrives or is cancelled
   (passing your stop doesn't stop it). The allowance's own floor, `3600 / (calls left this hour - 10)`, can only slow
   it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.

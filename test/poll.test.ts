@@ -67,15 +67,38 @@ describe("polling a train", () => {
     expect(s).toBeLessThanOrEqual(130); // about a minute before it's due
   });
 
+  it("a train days away waits half an hour; within two hours it's back to every 3 minutes at most", () => {
+    const tl = at(dep - 40 * 60_000);
+    expect(tl.position.state).toBe("not-started");
+    expect(pollAfter(tl, dep - 48 * 3_600_000, 30)).toBeGreaterThanOrEqual(30 * 60);
+    expect(pollAfter(tl, dep - 48 * 3_600_000, 30)).toBe(POLL.notStartedFar);
+    expect(pollAfter(tl, dep - 60 * 60_000, 30)).toBeLessThanOrEqual(180);
+    // between the two it wakes in time to be on the 3-minute beat two hours before
+    expect(pollAfter(tl, dep - (POLL.wakeBefore + 10 * 60) * 1000, 30)).toBe(10 * 60);
+    expect(pollAfter(tl, dep - (POLL.wakeBefore + 60) * 1000, 30)).toBe(POLL.notStartedMax);
+  });
+
   it("while it runs, waits for the next report rather than polling on a beat", () => {
+    const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
     for (let m = 5; m < (arr - dep) / 60_000 - 5; m += 7) {
       const now = dep + m * 60_000;
       const tl = at(now);
-      const s = pollAfter(tl, now, 30);
-      expect(s, `${m} min in (${tl.position.state})`).not.toBeNull();
-      expect(s!).toBeGreaterThanOrEqual(POLL.min);
-      expect(s!).toBeLessThanOrEqual(Math.max(POLL.max, POLL.farAway));
+      const p = tl.position;
+      const due = p.state === "at-station" ? tl.points[p.fromIndex!].departure!.time! : p.expected;
+      const want = p.state === "overdue" || p.state === "at-origin" ? POLL.overdue
+        : Math.round(clamp((due! - now) / 1000 + POLL.afterDue, POLL.running, POLL.max));
+      expect(pollAfter(tl, now, 30), `${m} min in (${p.state})`).toBe(want);
     }
+  });
+
+  it("asks just after the next report is due: 30 s off waits a minute, 90 s off waits 110 s", () => {
+    let now = dep + 2 * 60_000;
+    while (at(now).position.state !== "running" && now < arr) now += 60_000;
+    const tl = at(now);
+    expect(tl.position.state).toBe("running");
+    const due = tl.position.expected!;
+    expect(pollAfter(tl, due - 30_000, 30)).toBe(POLL.running);
+    expect(pollAfter(tl, due - 90_000, 30)).toBe(90 + POLL.afterDue);
   });
 
   it("never polls faster than the allowance allows", () => {
