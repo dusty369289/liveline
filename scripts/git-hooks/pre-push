@@ -1,7 +1,16 @@
 #!/bin/sh
-# Every push (installed by `npm install`). A checkout can carry more than one remote (the old repository this one
-# replaced, say), and a push by habit to the wrong one publishes a branch where nobody reviews it. Only this
-# repository is a valid target, whatever the remote is called and however it's reached.
+# Every push (installed by `npm install`).
+# 1. Nothing staged: files staged at push time mean a commit just before it failed (a refused message, a failed
+#    check), and the push would leave that work behind while looking done. Commit it, or unstage it, then push.
+# 2. Only this repository: a checkout can carry more than one remote (the old repository this one replaced, say), and
+#    a push by habit to the wrong one publishes a branch where nobody reviews it.
+staged=$(git diff --cached --name-only 2>/dev/null)
+if [ -n "$staged" ]; then
+  echo "pre-push: these files are staged but not committed; did a commit just fail?" >&2
+  printf '%s\n' "$staged" | sed 's/^/  /' >&2
+  echo "pre-push: commit them (or unstage them), then push." >&2
+  exit 1
+fi
 url="$2"
 case "$url" in
   https://github.com/dusty369289/liveline | https://github.com/dusty369289/liveline.git \
