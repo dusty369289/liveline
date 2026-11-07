@@ -154,10 +154,30 @@ uv run python scripts/leak_check.py
 Python tests have a 10 s timeout each. Failures are kept in `.test-review/failures.log`, and a test that fails then
 passes on the same code is reported as flaky until explained.
 
+## How changes land
+
+GitHub enforces these with a ruleset on `main` ("main: PRs and green checks"):
+- **Every change is a pull request.** Nobody pushes to `main` directly, including the owner. Branch, push, open a PR.
+- **Both CI checks must pass before merging:** `App (TypeScript)` (Vitest, tsc, Vite build) and `Python reference`
+  (ruff, pytest, golden files match, leak check). The branch must be up to date with `main`.
+- **History stays linear:** squash or rebase merges, no merge commits. No force-pushes to `main`, and it can't be deleted.
+  Merged branches are deleted automatically.
+- Keep PRs small and about one thing. The description says what changed, why, and how it was tested, including anything
+  that couldn't be tested (for example, on a real phone).
+
+What runs where:
+
+| Workflow | When | What |
+|---|---|---|
+| `ci.yml` | every PR, every push to `main` | tests, typecheck, web build, golden files, leak check. No Android build |
+| `release.yml` | a pushed tag `vX.Y.Z` only | the same CI, then the tag-matches-version check, the signed APK build and the GitHub Release |
+
+Android compiling and publishing happen only on release tags, so a PR never needs the signing key.
+
 ## Releases
 
 The version lives in `app/package.json` (semver). versionCode is `major*10000 + minor*100 + patch`. To release: bump the
-version, commit, tag `vX.Y.Z`, push the tag. `.github/workflows/release.yml` checks the tag matches package.json, runs
+version in a PR and merge it, then tag that commit on `main` as `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the tag matches package.json, runs
 the tests, builds a signed release APK and attaches it to a GitHub Release. Signing reads `LIVELINE_KEYSTORE_FILE`,
 `LIVELINE_KEYSTORE_PASSWORD`, `LIVELINE_KEY_ALIAS`, `LIVELINE_KEY_PASSWORD` (CI secrets) or a local, gitignored
 `app/android/keystore.properties`. Without them, a release build is unsigned.
