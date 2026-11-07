@@ -5,6 +5,11 @@ import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
 import { hm, isoLocal, type Ms } from "./time";
 
+/** Minutes of board asked for in one call (RTT allows up to 1439). Three hours covers now, Later and Later again. */
+export const FETCH_WINDOW = 180;
+/** Seconds a board starting an hour or more ahead is kept. */
+export const FUTURE_BOARD_TTL = 300;
+
 export class RttError extends Error {}
 /** The key is missing, wrong, expired or revoked. */
 export class AuthError extends RttError {}
@@ -66,6 +71,8 @@ export class RttClient {
   private access: string | null = null;
   private accessUntil: Ms | null = null;
   private cache = new Map<string, Fetched>();
+  /** What each cached board answer covers, so a narrower board inside it needs no call. */
+  private segments = new Map<string, { code: string; ft: string; ff: string; from: Ms; until: Ms }>();
   private inflight = new Map<string, Promise<Fetched>>();
   readonly boardTtl: number;
   readonly serviceTtl: number;
@@ -259,22 +266,43 @@ export class RttClient {
     return f;
   }
 
+  /**
+   * A board. RTT charges one call however wide the window, so ask for FETCH_WINDOW minutes and answer every board that
+   * falls inside it (now, Later, Earlier, the minute ticking over) from that one answer. `windowMin` is what will be
+   * shown; the caller keeps only those rows (Rail.board).
+   */
   async location(code: string, timeFrom: Ms, windowMin = 60, filterTo: string | null = null, force = false,
     filterFrom: string | null = null, background = false): Promise<Fetched> {
     await this.load();
-    const params: Record<string, string> = { code: code.toUpperCase(), timeFrom: isoLocal(timeFrom), timeWindow: String(windowMin) };
-    if (filterTo) params.filterTo = filterTo.toUpperCase();
-    if (filterFrom) params.filterFrom = filterFrom.toUpperCase();
-    if (isDetailed(this.info)) params.detailed = "true";
-    // keyed to the minute, so "now" asked twice in a minute shares one answer
-    const keyAt = (t: Ms) => ["loc", params.code, isoLocal(t).slice(0, 16), windowMin, params.filterTo ?? "", params.filterFrom ?? ""].join("|");
-    const key = keyAt(timeFrom);
-    if (!force && !this.cache.has(key)) {
-      // the minute ticked over since the last look (back from a train, say): last minute's board is still good
-      const prev = this.cache.get(keyAt(timeFrom - 60_000));
-      if (prev && (this.clock() - prev.fetchedAt) / 1000 < this.boardTtl) return prev;
+    const c = code.toUpperCase();
+    const ft = filterTo ? filterTo.toUpperCase() : "";
+    const ff = filterFrom ? filterFrom.toUpperCase() : "";
+    const until = timeFrom + windowMin * 60_000;
+    const ttl = this.boardTtlFor(timeFrom);
+    if (!force) {
+      // a fresh enough answer that already covers this window
+      for (const [key, seg] of this.segments) {
+        if (seg.code !== c || seg.ft !== ft || seg.ff !== ff || seg.from > timeFrom || seg.until < until) continue;
+        const hit = this.cache.get(key);
+        if (hit && (this.clock() - hit.fetchedAt) / 1000 < ttl) return hit;
+      }
     }
-    return this.get(key, "/gb-nr/location", params, this.boardTtl, !background, force);
+    const fetchMin = Math.max(windowMin, FETCH_WINDOW);
+    const params: Record<string, string> = { code: c, timeFrom: isoLocal(timeFrom), timeWindow: String(fetchMin) };
+    if (ft) params.filterTo = ft;
+    if (ff) params.filterFrom = ff;
+    if (isDetailed(this.info)) params.detailed = "true";
+    // keyed to the minute, so the same question twice in a minute shares one answer
+    const key = ["loc", c, params.timeFrom.slice(0, 16), fetchMin, ft, ff].join("|");
+    const f = await this.get(key, "/gb-nr/location", params, ttl, !background, force);
+    this.segments.set(key, { code: c, ft, ff, from: timeFrom, until: timeFrom + fetchMin * 60_000 });
+    for (const k of this.segments.keys()) if (!this.cache.has(k)) this.segments.delete(k); // dropped from the cache
+    return f;
+  }
+
+  /** Boards near now change by the minute; one starting an hour or more ahead barely changes, so keep it longer. */
+  boardTtlFor(timeFrom: Ms): number {
+    return timeFrom - this.clock() >= 60 * 60_000 ? Math.max(this.boardTtl, FUTURE_BOARD_TTL) : this.boardTtl;
   }
 
   async service(uniqueId: string, interactive = true, ttl: number | null = null, force = false): Promise<Fetched> {
