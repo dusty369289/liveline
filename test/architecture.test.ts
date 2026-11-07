@@ -38,6 +38,26 @@ describe("layers point inward", () => {
   });
 });
 
+/** A storage name in quotes: any case after the dot (`liveline.trainTab`), and a template's `liveline.${x}` too. */
+const STORAGE_NAME = /["'`](liveline|rtt)\.[A-Za-z$]/;
+/** Every way to hand the browser a string to parse as markup, appending included. */
+const HTML_SINK = /\.(innerHTML|outerHTML)\s*\+?=|insertAdjacentHTML|setHTMLUnsafe|createContextualFragment|document\.write/;
+
+describe("the rules' own patterns", () => {
+  // A rule whose pattern misses the thing it forbids passes forever without checking anything.
+  it("catch storage names in any case, and every markup sink", () => {
+    for (const s of [`"liveline.trainTab"`, `'rtt.access_token'`, "`liveline.${name}`", `"rtt.accessToken"`]) {
+      expect(STORAGE_NAME.test(s), s).toBe(true);
+    }
+    expect(STORAGE_NAME.test(`"https://data.rtt.io"`)).toBe(false);
+    for (const s of ["el.innerHTML += x", "el.outerHTML = x", "el.setHTMLUnsafe(x)", "range.createContextualFragment(x)",
+      "document.write(x)", "el.insertAdjacentHTML('beforeend', x)"]) {
+      expect(HTML_SINK.test(s), s).toBe(true);
+    }
+    expect(HTML_SINK.test("el.textContent = x")).toBe(false);
+  });
+});
+
 describe("one place for each thing", () => {
   it("network requests only from platform/ and core/http.ts", () => {
     const allowed = ["src/platform/index.ts", "src/core/http.ts"];
@@ -47,7 +67,7 @@ describe("one place for each thing", () => {
 
   it("storage names only in the two registries (renaming one loses users' data)", () => {
     const allowed = ["src/core/keys.ts", "src/ui/store/keys.ts"];
-    const bad = source.filter((p) => !allowed.includes(rel(p)) && /["'`](liveline|rtt)\.[a-z]+["'`]/.test(code(p))).map(rel);
+    const bad = source.filter((p) => !allowed.includes(rel(p)) && STORAGE_NAME.test(code(p))).map(rel);
     expect(bad).toEqual([]);
   });
 
@@ -58,7 +78,7 @@ describe("one place for each thing", () => {
   });
 
   it("markup reaches the page only through the escaping template (html.ts)", () => {
-    const bad = source.filter((p) => rel(p) !== "src/ui/html.ts" && /\.(innerHTML|outerHTML)\s*=|insertAdjacentHTML/.test(code(p))).map(rel);
+    const bad = source.filter((p) => rel(p) !== "src/ui/html.ts" && HTML_SINK.test(code(p))).map(rel);
     expect(bad).toEqual([]);
   });
 
