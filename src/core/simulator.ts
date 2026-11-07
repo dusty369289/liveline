@@ -4,6 +4,7 @@
 // time; each gets a delay profile from a hash of its identity.
 import type { Http, HttpResponse } from "./http";
 import { sha256Hex } from "./sha256";
+import { simAllocation } from "./sim-stock";
 import { floorMinute, fromLondon, isoLocal, londonOffset, londonParts, type Ms, parseDate, parseTime } from "./time";
 
 interface Loc {
@@ -445,7 +446,7 @@ export class SimTransport implements Http {
       systemStatus: { realtimeNetworkRail: "OK", rttCore: "OK" },
       query: { uniqueIdentity: `gb-nr:${s.identity}:${s.runDate}` },
       service: { scheduleMetadata: this.scheduleMeta(s, false), locations,
-        allocationData: [{ allocationIndex: 0, passengerVehicles: s.pattern.vehicles }],
+        allocationData: [simAllocation(s.pattern.headcode, s.identity, s.pattern.vehicles)],
         origin: [this.pair(s.points[0], true)], destination: [this.pair(s.points[s.points.length - 1], false)], reasons },
     } };
   }
