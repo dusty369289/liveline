@@ -39,6 +39,8 @@ public/css/    CUBE layers; the only raw colours are in themes/platform.css
 android/       Capacitor's Android project (committed), including UpdaterPlugin.java
 test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt/ (RTT recordings), golden/ (frozen
                answers), harness/ (the test review), ui/ (Playwright: *.spec.ts)
+               readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
+docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`
 scripts/       leak-check.mjs, review.mjs, android-build.sh
 ```
 
@@ -233,6 +235,7 @@ npm run dev                     # browser dev server, with the /rtt relay (RTT s
 npm run check                   # typecheck, unit tests, architecture, leak check, build: before every commit
 npm run test:ui                 # browser suite, then open .ui-report/index.html
 npm run review                  # what's slow or flaky, and how to clear it
+npm run readme-pictures         # remake docs/img from the demo after a visible change, then look at them
 scripts/android-build.sh debug  # an APK locally (JDK 21 and the Android SDK; see the script)
 ```
 
