@@ -77,7 +77,6 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: app/package-lock.json
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -85,7 +84,6 @@ jobs:
           cache: gradle
 
       - name: Build as this version
-        working-directory: app
         run: npm version "$VERSION" --no-git-tag-version --allow-same-version
 
       - name: Keystore from secrets
@@ -99,7 +97,6 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
 
       - name: Build
-        working-directory: app
         env:
           LIVELINE_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
           LIVELINE_KEYSTORE_PASSWORD: ${{ secrets.LIVELINE_KEYSTORE_PASSWORD }}
@@ -111,7 +108,7 @@ jobs:
 
       - name: Check the APK is signed and is this version
         run: |
-          apk=app/android/app/build/outputs/apk/release/app-release.apk
+          apk=android/app/build/outputs/apk/release/app-release.apk
           test -f "$apk"
           tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$tools/apksigner" verify --print-certs "$apk"
