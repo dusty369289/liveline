@@ -1,5 +1,6 @@
 /* Every Layout primitives. */
-.wrap { width: 100%; max-width: var(--measure); margin-inline: auto; padding-inline: var(--gutter); }
+.wrap { width: 100%; max-width: var(--measure); margin-inline: auto;
+  padding-inline: max(var(--gutter), env(safe-area-inset-left, 0px)) max(var(--gutter), env(safe-area-inset-right, 0px)); }
 .stack { display: flex; flex-direction: column; gap: var(--s-4); }
 .stack > * { margin: 0; }
 .cluster { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center; }
