@@ -179,8 +179,10 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   the PR keeps "up to date" from costing extra runs.
 - CI doesn't run again on `main` after a merge: a rebase merge of an up-to-date branch puts exactly the tested commits
   there, and a release runs everything again itself.
-- **Agents open PRs; they merge only when the owner says so**, with a rebase merge (the branch is deleted after).
-  Merging never releases.
+- **Agents open PRs; they merge only when the owner says so**, and only with `npm run merge -- <number>`
+  (`scripts/merge-pr.sh`): it refuses unless every required check ran and passed on the PR's current head (skipped
+  doesn't count), then rebase-merges pinned to that commit and deletes the branch. Never `gh pr merge` directly, and
+  never in the same step as a push or a check: push, wait for CI, look, then merge. Merging never releases.
 
 ### Releases
 Releasing is a separate choice. The version lives only in the release tag (`package.json` says `0.0.0-dev`), so there
