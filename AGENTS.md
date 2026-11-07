@@ -170,14 +170,27 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   never `git add -A`. A short subject saying what changed; a body only when the why isn't obvious.
 - Never an AI co-author trailer or a "Generated with" line. All work is attributed to the owner.
 - **Git hooks enforce this** (`scripts/git-hooks/`, switched on by `npm install`). pre-commit lists what's staged
-  (deletions and renames by name), runs the leak check and `npm run check`; commit-msg refuses AI attribution and
-  subjects over 72 characters; pre-push refuses any remote but this repository (a checkout may also carry the old
-  one). Tested in `test/git-hooks.test.ts`. Never `--no-verify`: fix what the hook found.
-- Before pushing a branch, check every commit on it passes alone: `git rebase --exec "npm run check" origin/main`.
+  (deletions and renames by name) and runs `npm run check` (the leak check is part of it); commit-msg refuses AI
+  attribution and subjects over 72 characters; pre-push refuses any remote but this repository (a checkout may also
+  carry the old one). Tested in `test/git-hooks.test.ts`. Never `--no-verify`: fix what the hook found.
+- The hook is what makes every commit pass on its own, so there's no second pass over a branch's commits. After a
+  rebase onto a `main` that moved, only the branch's head is checked again (CI does it): the commits under it passed
+  on the base they were made on, and the PR is the unit that reaches `main`.
+
+### What runs, and when (each once, where it adds something)
+| When | What | Why |
+|---|---|---|
+| Every commit | `npm run check` (the hook) | each commit stands alone |
+| Before opening the PR, if anything shows on screen | `npm run test:ui`, then the contact sheet | looks can only be judged locally |
+| Opening the PR | CI: Checks and Browser | the one run that counts |
+| `main` moved before the merge | rebase, CI again | the only test of the two changes together |
+| After the merge | nothing | the tested commits are what `main` gets |
+| A release | everything, then the signed build | the APK is built from what's on `main` |
 
 ### Definition of done (every PR)
 1. **A bug fix starts with a test that fails** because of the bug, then the fix. A feature has tests for what it does.
-2. `npm run check` passes (typecheck, unit tests, architecture rules, leak check, build) and `npm run test:ui` passes.
+2. `npm run check` passes (typecheck, unit tests, architecture rules, leak check, build): the hook sees to that. For a
+   change you can see, `npm run test:ui` passes locally too; otherwise the PR's Browser job is its run.
 3. The test review is clean or explained: nothing new in `npm run review`, or an `accept`/`explain` with a real reason.
 4. **For a change people can see, the contact sheet was looked at** (`.ui-report/index.html`), at both sizes. Rules
    can't judge looks.
