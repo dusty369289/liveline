@@ -101,10 +101,11 @@
 @media (prefers-reduced-motion: reduce) { .route__train, .route__done { transition: none; } .route__train.is-waiting { animation: none; } }
 
 /* time states */
-.src-actual { font-weight: 600; }
-.src-forecast { font-weight: 400; }
-.src-est { font-weight: 400; color: var(--muted); font-style: italic; }
-.est { font-size: .65em; margin-left: .2em; vertical-align: super; color: var(--muted); font-style: normal; letter-spacing: .02em; }
+/* What kind of time it is shows as a shape before it, not as weight: filled = it happened, ring = Realtime Trains'
+   forecast, dashed ring = our own guess. Shape, not colour, so it reads in both themes and for colour-blind eyes. */
+.src-actual, .src-forecast, .src-est { font-weight: 500; }
+.src-est { color: var(--muted); }
+.when-mark { display: inline-block; width: .6em; height: .6em; margin-right: .38em; vertical-align: .02em; overflow: visible; }
 .is-late { color: var(--late); }
 .is-very-late { color: var(--very-late); }
 .is-early { color: var(--early); }

@@ -16,7 +16,7 @@ import { precision, TIERS } from "../core/rail";
 import type { BudgetState } from "../core/budget";
 import type { TokenInfo } from "../core/rtt";
 import { hm, isoDate, type Ms } from "../core/time";
-import { type Html, html, qs } from "./html";
+import { type Html, html, qs, raw } from "./html";
 
 export interface Query {
   station?: string;
@@ -43,6 +43,17 @@ export function delayClass(s: Shown | null): string {
 }
 
 const hmh = (t: Ms | null) => hm(t, true);
+
+/** What kind of time follows, by shape rather than weight: filled = it happened, ring = RTT's forecast, dashed ring =
+ * our guess. Screen readers get the word. */
+function shape(source: string): Html {
+  // drawn as a tiny vector circle so the dashed ring keeps four even dashes even at 9 px (a CSS dashed border breaks up)
+  const word = source === "actual" ? "reported" : source === "est" ? "our estimate" : "expected";
+  const circle = source === "actual" ? raw('<circle cx="5" cy="5" r="4.5" fill="currentColor"/>')
+    : source === "est" ? raw('<circle cx="5" cy="5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.98 3"/>')
+    : raw('<circle cx="5" cy="5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.6"/>');
+  return html`<svg class="when-mark" viewBox="0 0 10 10" aria-hidden="true" focusable="false">${circle}</svg><span class="visually-hidden">${word} </span>`;
+}
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function dayLabel(t: Ms): string {
@@ -155,9 +166,9 @@ export function boardView(res: BoardResult, q: Query, nav: Record<string, string
     const cancelled = rowCancelled(r);
     const liveCls = cancelled ? "is-cancelled" : mins >= 5 ? "is-very-late" : mins >= 2 ? "is-late" : "";
     const status = cancelled ? html`Cancelled`
-      : t.actual != null ? html`${arr ? "Arr" : "Left"} ${hm(t.actual)}`
-      : liveT != null && mins >= 1 ? html`Exp ${hm(liveT)}`
-      : liveT != null ? html`On time` : html`<span class="muted">No report</span>`;
+      : t.actual != null ? html`${shape("actual")}${arr ? "Arr" : "Left"} ${hm(t.actual)}`
+      : liveT != null && mins >= 1 ? html`${shape("forecast")}Exp ${hm(liveT)}`
+      : liveT != null ? html`${shape("forecast")}On time` : html`<span class="muted">No report</span>`;
     const meta = [
       isBus(r) ? html`<strong>Bus</strong> · ` : "",
       !forPassengers(r) ? html`<strong>Not in service</strong> · ` : "",
@@ -273,9 +284,9 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
       const src = main.source === "actual" ? "actual" : main.source === "est" ? "est" : main.source === "booked" ? "booked" : "forecast";
       let shownTime: Html | "" = "";
       if (!isCancelled(pt) && main.source === "forecast" && !changed(main) && pt.kind === "call") {
-        shownTime = html`<span class="route__ontime">On time</span>`;
+        shownTime = html`${shape("forecast")}<span class="route__ontime">On time</span>`;
       } else if (!isCancelled(pt) && main.source !== "booked" && !(main.source === "est" && !changed(main)) && !(main.source === "forecast" && !changed(main))) {
-        shownTime = html`${main.source === "est" ? hm(main.time) : hmh(main.time)}${main.source === "est" ? html`<span class="est">est</span>` : ""}${
+        shownTime = html`${shape(main.source)}${main.source === "est" ? hm(main.time) : hmh(main.time)}${
           main.delayMin ? html`<span class="route__delay">${main.delayMin > 0 ? "+" : "−"}${Math.abs(main.delayMin)}</span>` : ""}`;
       }
       times = html`<span class="route__booked tnum">${pt.kind === "pass" ? hmh(main.booked) : hm(main.booked)}</span><span class="route__live tnum ${delayClass(main)} src-${src}">${shownTime}</span>`;
@@ -334,9 +345,9 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   <details class="legend">
     <summary>How to read this</summary>
     <dl class="legend__list">
-      <dt><span class="src-actual tnum">14:41</span></dt><dd>Reported by Realtime Trains, to the minute on the free plan and to the quarter minute (¼ ½ ¾) with detailed mode.</dd>
-      <dt><span class="src-forecast tnum">14:41</span></dt><dd>Realtime Trains’ forecast.</dd>
-      <dt><span class="src-est tnum">14:41<span class="est">est</span></span></dt><dd>Our estimate, where Realtime Trains gives none. It carries the delay forward and allows for booked recovery time.</dd>
+      <dt><span class="src-actual tnum">${shape("actual")}14:41</span></dt><dd><strong>Happened:</strong> reported by Realtime Trains. To the minute on the free plan, to the quarter minute (¼ ½ ¾) with detailed mode.</dd>
+      <dt><span class="src-forecast tnum">${shape("forecast")}14:41</span></dt><dd><strong>Expected:</strong> Realtime Trains’ forecast. “On time” when it matches the booked time.</dd>
+      <dt><span class="src-est tnum">${shape("est")}14:41</span></dt><dd><strong>Our guess</strong>, where Realtime Trains gives none. It carries the delay forward and allows for booked recovery time.</dd>
       <dt><span class="tick" aria-hidden="true"></span> Small rows</dt><dd>Timing points the train passes without stopping: junctions and stations it runs through. Booked times there are working-timetable times, which can be on the half minute (½). Signals aren't in Realtime Trains' data.</dd>
       <dt><span class="train-swatch" aria-hidden="true"></span> Yellow panel</dt><dd>Where we think the train is now. Between reports it moves at the booked speed for that section and stops short of the next point until that point is reported.</dd>
     </dl>
@@ -458,7 +469,7 @@ export function aboutView(demo: boolean, info: TokenInfo | null, tokenError: str
   <ul class="bullets">
     <li>Signals and track circuits aren't in Realtime Trains' data, only timing points. Between two timing points, where the train is shown is our estimate.</li>
     <li>Reports are to the minute (to the quarter minute with detailed mode), so a train can be a little ahead of or behind where it's shown.</li>
-    <li>Times marked <span class="src-est">est</span> are ours. Everything else comes from Realtime Trains.</li>
+    <li>A filled disc ${shape("actual")}means it happened, a ring ${shape("forecast")}is Realtime Trains’ forecast, and a dashed ring ${shape("est")}is our own guess. Everything except the dashed ring comes from Realtime Trains.</li>
   </ul>
   <p class="hint">Version ${version}. Source: <a href="https://github.com/dusty369289/liveline" target="_blank" rel="noopener">github.com/dusty369289/liveline</a> (MIT).
     Station list: <a href="https://github.com/davwheat/uk-railway-stations" target="_blank" rel="noopener">uk-railway-stations</a> (ODbL), from Trainline EU's data.
