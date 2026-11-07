@@ -165,17 +165,18 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
 6. The PR description says what changed, why, how it was tested, and what couldn't be (on a real phone, say).
 
 ### Pull requests
-- **Nothing sits unpushed.** Every branch starts from `main` and goes up as a **draft PR** with its first commit
-  (`gh pr create --draft`). CI doesn't run on drafts, so pushing work in progress costs nothing.
-- **Side by side, never stacked.** Independent pieces of work are separate draft PRs and move in parallel. Work that
-  depends on another piece is folded into that PR, never a branch made from another branch.
-- **Mark it ready once** (`gh pr ready`) when the definition of done is met: that's its CI run. If `main` moved since
-  it branched (another PR merged), rebase it onto `main` first, so that one run is also the run that counts. Pushing
-  to a ready PR re-runs CI (and cancels the older run), so fix review points in one push.
+- **Nothing sits unpushed.** Every branch starts from `main` and is pushed as soon as it has a commit, and again as
+  work goes on. A branch push runs no CI (there's no PR yet), so it costs nothing.
+- **Side by side, never stacked.** Independent pieces of work are separate branches and move in parallel. Work that
+  depends on another piece is folded into that branch, never a branch made from another branch.
+- **Open the PR when the definition of done is met** (`gh pr create`): that's its CI run. If `main` moved since the
+  branch started (another PR merged), rebase onto `main` first, so that one run is also the run that counts. Pushing
+  to an open PR re-runs CI (and cancels the older run), so fix review points in one push. No draft PRs: CI must never
+  skip its jobs to save a run, because GitHub counts a skipped required check as passed.
 - Its title is the line release notes will show, in plain words.
 - CI must pass both required checks, **Checks** and **Browser**, on a branch up to date with `main`. `main` takes no
-  direct pushes, force-pushes or merge commits (ruleset "main: PRs and green checks"). Rebasing just before marking
-  ready keeps "up to date" from costing extra runs.
+  direct pushes, force-pushes or merge commits (ruleset "main: PRs and green checks"). Rebasing just before opening
+  the PR keeps "up to date" from costing extra runs.
 - CI doesn't run again on `main` after a merge: a rebase merge of an up-to-date branch puts exactly the tested commits
   there, and a release runs everything again itself.
 - **Agents open PRs; they merge only when the owner says so**, with a rebase merge (the branch is deleted after).
