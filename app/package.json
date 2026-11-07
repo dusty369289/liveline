@@ -1,6 +1,6 @@
 {
   "name": "liveline-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LiveLine: where your train really is, between stations. Android app (Capacitor) and web build.",
   "private": true,
   "type": "module",
