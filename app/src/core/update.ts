@@ -28,6 +28,17 @@ export interface Release {
   notes: string;
 }
 
+/**
+ * Release notes in a line people can read: GitHub's generated notes are "* Title by @user in https://…/pull/5"
+ * bullets under headings, plus a "Full Changelog" link. Keep just the titles, joined.
+ */
+export function summary(body: string): string {
+  const lines = body.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !/^\*\*Full Changelog\*\*/i.test(l));
+  const titles = lines.map((l) => l.replace(/^[*-]\s+/, "").replace(/\s+by @[\w-]+ in https?:\/\/\S+$/, "").replace(/https?:\/\/\S+/g, "").trim())
+    .filter(Boolean);
+  return titles.join(" · ");
+}
+
 export function readRelease(body: unknown): Release | null {
   if (!body || typeof body !== "object") return null;
   const b = body as Record<string, unknown>;
@@ -36,7 +47,7 @@ export function readRelease(body: unknown): Release | null {
   const apk = assets.find((a) => typeof a.name === "string" && a.name.endsWith(".apk"));
   const sumFile = assets.find((a) => typeof a.name === "string" && a.name.endsWith(".apk.sha256"));
   const digest = apk && typeof apk.digest === "string" && apk.digest.startsWith("sha256:") ? apk.digest.slice(7) : null;
-  const notes = typeof b.body === "string" ? b.body.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim() ?? "" : "";
+  const notes = typeof b.body === "string" ? summary(b.body) : "";
   return {
     version: b.tag_name.replace(/^v/, ""),
     apkUrl: apk && typeof apk.browser_download_url === "string" ? apk.browser_download_url : null,
