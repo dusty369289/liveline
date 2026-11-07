@@ -1,8 +1,9 @@
 name: CI
 
-# Runs on pull requests that are ready for review, and when a release calls it. Not on drafts (open a PR as a draft
-# while it's being worked on, and mark it ready once), and not on main after a merge: a rebase merge of an up-to-date
-# branch puts exactly the tested commits on main, and a release runs everything again itself.
+# Runs on pull requests, and when a release calls it. Not on plain branch pushes (push a branch freely while working;
+# opening its PR is what runs CI, once), and not on main after a merge: a rebase merge of an up-to-date branch puts
+# exactly the tested commits on main, and a release runs everything again itself.
+# Never skip these jobs with `if:`: GitHub counts a skipped required check as passed, so a PR could merge untested.
 # The two job names, "Checks" and "Browser", are the required checks in the "main" ruleset: rename a job and the
 # ruleset must change with it, or no PR can merge.
 on:
@@ -22,7 +23,6 @@ concurrency:
 jobs:
   checks:
     name: Checks
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,7 +37,6 @@ jobs:
 
   browser:
     name: Browser
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
