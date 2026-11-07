@@ -15,11 +15,16 @@ export class LiveTrain {
   private failures = 0;
   private busy = false;
   private stopped = false;
+  private done = false; // journey over: no more background polls
   private region: HTMLElement;
   private passes: HTMLInputElement;
   private onVisible = () => {
+    if (document.visibilityState !== "visible" || this.done) return;
+    // back in the app: fetch now only if the planned poll is already due, else wait for it
+    const due = (this.refreshSecs() ?? Infinity) * 1000;
     const age = Date.now() - this.fetchedAt();
-    if (document.visibilityState === "visible" && age > MIN_AGE * 2) void this.refresh(false);
+    if (age >= Math.max(due, MIN_AGE * 2)) void this.refresh(false);
+    else this.schedule((due - age) / 1000);
   };
   private onResize = () => this.place(true);
 
@@ -45,7 +50,18 @@ export class LiveTrain {
       this.place(false);
       this.age();
     }, 1000);
-    this.schedule(this.refreshSecs());
+    const secs = this.refreshSecs();
+    if (secs == null) this.finished();
+    else this.schedule(secs);
+  }
+
+  /** Nothing more will change for this journey: stop polling, and say so rather than look frozen. */
+  private finished(): void {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    this.done = true;
+    const el = this.region.querySelector("[data-age]");
+    if (el) el.insertAdjacentText("afterend", ". Journey over, so it's no longer updating (Refresh still works).");
   }
 
   stop(): void {
@@ -63,9 +79,11 @@ export class LiveTrain {
     const l = this.live();
     return l ? Number(l.dataset.fetched) : 0;
   }
-  private refreshSecs() {
+  /** From the last answer (poll.ts). Null: the train arrived, is cancelled, or you've left it, so stop asking. */
+  private refreshSecs(): number | null {
     const l = this.live();
-    return l ? Number(l.dataset.refresh) || 30 : 30;
+    if (!l) return 30;
+    return l.dataset.refresh ? Number(l.dataset.refresh) || 30 : null;
   }
 
   private rowCentre(row: Element | null | undefined, wrap: Element): number | null {
@@ -164,14 +182,11 @@ export class LiveTrain {
 
   async refresh(force: boolean): Promise<void> {
     if (this.stopped) return;
-    if (!force && document.visibilityState !== "visible") {
-      this.schedule(15);
-      return;
-    }
+    if (!force && document.visibilityState !== "visible") return; // onVisible picks it up when the app comes back
     if (this.busy) return;
     this.busy = true;
     try {
-      const res = await this.rail.service(this.uid, { background: !force, force });
+      const res = await this.rail.service(this.uid, { background: !force, force, at: this.at, to: this.to });
       if (this.stopped) return;
       const tl = res.timeline;
       const fresh = liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false));
@@ -188,7 +203,9 @@ export class LiveTrain {
     } finally {
       this.busy = false;
     }
-    this.schedule(Math.min(this.refreshSecs() * (1 + this.failures), 300));
+    const secs = this.refreshSecs();
+    if (secs == null) return this.finished();
+    this.schedule(Math.min(secs * (1 + this.failures), 300));
   }
 
   private refreshNow(): void {

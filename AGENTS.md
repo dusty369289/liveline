@@ -78,9 +78,17 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
   where RTT gives no forecast, or where RTT's forecast is impossible (earlier than the train could get there even
   winning back all slack). Labelled "est" either way. The tuning is a guess, not backtested.
 - **Where it lost time:** the section between two reported points where lateness grew most, shown from 2 min.
-- **Polling:** the marker moves every second. The train is refetched every `3600 / (calls left this hour - 10)` s,
-  never under 30 s, and every 600 s once only the reserve is left (`Budget.refreshInterval`). Refresh only refetches an answer older than 15 s, so spamming it is
-  free. The last 10 calls of each hour are kept for searches. Polling stops while the app is in the background.
+- **Polling** (`app/src/core/poll.ts`): the marker moves every second on its own; the train is refetched when the next
+  report can exist, never more than once a minute. Running: 20 s after it's due at the next point (60 to 120 s).
+  Waiting at a station: just after its departure time. Not started: about a minute before it's due, at least every
+  3 minutes. Overdue: every minute. Your stop over 40 minutes off: every 2 minutes. Arrived, cancelled, or past your
+  stop: polling stops ("Journey over"). One tracked train costs about 45 calls an hour. The allowance's own floor
+  (`Budget.refreshInterval`: `3600 / (calls left this hour - 10)`) can only slow it further, and background polls never
+  touch the last 10 calls of the hour, kept for searches. Nothing polls while the app is in the background, and coming
+  back fetches only if the planned poll is due. Refresh refetches only an answer over 15 s old, so spamming it is free.
+- **Boards:** a "now" board updates itself every 2 minutes while on screen (a background call), for 15 minutes, then
+  waits for Refresh. A board seen again after the minute ticks over reuses the last answer if it's under a minute old.
+  The Python reference keeps its own simpler polling; this schedule lives in the app.
 - **Your stop:** a train opened from a board knows your stop and destination; the top panel gives "N min", stops away
   and platform (solid plate confirmed, outlined expected).
 - **Tiers** come from entitlements and reported limits, not names: `allowDetailed` means Hobbyist features (detailed
