@@ -57,8 +57,9 @@ export async function audit(page: Page): Promise<string[]> {
       if (cs.display === "none" || cs.visibility === "hidden" || el.closest("[hidden], .visually-hidden")) continue;
       const b = el.getBoundingClientRect();
       if (!b.width || !b.height) continue;
+      // (Decorative art, aria-hidden, is meant to run off its window: the Train view's scenery and signs)
       if ((cs.overflow === "hidden" || cs.textOverflow === "ellipsis") && el.scrollWidth > el.clientWidth + 1
-        && el.textContent?.trim() && cs.textOverflow !== "ellipsis") {
+        && el.textContent?.trim() && cs.textOverflow !== "ellipsis" && !el.closest('[aria-hidden="true"]')) {
         out.push(`clipped: .${el.className} "${el.textContent.trim().slice(0, 30)}"`);
       }
     }

@@ -1,0 +1,107 @@
+/* The train page's tabs: plain words with an underline for the one showing, like the top bar. No pills. */
+.tabs { display: flex; gap: var(--s-5); border-bottom: 1px solid var(--line); }
+.tabs__tab {
+  min-height: var(--tap); padding: 0; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  font: 600 var(--t-md)/1 var(--sign-font); color: var(--muted); cursor: pointer;
+}
+.tabs__tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs__tab:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }
+.train[data-tab="scene"] .trainbar__jump { visibility: hidden; } /* the Train view is always on the train */
+
+/* The Train view: scenery edge to edge, the train in a sideways scroller over it */
+/* 300 px of scenery, then the coach names and facility icons on the page's own colour */
+.scene { position: relative; height: 354px; margin-inline: calc(-1 * var(--gutter)); overflow: hidden; }
+.scene__art { position: absolute; inset: 0 0 auto 0; height: 300px; overflow: hidden; }
+.scene__sky, .scene__layer, .scene__platform { position: absolute; top: 0; left: 0; display: block; }
+.scene__layer, .scene__platform { will-change: transform; } /* each its own composited layer: sliding repaints nothing */
+.scene__platform svg { display: block; }
+.scene__scroller {
+  position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.scene__scroller::-webkit-scrollbar { display: none; }
+.scene__scroller:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
+.scene__content { position: relative; height: 100%; box-sizing: border-box; }
+.scene__train { display: block; }
+.scene__platform.is-gone { display: none; }
+
+/* What the scenery is made of: every colour a token (themes/scene.css) */
+.sc-sky { fill: var(--sc-sky); } .sc-low { fill: var(--sc-low); } .sc-sun { fill: var(--sc-sun); }
+.sc-moon-cut { fill: var(--sc-moon-cut); }
+.sc-stars { fill: var(--sc-star); opacity: var(--sc-stars); }
+.sc-cloud { fill: var(--sc-cloud); } .sc-far { fill: var(--sc-far); } .sc-mid { fill: var(--sc-mid); }
+.sc-tree { fill: var(--sc-tree); } .sc-trunk { fill: var(--sc-trunk); }
+.sc-house { fill: var(--sc-house); } .sc-roof { fill: var(--sc-roof); } .sc-house-window { fill: var(--sc-house-window); }
+.sc-sheep { fill: var(--sc-sheep); } .sc-sheep-face { fill: var(--sc-sheep-face); }
+.sc-fence { fill: var(--sc-fence); } .sc-hedge { fill: var(--sc-hedge); }
+.sc-ballast { fill: var(--sc-ballast); } .sc-sleeper { fill: var(--sc-sleeper); } .sc-rail { fill: var(--sc-rail); }
+.sc-fore { fill: var(--sc-fore); } .sc-tuft { fill: var(--sc-tuft); }
+.sc-coach { fill: var(--sc-coach); } .sc-coach-window { fill: var(--sc-coach-window); } .sc-door { fill: var(--sc-door); }
+.sc-gangway { fill: var(--sc-gangway); } .sc-stripe { fill: var(--sc-stripe); } .sc-front { fill: var(--sc-front); }
+.sc-screen { fill: var(--sc-screen); } .sc-lamp { fill: var(--sc-lamp); } .sc-tail { fill: var(--sc-tail); }
+.sc-plate { fill: var(--sc-plate); }
+.sc-plate-ink { fill: var(--sc-plate-ink); font: 700 11px var(--sign-font); }
+.sc-wheel { fill: var(--sc-wheel); transform-box: fill-box; transform-origin: center; transform: rotate(var(--turn, 0deg)); }
+.sc-spoke { fill: var(--sc-spoke); }
+.sc-wall { fill: var(--sc-wall); } .sc-wall-line { fill: var(--sc-wall-line); } .sc-canopy { fill: var(--sc-canopy); }
+.sc-valance { fill: var(--sc-valance); } .sc-valance-row { fill: url(#sc-valance); }
+.sc-platform { fill: var(--sc-platform); } .sc-edge { fill: var(--sc-edge); } .sc-sign { fill: var(--sc-sign); }
+.sc-sign-ink { fill: var(--sc-sign-ink); font: 700 15px var(--sign-font); }
+@keyframes graze { 50% { transform: translateY(1.2px); } }
+.sc-graze { animation: graze 2.6s ease-in-out infinite; }
+
+/* The coaches' names, under each coach: drawn right to left, as the train faces */
+.scene__coaches { position: absolute; top: 300px; } /* starts where the train does (the content's left padding) */
+.coaches { list-style: none; margin: 0; padding: 0 26px 0 0; display: flex; flex-direction: row-reverse; } /* 26: the nose */
+.coaches__item { width: 156px; box-sizing: border-box; padding: var(--s-1) var(--s-2) 0; display: grid; align-content: start; }
+.coaches__name { font: 700 var(--t-sm)/1.2 var(--sign-font); color: var(--ink); }
+.coaches__what { font-size: var(--t-xs); line-height: 1.25; color: var(--muted); }
+.coaches__icons { display: flex; flex-wrap: wrap; gap: 2px 6px; margin-top: 3px; color: var(--ink); }
+
+/* Facility icons: strokes in the text colour; a name where there's no icon */
+.facility { display: inline-flex; }
+.facility--text { font-size: var(--t-xs); color: var(--muted); }
+.facility__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.facility-key { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); color: var(--muted); }
+.facility-key li { display: inline-flex; align-items: center; gap: var(--s-1); }
+.facility-key .facility__icon { color: var(--ink); }
+.scene__note { gap: var(--s-2); }
+
+/* Which coaches are on screen */
+.scene__map { display: flex; align-items: center; gap: var(--s-3); }
+.scene__map-bar { flex: 1; display: flex; gap: 3px; }
+.scene__map-bar i { flex: 1; height: 8px; background: var(--line); border-radius: 1px; }
+.scene__map-bar i.is-seen { background: var(--ink); }
+.scene__map-bar i:last-child { border-radius: 1px 4px 4px 1px; } /* the front */
+.scene__map-text { font-size: var(--t-xs); color: var(--muted); white-space: nowrap; }
+
+/* The two ends along the bottom, the train's dot between them on a short Beck-style line */
+/* Both ends share three rows (where, time, lateness), so the times sit level whatever wraps above them, and the line
+   runs in the time row, between the two marks. Equal room for each end, and always some line between. */
+.scene__ends {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(3rem, 22%) minmax(0, 1fr);
+  grid-template-rows: auto auto auto; column-gap: var(--s-3); row-gap: .15rem;
+}
+.scene__end { display: contents; }
+.scene__end--from > * { grid-column: 1; }
+.scene__end--to > * { grid-column: 3; justify-self: end; text-align: right; }
+.scene__where { grid-row: 1; align-self: end; }
+.scene__time { grid-row: 2; }
+.scene__late { grid-row: 3; }
+.scene__ends > .scene__line, .scene__ends > span:not([class]) { grid-row: 2; grid-column: 2; }
+.scene__where { font: 600 var(--t-xs)/1.2 var(--sign-font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.scene__time { font: 700 1.875rem/1 var(--sign-font); display: inline-flex; align-items: center; gap: .35rem; }
+.scene__late { font-size: var(--t-xs); font-weight: 600; min-height: 1em; }
+.scene__line { position: relative; height: 20px; align-self: center; }
+.scene__line::before { content: ""; position: absolute; left: 4px; right: 4px; top: 8px; height: 4px; background: var(--ink); }
+.scene__line::after {
+  content: ""; position: absolute; right: 0; top: 5px; width: 10px; height: 10px; box-sizing: border-box;
+  border-radius: 50%; border: 2px solid var(--ink); background: var(--page);
+}
+.scene__dot {
+  position: absolute; top: 3px; left: 0; width: 14px; height: 14px; margin-left: -7px; box-sizing: border-box; z-index: 1;
+  border-radius: 50%; background: var(--train); border: 2px solid var(--train-edge);
+}
+.scene__headline { font-size: var(--t-base); }
+
+@media (prefers-reduced-motion: reduce) { .sc-graze { animation: none; } }

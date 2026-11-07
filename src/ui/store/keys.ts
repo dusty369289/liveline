@@ -9,6 +9,7 @@ export const KEYS = {
   tracking: "liveline.tracking", // the single train older versions kept; still read once and written
   update: "liveline.update",
   marker: "liveline.marker",
+  trainTab: "liveline.trainTab", // Route or Train view, whichever you used last
 } as const;
 
 export type Key = (typeof KEYS)[keyof typeof KEYS];

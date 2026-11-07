@@ -18,6 +18,13 @@ export function delayClass(s: Shown | null): string {
   return "is-ontime";
 }
 
+/** "7 min late", "On time", "2 min early"; "" for a time that's only booked (nothing to compare). */
+export function lateness(s: Shown | null): string {
+  if (!s || s.source === "booked" || s.delayMin == null) return "";
+  if (s.delayMin === 0) return "On time";
+  return s.delayMin > 0 ? `${s.delayMin} min late` : `${-s.delayMin} min early`;
+}
+
 /** A time with half minutes shown (½), for working-timetable times. */
 export const hmh = (t: Ms | null) => hm(t, true);
 

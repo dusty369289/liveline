@@ -31,6 +31,7 @@ describe("updates keep the user's data", () => {
       tracking: "liveline.tracking",
       update: "liveline.update",
       marker: "liveline.marker",
+      trainTab: "liveline.trainTab", // new in the Train view: nothing older to migrate
     });
   });
 

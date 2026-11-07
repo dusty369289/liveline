@@ -5,6 +5,7 @@ import type { ServiceResult } from "../../core/rail";
 import { hm } from "../../core/time";
 import { timeMark } from "../components/marks";
 import { type Html, html, raw } from "../html";
+import { TRAIN_TABS, type TrainTabName } from "../store/train-tab";
 import { liveRegion } from "./live-region";
 
 const REFRESH_ICON = raw('<svg class="icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
@@ -28,7 +29,16 @@ const legend = html`
     </dl>
   </details>`;
 
-export function trainView(res: ServiceResult, uid: string, at: string, to: string, stop: StopSummary | null, off: StopSummary | null): Html {
+const tabs = (tab: TrainTabName) => html`
+  <div class="tabs" role="tablist" aria-label="Show the train as" data-train-tabs>${TRAIN_TABS.map(([name, label]) => html`
+    <button type="button" class="tabs__tab" role="tab" id="tab-${name}" data-tab="${name}" aria-controls="panel-${name}"
+      aria-selected="${tab === name ? "true" : "false"}" tabindex="${tab === name ? "0" : "-1"}">${label}</button>`)}
+  </div>`;
+
+export interface TrainViewOpts { tab: TrainTabName; scene: Html }
+
+export function trainView(res: ServiceResult, uid: string, at: string, to: string, stop: StopSummary | null, off: StopSummary | null,
+  opts: TrainViewOpts): Html {
   const s = res.timeline.service;
   const start = s.origins[0]?.time ?? null;
   const ends = s.destinations[0]?.time ?? null;
@@ -39,7 +49,7 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   <header class="train__head">
     <p class="label">${label}</p>
     <h1>${start != null ? html`<span class="tnum">${hm(start)}</span> ` : ""}${originName(s)} to ${destinationName(s)}</h1>
-    ${s.units.length ? html`<p class="hint">Units ${s.units.join(", ")}</p>` : ""}
+    ${s.units.length ? html`<p class="hint">${s.units.length === 1 ? "Unit" : "Units"} ${s.units.join(", ")}</p>` : ""}
     ${s.mode !== "TRAIN" ? html`<p class="banner" role="note">This is a ${s.mode.replaceAll("_", " ").toLowerCase()}, not a train.</p>` : ""}
   </header>
   <div class="trainbar" data-trainbar>
@@ -48,7 +58,11 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
     <p class="visually-hidden" data-refresh-note role="status" aria-live="polite"></p>
     <button type="button" class="linkish trainbar__jump" data-jump>Jump to train</button>
   </div>
-  <div data-live-region>${liveRegion(res, at, to, stop, off)}</div>
-  ${legend}
+  ${tabs(opts.tab)}
+  <div class="stack" id="panel-route" role="tabpanel" aria-labelledby="tab-route" ${opts.tab === "route" ? "" : html`hidden`}>
+    <div data-live-region>${liveRegion(res, at, to, stop, off)}</div>
+    ${legend}
+  </div>
+  ${opts.scene}
 </article>`;
 }
