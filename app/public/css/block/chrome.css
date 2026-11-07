@@ -26,7 +26,7 @@ main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late
 .footer { color: var(--muted); font-size: var(--t-xs); padding-block: var(--s-5) max(var(--s-5), env(safe-area-inset-bottom)); }
 
 .label { color: var(--muted); font: 600 var(--t-xs)/1.2 var(--sign-font); letter-spacing: .08em; text-transform: uppercase; }
-.hint { color: var(--muted); font-size: var(--t-sm); }
+.hint { color: var(--muted); font-size: var(--t-sm); overflow-wrap: anywhere; } /* a long link never runs over what follows */
 .muted { color: var(--muted); }
 .problem { color: var(--problem); }
 .empty { color: var(--muted); padding-block: var(--s-5); }
@@ -36,6 +36,27 @@ main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late
 .prose h2 { margin-top: var(--s-4); }
 .steps { list-style: decimal; padding-left: 1.4em; display: grid; gap: var(--s-2); }
 .bullets { list-style: disc; padding-left: 1.2em; display: grid; gap: var(--s-2); }
+/* Settings: the key folds to one line once it works */
+.keybox { border-block: 1px solid var(--line); }
+.keybox__summary { display: flex; align-items: center; gap: var(--s-3); min-height: 3.25rem; cursor: pointer; list-style: none; }
+.keybox__summary::-webkit-details-marker { display: none; }
+.keybox__text { flex: 1; min-width: 0; display: grid; gap: .1rem; }
+.keybox__title { font-size: var(--t-md); margin: 0; }
+.keybox__line { font-size: var(--t-sm); color: var(--muted); }
+.keybox__line strong { color: var(--ink); }
+.keybox__manage { color: var(--ink); text-decoration: underline; text-underline-offset: .2em; font-size: var(--t-sm); }
+.keybox[open] .keybox__manage { color: var(--muted); }
+.keybox__body { padding-bottom: var(--s-4); }
+
+/* Settings: appearance */
+.markers { border: 0; margin: 0; padding: 0; display: grid; gap: 0; }
+.markers legend { padding: 0; margin-bottom: var(--s-2); color: var(--muted); font-size: var(--t-sm); }
+.markers__opt { display: flex; align-items: center; gap: var(--s-3); min-height: 3rem; cursor: pointer; }
+.markers__demo { position: relative; flex: none; width: 2.25rem; height: 2.75rem; }
+.markers__demo::before { content: ""; position: absolute; left: calc(1.125rem - 3px); top: 0; bottom: 0; width: 6px; background: var(--ink); }
+.markers__demo .route__train { top: 45%; transition: none; animation: none; }
+.settings__about { padding-top: var(--s-4); border-top: 1px solid var(--line); }
+
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--s-2) var(--s-4); }
 .facts dt { color: var(--muted); }
 
