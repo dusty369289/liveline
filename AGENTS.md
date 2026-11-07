@@ -88,7 +88,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
   waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
-  match), and a folded "Another time or day" (otherwise, now).
+  match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
+  empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or
+  coming back (`test/ui/fit.spec.ts`).
 - **Train page:** every location RTT returns. Calls are full rows; passing points fold into one "N passing points" row
   between two stops (tap to open, "Fold away" closes; both survive refreshes). The group the train is in opens by
   itself unless you folded it. Passed stops are filled in. Each
@@ -123,7 +125,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
-  the train marker (Dot default, Bar, Arrow, Train front). About is linked at the foot (tabs: Search, Recent, Settings).
+  the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
+  for Settings (named "Settings" for screen readers).
 - **Tiers** come from entitlements and reported limits: `allowDetailed` = Hobbyist features, a full-allocation
   entitlement or over 100 an hour = Team or above, nothing = Free.
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
@@ -135,7 +138,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 
 The "Platform" look, from British rail signage: warm paper and navy ink (deep navy at night), Barlow and Barlow Semi
 Condensed, navy sign plates for platforms, a thick Beck-style line with ringed stops, the train as a yellow marker with
-an ink edge, one giant "N min" number. No cards, boxes, glow, gradients or pills: hierarchy comes from type. CUBE
+an ink edge, one giant "N min" number. No cards, boxes, glow, gradients or pills: hierarchy comes from type. Two
+deliberate exceptions, so each page is known at a glance: a board's station name is a navy nameboard, and Settings
+groups its rows in panels, like a phone's settings. CUBE
 layers `tokens, base, composition, block, utility, exception`; themes are token-only files. Phone first (412 px and
 360 px), 44 px touch targets (links inside sentences excepted), edge to edge with `env(safe-area-inset-*)`. Every text
 colour is at least 4.5:1 on what it sits on, in both themes, and the train marker 3:1 (`test/design.test.ts`).

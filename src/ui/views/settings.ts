@@ -37,19 +37,25 @@ function keyForm(d: SettingsData): Html {
     ${d.demo ? "" : html`<p><button class="linkish" type="button" data-forget-key>Forget my key on this ${where}</button></p>`}`;
 }
 
+/** A settings group: its name above, its rows in a panel below, the way phone settings screens are laid out. */
+function group(id: string, title: string, body: Html): Html {
+  return html`<section class="settings__group" aria-labelledby="${id}">
+    <h2 id="${id}" class="settings__title">${title}</h2>
+    <div class="panel">${body}</div>
+  </section>`;
+}
+
 /** No key: the form, open. A working key: one line that opens to manage it. A problem: open, saying so. */
 function keySection(d: SettingsData): Html {
   if (d.demo) {
-    return html`<section class="stack" aria-labelledby="key-h">
-    <h2 id="key-h">Realtime Trains key</h2>
+    return group("key-h", "Realtime Trains key", html`<div class="panel__row stack">
     <p>No key yet, so the trains you see are <strong>simulated</strong>. Get a free key at
       <a href="https://api-portal.rtt.io" target="_blank" rel="noopener">api-portal.rtt.io</a>, then paste it here.</p>
-    ${keyForm(d)}
-  </section>`;
+    ${keyForm(d)}</div>`);
   }
   const open = !!(d.tokenError || d.error);
-  return html`<section aria-labelledby="key-h"><details class="keybox" ${open ? html`open` : ""}>
-    <summary class="keybox__summary"><span class="keybox__text"><h2 id="key-h" class="keybox__title">Realtime Trains key</h2>
+  return group("key-h", "Realtime Trains key", html`<details class="keybox" ${open ? html`open` : ""}>
+    <summary class="keybox__summary panel__row"><span class="keybox__text"><span class="keybox__title">Your key</span>
       <span class="keybox__line">${d.tokenError ? html`<span class="problem">Needs attention</span>`
         : html`${doneMark()}<strong>${d.tier.name}</strong> · <span class="tnum">${d.hint ?? "set"}</span>`}</span></span>
       <span class="keybox__manage">Manage</span></summary>
@@ -63,20 +69,18 @@ function keySection(d: SettingsData): Html {
         ${d.info?.historyDays ? html`<dt>History</dt><dd>Trains from the last ${d.info.historyDays} days</dd>` : ""}
       </dl>
       ${keyForm(d)}
-    </div></details></section>`;
+    </div></details>`);
 }
 
 function appearanceSection(d: SettingsData): Html {
-  return html`<section class="stack" aria-labelledby="look-h">
-    <h2 id="look-h">Appearance</h2>
+  return group("look-h", "Appearance", html`
     <fieldset class="markers">
-      <legend>The train on the route</legend>
-      ${MARKER_STYLES.map(([value, label]) => html`<label class="markers__opt">
-        <input type="radio" name="marker" value="${value}" data-marker-choice ${d.marker === value ? html`checked` : ""}>
+      <legend class="panel__row panel__legend">The train on the route</legend>
+      ${MARKER_STYLES.map(([value, label]) => html`<label class="markers__opt panel__row">
         <span class="markers__demo" aria-hidden="true"><span class="route__train" data-m="${value}"></span></span>
-        <span>${label}</span></label>`)}
-    </fieldset>
-  </section>`;
+        <span class="markers__name">${label}</span>
+        <input type="radio" name="marker" value="${value}" data-marker-choice ${d.marker === value ? html`checked` : ""}></label>`)}
+    </fieldset>`);
 }
 
 function updateBody(u: UpdateInfo, selfUpdate: boolean): Html {
@@ -100,8 +104,7 @@ function updateBody(u: UpdateInfo, selfUpdate: boolean): Html {
 
 function tiersSection(tier: Tier): Html {
   const isCurrent = (name: string) => tier.name === name || (name === "Team" && tier.name === "Team or above");
-  return html`<section class="stack" aria-labelledby="tier-h">
-    <h2 id="tier-h">What each plan gives you here</h2>
+  return group("tier-h", "What each plan gives you here", html`<div class="panel__row stack">
     <table class="tiers">
       <thead><tr><th scope="col">Plan</th><th scope="col">In this app</th><th scope="col">Cost</th></tr></thead>
       <tbody>${TIERS.map(([name, what, cost]) => html`
@@ -111,24 +114,22 @@ function tiersSection(tier: Tier): Html {
     </table>
     <p class="hint">The app switches features on from what your key is actually allowed, as Realtime Trains reports it.
       A higher plan's bigger allowance means trains refresh more often, worked out from the limits each answer reports.</p>
-  </section>`;
+  </div>`);
 }
 
 export function settingsView(d: SettingsData): Html {
   return html`
-<div class="stack prose settings">
+<div class="stack settings">
   <h1>Settings</h1>
   ${d.message ? html`<p class="banner" role="status">${d.message}</p>` : ""}
   ${d.error ? html`<p class="problem" role="alert">${d.error}</p>` : ""}
   ${keySection(d)}
   ${appearanceSection(d)}
-  <section class="stack" aria-labelledby="update-h">
-    <h2 id="update-h">Updates</h2>
-    <div data-update-body>${updateBody(d.update, d.selfUpdate)}</div>
-    <p><button class="linkish" type="button" data-check-update>Check for updates</button></p>
-    <p class="hint">Asks GitHub for the latest release of LiveLine. Nothing else is sent.</p>
-  </section>
+  ${group("update-h", "Updates", html`
+    <div class="panel__row stack" data-update-body>${updateBody(d.update, d.selfUpdate)}</div>
+    <div class="panel__row panel__row--split"><span class="hint">Asks GitHub for the latest release. Nothing else is sent.</span>
+      <button class="linkish" type="button" data-check-update>Check for updates</button></div>`)}
   ${tiersSection(d.tier)}
-  <p class="settings__about"><a href="#/about">About LiveLine: the data, the allowance and what it can't show</a></p>
+  ${group("about-h", "About", html`<a class="panel__row panel__link" href="#/about">About LiveLine: the data, the allowance and what it can't show</a>`)}
 </div>`;
 }

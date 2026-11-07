@@ -1,6 +1,9 @@
 .board__head { display: grid; gap: var(--s-1); }
 /* The station name is the heading, but the trains are the page: big enough to read at arm's length, not two lines */
-.board__head h1 { font-size: 2.125rem; line-height: 1.05; }
+.board__head h1 { /* a station nameboard: you can tell a board from any other page at a glance */
+  font-size: 2rem; line-height: 1.05; padding: var(--s-3) var(--s-4); border-radius: var(--radius);
+  background: var(--sign); color: var(--on-sign);
+}
 .board__sub { color: var(--muted); }
 /* One row of controls at 360 px: an hour back and forward first, then the rest */
 .board__nav { margin-top: var(--s-1); gap: 0 var(--s-3); font-size: var(--t-sm); }
