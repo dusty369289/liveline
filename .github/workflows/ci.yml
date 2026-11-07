@@ -1,7 +1,7 @@
 name: CI
 
-# Every PR and every push to main. The two job names are the required checks in the "main" ruleset: rename a job
-# and the ruleset must change with it, or PRs can't merge.
+# Every PR and every push to main. The two job names, "Checks" and "Browser", are the required checks in the
+# "main" ruleset: rename a job and the ruleset must change with it, or no PR can merge.
 on:
   push:
     branches: [main]
@@ -22,10 +22,30 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - name: Unit tests
-        run: npm test
-      - name: No personal details in tracked files
-        run: npm run leak-check
-      - name: Web build
-        run: npx vite build
+      # The same command as locally: typecheck, unit tests (with the architecture rules and the timing review,
+      # which keeps no baselines here because CI machines are thrown away), leak check, web build.
+      - run: npm run check
+
+  browser:
+    name: Browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - name: Contact sheet and failure traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-report
+          path: |
+            .ui-report
+            test-results
+          include-hidden-files: true # .ui-report starts with a dot, which is otherwise skipped silently
+          if-no-files-found: warn
+          retention-days: 14
