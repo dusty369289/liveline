@@ -85,6 +85,21 @@ describe("waiting for a report", () => {
   });
 });
 
+it("says it's busy while it has somewhere to go, even from a standstill, so the animation keeps running", () => {
+  const m = new Motion("stop");
+  expect(m.busy()).toBe(false); // standing at the platform: nothing to draw until something changes
+  m.set("run");
+  expect(m.v).toBe(0); // not moving yet...
+  expect(m.busy()).toBe(true); // ...but about to
+  m.set("stop");
+  expect(m.busy()).toBe(false); // stopped again before it moved: still standing at the same platform
+  const r = new Motion("run");
+  r.set("stop");
+  expect(r.busy()).toBe(true); // braking for the platform
+  run(r, 20);
+  expect(r.busy()).toBe(false); // standing there now
+});
+
 it("only ever moves forward", () => {
   const m = new Motion("run");
   let x = m.x;

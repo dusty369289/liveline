@@ -35,6 +35,11 @@ export class Motion {
     return this.platform == null ? null : this.platform - this.x;
   }
 
+  /** Moving, or about to (just told to go): the animation must keep running. False only standing at a platform. */
+  busy(): boolean {
+    return this.v > 0 || this.mode !== "stop" || this.brake != null;
+  }
+
   set(mode: Mode): void {
     if (mode === this.mode) return;
     this.mode = mode;
