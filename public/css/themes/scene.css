@@ -1,0 +1,76 @@
+/* The Train view's scenery: four skies (dawn, day, dusk, night) by the real clock at the train, each tuned for the
+   light and the dark page (notes/prototypes/train-view). Tokens only. The light and dark bases are their day; each
+   other sky overrides what changes. Text never sits on these colours, except the station sign (white on navy). */
+.scene {
+  --sc-sky: #e2eaee; --sc-low: #e9eef0; --sc-sun: #f4e3a6; --sc-stars: 0; --sc-star: #fbf9f4; --sc-moon-cut: transparent;
+  --sc-cloud: #fbf9f4; --sc-far: #c4d0bc; --sc-mid: #a6ba97; --sc-tree: #6c8c60; --sc-trunk: #5b4a3a;
+  --sc-house: #f3efe6; --sc-roof: #9c5a3c; --sc-house-window: #586070; --sc-sheep: #fbf9f4; --sc-sheep-face: #2b2b2b;
+  --sc-fence: #857f71; --sc-hedge: #7f9a6e; --sc-ballast: #b8b0a0; --sc-sleeper: #857f71; --sc-rail: #586070;
+  --sc-fore: #93aa80; --sc-tuft: #7b9468;
+  --sc-coach: #1b2a4a; --sc-coach-window: #cfd8e6; --sc-door: #2f4f8f; --sc-gangway: #283041; --sc-stripe: #ffcc00;
+  --sc-wheel: #1b2230; --sc-spoke: #586070; --sc-plate: #f7f4ec; --sc-plate-ink: #1b2a4a; --sc-front: #ffcc00;
+  --sc-screen: #1b2230; --sc-lamp: #fbf9f4; --sc-tail: #c8352a;
+  --sc-wall: #b5654a; --sc-wall-line: #a0563d; --sc-canopy: #2e6b4a; --sc-valance: #f4ead0; --sc-platform: #cfc2a6;
+  --sc-edge: #ffcc00; --sc-sign: #1b2a4a; --sc-sign-ink: #ffffff;
+}
+.scene[data-sky="dawn"] {
+  --sc-sky: #f0d6c8; --sc-low: #f6e4d2; --sc-sun: #f3b578; --sc-cloud: #fbeee6; --sc-far: #b9bfaa; --sc-mid: #9aaa8a;
+  --sc-tree: #6a7d5a; --sc-house: #efe6da; --sc-house-window: #e8b866; --sc-sheep: #fbf3ea; --sc-hedge: #7f9068;
+  --sc-ballast: #b3a99a; --sc-fore: #8b9d78; --sc-tuft: #74865f; --sc-coach-window: #f3dcc0; --sc-wall: #b0654e;
+  --sc-platform: #cbbba2;
+}
+.scene[data-sky="dusk"] {
+  --sc-sky: #e7b8a2; --sc-low: #f0cfae; --sc-sun: #e8895a; --sc-cloud: #f3d2c2; --sc-far: #a99f9c; --sc-mid: #8c907c;
+  --sc-tree: #5f6a52; --sc-trunk: #4f4036; --sc-house: #e3d6c6; --sc-roof: #8a4f37; --sc-house-window: #ffd98a;
+  --sc-sheep: #f6ece2; --sc-fence: #7a7468; --sc-hedge: #6f7a5c; --sc-ballast: #a69c8e; --sc-sleeper: #7a7468;
+  --sc-rail: #4f5666; --sc-fore: #7f8a6a; --sc-tuft: #6a7556; --sc-coach-window: #ffd98a; --sc-lamp: #fff4d6;
+  --sc-wall: #a85d48; --sc-canopy: #2a5f45; --sc-valance: #eee2c8; --sc-platform: #c2b29a;
+}
+.scene[data-sky="night"] {
+  --sc-sky: #3b4a73; --sc-low: #4a5a85; --sc-sun: #f3efe6; --sc-stars: 1; --sc-star: #f3efe6; --sc-moon-cut: #3b4a73;
+  --sc-cloud: #4f5f8c; --sc-far: #4e5d83; --sc-mid: #3f4c70; --sc-tree: #34405f; --sc-trunk: #2d3854;
+  --sc-house: #34405f; --sc-roof: #2d3854; --sc-house-window: #ffd98a; --sc-sheep: #6e7ca3; --sc-sheep-face: #2d3854;
+  --sc-fence: #7480a0; --sc-hedge: #36425f; --sc-ballast: #5c6688; --sc-sleeper: #7480a0; --sc-rail: #97a0ba;
+  --sc-fore: #36425f; --sc-tuft: #2f3a56; --sc-coach-window: #ffd98a; --sc-spoke: #7480a0; --sc-plate: #f3efe6;
+  --sc-lamp: #ffffff; --sc-wall: #6b4a4a; --sc-wall-line: #5d3f40; --sc-canopy: #2a4a44; --sc-valance: #b9b4a4;
+  --sc-platform: #7f7a8c;
+}
+
+@media (prefers-color-scheme: dark) {
+  .scene {
+    --sc-sky: #8aa0ad; --sc-low: #94a8b3; --sc-sun: #d8c88d; --sc-stars: 0; --sc-star: #ece7dc; --sc-moon-cut: transparent;
+    --sc-cloud: #b3c1c9; --sc-far: #6c806d; --sc-mid: #5a6f56; --sc-tree: #41573d; --sc-trunk: #3a2f27;
+    --sc-house: #a39d8d; --sc-roof: #74442f; --sc-house-window: #3a4150; --sc-sheep: #c9c6bd; --sc-sheep-face: #2b2b2b;
+    --sc-fence: #4f555e; --sc-hedge: #4d6145; --sc-ballast: #68645b; --sc-sleeper: #4f555e; --sc-rail: #2c3340;
+    --sc-fore: #4d6145; --sc-tuft: #3f5139;
+    --sc-coach: #2f4f8f; --sc-coach-window: #b9c6d6; --sc-door: #1b2a4a; --sc-gangway: #141b28; --sc-stripe: #ffcc00;
+    --sc-wheel: #0b0f18; --sc-spoke: #4f555e; --sc-plate: #ece7dc; --sc-plate-ink: #1b2a4a; --sc-front: #ffcc00;
+    --sc-screen: #0f1420; --sc-lamp: #ece7dc;
+    --sc-wall: #7a4a3c; --sc-wall-line: #6a3f33; --sc-canopy: #284a3c; --sc-valance: #a39d8d; --sc-platform: #77705f;
+    --sc-edge: #ffcc00; --sc-sign: #1b2a4a; --sc-sign-ink: #ffffff;
+  }
+  .scene[data-sky="dawn"] {
+    --sc-sky: #4a4d6e; --sc-low: #7a6c7c; --sc-sun: #e0a070; --sc-stars: .35; --sc-cloud: #5d5f7e; --sc-far: #4c5661;
+    --sc-mid: #414d47; --sc-tree: #34403a; --sc-trunk: #2e2822; --sc-house: #4e4a52; --sc-roof: #4a3430;
+    --sc-house-window: #e0b066; --sc-sheep: #7a7880; --sc-fence: #555a66; --sc-hedge: #39453c; --sc-ballast: #4a4a52;
+    --sc-sleeper: #555a66; --sc-rail: #8a8f9c; --sc-fore: #333f37; --sc-tuft: #2b352f; --sc-coach-window: #e8d0b0;
+    --sc-lamp: #fff4d6; --sc-wall: #5e3e38; --sc-wall-line: #523530; --sc-canopy: #22403a; --sc-valance: #7c7568;
+    --sc-platform: #555260;
+  }
+  .scene[data-sky="dusk"] {
+    --sc-sky: #3e3a5c; --sc-low: #7a5466; --sc-sun: #d9825a; --sc-stars: .25; --sc-cloud: #544a68; --sc-far: #47435a;
+    --sc-mid: #3b4443; --sc-tree: #2f3836; --sc-trunk: #2a2420; --sc-house: #46404c; --sc-roof: #42302c;
+    --sc-house-window: #f2c46b; --sc-sheep: #6a6470; --sc-fence: #504c5c; --sc-hedge: #333c39; --sc-ballast: #45424e;
+    --sc-sleeper: #504c5c; --sc-rail: #8a86a0; --sc-fore: #2c3432; --sc-tuft: #262d2b; --sc-coach-window: #f2c46b;
+    --sc-lamp: #ffffff; --sc-wall: #5a3a36; --sc-wall-line: #4e322f; --sc-canopy: #213b36; --sc-valance: #776f66;
+    --sc-platform: #4f4a58;
+  }
+  .scene[data-sky="night"] {
+    --sc-sky: #0f1420; --sc-low: #131a28; --sc-sun: #ece7dc; --sc-stars: 1; --sc-moon-cut: #0f1420; --sc-cloud: #1a2232;
+    --sc-far: #182033; --sc-mid: #1f283b; --sc-tree: #2a3449; --sc-trunk: #2a3449; --sc-house: #2a3449;
+    --sc-roof: #232c40; --sc-house-window: #f2c46b; --sc-sheep: #3a4458; --sc-sheep-face: #1f283b; --sc-fence: #485169;
+    --sc-hedge: #1c2435; --sc-ballast: #283041; --sc-sleeper: #485169; --sc-rail: #727a89; --sc-fore: #141b28;
+    --sc-tuft: #1c2435; --sc-coach-window: #f2c46b; --sc-spoke: #485169; --sc-lamp: #ffffff; --sc-wall: #4a3434;
+    --sc-wall-line: #3f2c2c; --sc-canopy: #1f3a33; --sc-valance: #6f6a5e; --sc-platform: #3a3f4c; --sc-sign: #2f4f8f;
+  }
+}

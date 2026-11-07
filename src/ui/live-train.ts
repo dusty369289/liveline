@@ -3,7 +3,7 @@
 // (TrainPage calls it from dispose()).
 import { stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
-import type { Rail } from "../core/rail";
+import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
 import { liveRegion } from "./views/live-region";
 import { PassFolds } from "./widgets/pass-folds";
@@ -23,6 +23,7 @@ export class LiveTrain {
   private messageUntil = 0;
   private region: HTMLElement;
   private folds: PassFolds;
+  private listeners: Array<(res: ServiceResult) => void> = [];
   private onVisible = () => {
     if (document.visibilityState !== "visible" || this.done) return;
     // back in the app: fetch now only if the planned poll is already due, else wait for it
@@ -36,6 +37,11 @@ export class LiveTrain {
   constructor(private page: HTMLElement, private rail: Rail, private uid: string, private at: string, private to: string) {
     this.region = page.querySelector<HTMLElement>("[data-live-region]")!;
     this.folds = new PassFolds(this.region, () => this.place(true));
+  }
+
+  /** Called with every new answer this page fetches (the Train view keeps up from these). */
+  onAnswer(fn: (res: ServiceResult) => void): void {
+    this.listeners.push(fn);
   }
 
   start(): void {
@@ -119,7 +125,7 @@ export class LiveTrain {
   // progress is animated, or the travelled line would visibly regrow from the top after every refresh.
   place(instant: boolean): void {
     const live = this.live();
-    if (!live) return;
+    if (!live || !this.region.offsetParent) return; // the Route tab is hidden: nothing has a size to place against
     const wrap = live.querySelector<HTMLElement>(".route-wrap")!;
     if (instant) wrap.classList.add("is-instant");
     const route = live.querySelector<HTMLElement>(".route")!;
@@ -228,6 +234,7 @@ export class LiveTrain {
       const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
       if (node) this.region.replaceChildren(node);
       this.folds.apply();
+      for (const fn of this.listeners) fn(res);
       this.failures = 0;
       this.place(true);
     } catch (e) {

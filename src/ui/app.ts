@@ -11,6 +11,7 @@ import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage } from "./pa
 import { TrainPage } from "./pages/train";
 import { parseHash, queryOf, type Route, type RouteName } from "./routes";
 import { Appearance } from "./store/appearance";
+import { TrainTab } from "./store/train-tab";
 import { Journeys, RecentStations } from "./store/lists";
 import { RecentTrains } from "./store/recent-trains";
 import { Updates } from "./updates";
@@ -42,6 +43,7 @@ export class App {
       trains: new RecentTrains(),
       journeys: new Journeys(),
       stations: new RecentStations(),
+      trainTab: new TrainTab(),
       flash: { message: null, error: null },
       rerender: () => void this.render(),
     };

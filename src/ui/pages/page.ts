@@ -6,6 +6,7 @@ import type { Route, RouteName } from "../routes";
 import type { Appearance } from "../store/appearance";
 import type { Journeys, RecentStations } from "../store/lists";
 import type { RecentTrains } from "../store/recent-trains";
+import type { TrainTab } from "../store/train-tab";
 import type { Updates } from "../updates";
 
 /** A message to show once on the next page drawn (after saving a key, say). */
@@ -19,6 +20,7 @@ export interface AppContext {
   trains: RecentTrains;
   journeys: Journeys;
   stations: RecentStations;
+  trainTab: TrainTab;
   flash: Flash;
   /** Draw the current route again (after a change only a fresh page shows). */
   rerender(): void;

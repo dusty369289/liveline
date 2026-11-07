@@ -21,18 +21,23 @@ build can come later). Plain CUBE CSS, no framework.
 src/
   core/        no DOM, no Capacitor. Pure logic and the RTT client:
                time (UK DST), models, parse, engine (position + estimate), poll (when to ask again), budget,
-               http (Http interface), rtt (client: auth, cache, budget), simulator (demo mode), stations, rail (what the
-               UI calls), update (release check), keys (core storage names)
+               http (Http interface), rtt (client: auth, cache, budget), simulator (demo mode) and sim-stock (its
+               trains' units), stations, rail (what the UI calls), update (release check), keys (core storage names),
+               and for the Train view: formation (coaches, units, letters, facilities), scene (stopped, running,
+               the two ends), motion (how the drawn train moves), daylight (dawn, day, dusk or night)
   platform/    the only Capacitor code: native HTTP, the private key store, app version, the updater plugin bridge
   ui/
     app.ts       the router: a route name -> a Page class; draws it inside the chrome; problem pages
     pages/       one class per page (extends Page): load() data + markup, mount() wiring, dispose() timers
     views/       pure markup functions, data in, Html out (no DOM, no state)
-    components/  markup shared by views (chrome, search form, time marks)
-    widgets/     DOM behaviour as classes: shared by pages, or split out of one (station suggestions, passing-point folds)
+    components/  markup shared by views (chrome, search form, time marks, facility icons)
+    widgets/     DOM behaviour as classes: shared by pages, or split out of one (station suggestions, passing-point
+                 folds, tabs)
     store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists
     updates.ts   the update check, banner and one-tap install
     live-train.ts  the train page while open: marker, polling, folds, the sticky bar
+    train-scene.ts the Train view while showing: slides the scenery, platforms, wheels (art in views/scene-art.ts,
+                   views/train-art.ts; colours in public/css/themes/scene.css)
     html.ts, routes.ts, format.ts   the escaping template, hash routes, text formatting
   data/        bundled station list (ODbL, see its README)
 public/css/    CUBE layers; the only raw colours are in themes/platform.css
@@ -104,6 +109,15 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that
   spins during any fetch, Jump to train. It sits below the status bar on edge-to-edge phones.
+- **Train view** (the train page's second tab, remembered): the same answers drawn as the train in countryside. It
+  stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
+  runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
+  a picture of what RTT reported, not a simulation. Along the bottom: the station it left (or leaves) and when, and
+  the next one it's due at, with marks as on the route; passing points don't count as ends. The coaches scroll
+  sideways, front first, as long as the train. Coach letters and facility icons show only when RTT sends Know Your
+  Train data (most keys don't); otherwise coaches are numbered from the front, and it says so. The sky is dawn, day,
+  dusk or night by the sun where the train is (`core/daylight.ts`), each tuned for the light and dark themes.
+  Reduced motion: the scene stands still. Layers move by CSS transforms (composited), and it sleeps while standing.
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
   (solid plate confirmed, outlined expected).
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
