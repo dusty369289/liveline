@@ -79,13 +79,13 @@ function pointMeta(v: PointView): unknown {
 }
 
 /** Booked time, then the live one with its mark. On time shows once ("On time" at a stop, just the mark at a junction). */
-function pointTimes(v: PointView): Html {
+export function pointTimes(v: PointView): Html {
   const pt = v.point;
   const main = pt.kind === "pass" ? v.passing : (v.departure ?? v.arrival);
   if (!main) return html`<span class="route__booked"></span><span class="route__live"></span>`;
   let shown: Html | "" = "";
   if (!isCancelled(pt) && main.source !== "booked") {
-    const predicted = main.source === "forecast" || main.source === "est";
+    const predicted = markOf(main.source) !== "actual"; // RTT's forecast or estimate, or ours
     if (predicted && !changed(main)) {
       shown = pt.kind === "call" ? html`${timeMark(main.source)}<span class="route__ontime">On time</span>`
         : html`${timeMark(main.source)}<span class="visually-hidden">on time</span>`;
