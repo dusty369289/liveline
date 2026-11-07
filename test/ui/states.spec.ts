@@ -55,6 +55,22 @@ test("train: not left yet", async ({ page, errors }, info) => {
   void errors;
 });
 
+test("train: not left yet, so none of the line is inked as travelled", async ({ page, errors }) => {
+  await firstTrain(page, "/board?station=PAD&to=OXF&time=09:30");
+  const done = await page.locator(".route__done").boundingBox();
+  expect(done?.height ?? 0).toBeLessThan(1);
+  void errors;
+});
+
+test("train: the travelled ink starts at the first stop and sits on the line's centre", async ({ page, errors }) => {
+  await firstTrain(page, "/board?station=PAD&to=OXF&time=09:00");
+  const done = (await page.locator(".route__done").boundingBox())!;
+  const mark = (await page.locator(".route__pt").first().locator(".route__mark").boundingBox())!;
+  expect(Math.abs(done.x + done.width / 2 - (mark.x + mark.width / 2))).toBeLessThan(0.5);
+  expect(Math.abs(done.y - (mark.y + mark.height / 2))).toBeLessThan(1);
+  void errors;
+});
+
 test("train: on its way, as seen after Jump to train", async ({ page, errors }, info) => {
   await firstTrain(page, "/board?station=PAD&to=OXF&time=09:00");
   await expect(page.locator(".live")).toHaveAttribute("data-state", /running|overdue|at-station/);

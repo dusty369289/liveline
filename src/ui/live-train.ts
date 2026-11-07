@@ -188,7 +188,10 @@ export class LiveTrain {
     marker.hidden = false;
     marker.style.top = `${y}px`;
     marker.classList.toggle("is-waiting", waiting);
-    done.style.height = `${Math.max(y, 0)}px`;
+    // The travelled ink starts where the line does, at the first stop's centre, not above it
+    const start = this.rowCentre(rows.find((r) => !r.classList.contains("is-folded")), wrap) ?? 0;
+    done.style.top = `${start}px`;
+    done.style.height = `${Math.max(y - start, 0)}px`;
     if (instant) {
       void wrap.offsetHeight;
       wrap.classList.remove("is-instant");
