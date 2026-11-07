@@ -1,20 +1,17 @@
 .train__head { display: grid; gap: var(--s-1); }
-.train__head h1 { font-size: 2rem; }
+.train__head h1 { font-size: 1.6rem; line-height: 1.1; }
 .train__tools { justify-content: space-between; }
 .train__actions { gap: 0 var(--s-4); }
 .train__note:empty { display: none; }
 
 .live { display: grid; gap: var(--s-3); }
-.live__status {
-  position: sticky; top: 0; z-index: 5;
-  background: var(--page); padding-block: var(--s-3) var(--s-3);
-  box-shadow: 0 1px 0 var(--line);
-}
+/* Not sticky: it scrolls away with the page, so the route gets the whole screen. "Jump to train" brings you back. */
+.live__status { padding-block: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line); }
 /* The one number you came for */
 .live__hero { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; font-family: var(--sign-font); }
-.live__hero-num { font-weight: 700; font-size: 3.25rem; line-height: .9; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.live__hero-unit { font-weight: 600; font-size: 1.25rem; }
-.live__hero-what { font-weight: 600; font-size: 1.25rem; color: var(--muted); flex-basis: 100%; margin-top: .15rem; }
+.live__hero-num { font-weight: 700; font-size: 2.75rem; line-height: .9; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.live__hero-unit { font-weight: 600; font-size: 1.125rem; }
+.live__hero-what { font-weight: 600; font-size: 1.0625rem; line-height: 1.3; color: var(--muted); flex-basis: 100%; margin-top: .15rem; }
 .live__headline { font-weight: 500; margin-top: var(--s-2); }
 .live__headline.state-overdue { color: var(--very-late); }
 .live__headline.state-cancelled { color: var(--problem); }
@@ -51,19 +48,20 @@
 .route__meta:empty { display: none; }
 .is-reported .route__place, .is-reported .route__booked { color: var(--muted); }
 .is-at .route__place, .is-to .route__place { color: var(--ink); font-weight: 700; }
-.is-at .route__place::after, .is-to .route__place::after {
-  margin-left: .45rem; padding: .05rem .35rem; vertical-align: .15em;
+/* Your stops: a small sign plate after the name. A real element (screen readers say it), and it never breaks inside:
+   on a long name the whole plate moves to the next line. */
+.route__tag {
+  display: inline-block; white-space: nowrap; margin-right: .45rem; padding: 0 .35rem; vertical-align: .1em;
   font: 600 .625rem/1.4 var(--sign-font); letter-spacing: .1em; text-transform: uppercase;
   background: var(--sign); color: var(--on-sign); border-radius: var(--radius);
 }
-.is-at .route__place::after { content: "Board"; }
-.is-to .route__place::after { content: "Alight"; }
 .is-cancelled .route__place, .is-cancelled .route__booked { text-decoration: line-through; color: var(--muted); }
 
 .route__booked { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .is-call .route__booked { color: var(--ink); }
 .route__live { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .route__delay { display: block; font-size: var(--t-xs); line-height: 1.1; }
+.route__ontime { font-size: var(--t-xs); color: var(--muted); }
 
 .route.hide-passes .is-pass { min-height: 0; height: 0; padding: 0; overflow: hidden; visibility: hidden; }
 

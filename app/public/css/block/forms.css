@@ -29,7 +29,8 @@
 }
 .suggest__list li { padding: var(--s-3); display: flex; justify-content: space-between; gap: var(--s-3); cursor: pointer; min-height: var(--tap); align-items: center; }
 .suggest__list li + li { border-top: 1px solid var(--line); }
-.suggest__list li[aria-selected="true"], .suggest__list li:hover { background: var(--surface-2); }
+.suggest__list li[aria-selected="true"] { background: var(--surface-2); }
+@media (hover: hover) { .suggest__list li:hover { background: var(--surface-2); } }
 .suggest__crs { color: var(--muted); font: 600 var(--t-sm)/1 var(--sign-font); letter-spacing: .1em; }
 
 .home { gap: var(--s-5); }
@@ -46,6 +47,5 @@
 .journeys__list { display: grid; border-top: 1px solid var(--line); }
 .journeys__item { display: flex; align-items: center; gap: var(--s-3); border-bottom: 1px solid var(--line); }
 .journeys__go { flex: 1; display: flex; align-items: center; min-height: 3.25rem; text-decoration: none; font: 600 var(--t-md)/1.2 var(--sign-font); }
-.journeys__go::after { content: "→"; margin-left: auto; padding-left: var(--s-3); color: var(--muted); font-family: var(--font); }
-.journeys__back { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--muted); font-size: var(--t-sm); }
+.journeys__back { display: inline-flex; align-items: center; min-height: var(--tap); padding-left: var(--s-3); color: var(--muted); font-size: var(--t-sm); }
 .board__save { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }

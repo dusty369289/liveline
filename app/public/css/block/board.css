@@ -10,7 +10,7 @@
   display: grid; grid-template-columns: 4.5rem 1fr auto; gap: 0 var(--s-3);
   align-items: center; padding: var(--s-3) 0; text-decoration: none; min-height: 4rem;
 }
-.trains__link:hover .trains__place { text-decoration: underline; text-decoration-thickness: 2px; }
+@media (hover: hover) { .trains__link:hover .trains__place { text-decoration: underline; text-decoration-thickness: 2px; } }
 .trains__when { display: grid; }
 .trains__time { font: 700 1.5rem/1 var(--sign-font); }
 .trains__live { font-size: var(--t-xs); margin-top: .2rem; }
