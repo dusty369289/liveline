@@ -1,8 +1,24 @@
 .train__head { display: grid; gap: var(--s-1); }
 .train__head h1 { font-size: 1.6rem; line-height: 1.1; }
-.train__tools { justify-content: space-between; }
-.train__actions { gap: 0 var(--s-4); }
-.train__note:empty { display: none; }
+.train__passes { justify-self: start; }
+
+/* Thin bar that stays at the top while you scroll the route: how old the answer is, refresh, and back to the train */
+.trainbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: var(--s-2);
+  margin-inline: calc(-1 * var(--gutter)); padding-inline: calc(var(--gutter) - .5rem) var(--gutter);
+  min-height: var(--tap); background: var(--page); border-bottom: 1px solid var(--line);
+}
+.trainbar__refresh {
+  flex: none; width: var(--tap); height: var(--tap); display: grid; place-items: center;
+  border: 0; background: none; color: var(--ink); border-radius: 50%; cursor: pointer;
+}
+.trainbar__refresh:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
+.trainbar.is-busy .icon { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.trainbar__age { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trainbar__jump { flex: none; font-size: var(--t-sm); }
+@media (prefers-reduced-motion: reduce) { .trainbar.is-busy .icon { animation: none; opacity: .45; } }
 
 .live { display: grid; gap: var(--s-3); }
 /* Not sticky: it scrolls away with the page, so the route gets the whole screen. "Jump to train" brings you back. */

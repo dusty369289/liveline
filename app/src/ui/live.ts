@@ -15,7 +15,9 @@ export class LiveTrain {
   private failures = 0;
   private busy = false;
   private stopped = false;
-  private done = false; // journey over: no more background polls
+  private done = false; // the train arrived or is cancelled: no more background polls
+  private message = "";
+  private messageUntil = 0;
   private region: HTMLElement;
   private passes: HTMLInputElement;
   private onVisible = () => {
@@ -55,13 +57,34 @@ export class LiveTrain {
     else this.schedule(secs);
   }
 
-  /** Nothing more will change for this journey: stop polling, and say so rather than look frozen. */
+  /** Nothing more can change for this train: stop polling, and say so in the bar rather than look frozen. */
   private finished(): void {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.done = true;
-    const el = this.region.querySelector("[data-age]");
-    if (el) el.insertAdjacentText("afterend", ". Journey over, so it's no longer updating (Refresh still works).");
+    this.age();
+  }
+
+  private bar() {
+    return this.page.querySelector<HTMLElement>("[data-trainbar]");
+  }
+
+  /** The icon spins while any fetch runs, automatic or tapped. */
+  private setBusy(on: boolean): void {
+    this.busy = on;
+    const b = this.bar();
+    b?.classList.toggle("is-busy", on);
+    b?.querySelector("[data-refresh-now]")?.setAttribute("aria-busy", on ? "true" : "false");
+    this.age();
+  }
+
+  /** A short message in the bar in place of the age, for a few seconds. */
+  private say(text: string, secs = 4): void {
+    this.message = text;
+    this.messageUntil = Date.now() + secs * 1000;
+    const note = this.page.querySelector("[data-refresh-note]");
+    if (note) note.textContent = text;
+    this.age();
   }
 
   stop(): void {
@@ -174,17 +197,26 @@ export class LiveTrain {
   }
 
   private age(): void {
-    const el = this.region.querySelector("[data-age]");
+    const el = this.page.querySelector("[data-age]");
     if (!el || !this.live()) return;
+    if (this.busy) {
+      el.textContent = "Updating…";
+      return;
+    }
+    if (this.message && Date.now() < this.messageUntil) {
+      el.textContent = this.message;
+      return;
+    }
     const s = Math.max(0, Math.round((Date.now() - this.fetchedAt()) / 1000));
-    el.textContent = s < 60 ? `Updated ${s} s ago` : `Updated ${Math.floor(s / 60)} min ago`;
+    const when = s < 5 ? "just now" : s < 60 ? `${s} s ago` : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
+    el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? "Journey over · updated" : "Updated"} ${when}`;
   }
 
   async refresh(force: boolean): Promise<void> {
     if (this.stopped) return;
     if (!force && document.visibilityState !== "visible") return; // onVisible picks it up when the app comes back
     if (this.busy) return;
-    this.busy = true;
+    this.setBusy(true);
     try {
       const res = await this.rail.service(this.uid, { background: !force, force, at: this.at, to: this.to });
       if (this.stopped) return;
@@ -198,10 +230,9 @@ export class LiveTrain {
       this.place(true);
     } catch (e) {
       this.failures += 1;
-      const el = this.region.querySelector("[data-age]");
-      if (el) el.textContent = e instanceof Error && e.message ? `Couldn't update: ${e.message} Trying again soon.` : "Couldn't update. Trying again soon.";
+      this.say(e instanceof Error && e.message ? `Couldn't update: ${e.message}` : "Couldn't update. Trying again soon.", 8);
     } finally {
-      this.busy = false;
+      this.setBusy(false);
     }
     const secs = this.refreshSecs();
     if (secs == null) return this.finished();
@@ -209,14 +240,13 @@ export class LiveTrain {
   }
 
   private refreshNow(): void {
+    if (this.busy) return; // already spinning
     const age = Date.now() - this.fetchedAt();
-    const note = this.page.querySelector("[data-refresh-note]")!;
-    if (age < MIN_AGE || this.busy) {
-      note.textContent = this.busy ? "Checking…" : `Already up to date (${Math.round(age / 1000)} s old).`;
+    if (age < MIN_AGE) {
+      this.say(`Already up to date (${Math.round(age / 1000)} s old)`, 3);
       return;
     }
-    note.textContent = "Checking…";
-    void this.refresh(true).then(() => (note.textContent = ""));
+    void this.refresh(true);
   }
 
   private schedule(secs: number): void {
