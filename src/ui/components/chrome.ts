@@ -33,6 +33,6 @@ export function chrome(s: ChromeState, main: Html): Html {
   ${s.demo ? html`<p class="banner banner--demo" role="note"><strong>Demo:</strong> simulated trains. <a href="#/settings">Add your key</a> for real ones.</p>` : ""}
   ${!s.demo && s.budget.remaining.hour <= 15 ? html`<p class="banner" role="note">Only ${s.budget.remaining.hour} Realtime Trains calls left this hour, so pages update less often.</p>` : ""}
   ${s.banner ?? ""}
-  <main id="main" class="wrap">${main}</main>
+  <main id="main" class="wrap" tabindex="-1">${main}</main>
   <footer class="footer wrap"><p>Data from <a href="https://www.realtimetrains.co.uk/" target="_blank" rel="noopener">Realtime Trains</a>${s.demo ? " (simulated)" : ""}. Not affiliated.</p></footer>`;
 }

@@ -88,6 +88,11 @@ export class App {
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */
   private wireShared(): void {
+    // The routes live in the hash, so "#main" would be a page that isn't there: move focus instead of following it
+    this.root.querySelector(".skip-link")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      this.root.querySelector<HTMLElement>("main")?.focus();
+    });
     StationSuggest.wireAll(this.root, this.ctx.rail.stations, () => this.ctx.stations.all());
     SearchForm.wire(this.root);
     this.ctx.updates.wire(this.root);

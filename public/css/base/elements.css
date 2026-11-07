@@ -54,5 +54,7 @@ button, input, select { font: inherit; color: inherit; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); width: 1.125rem; height: 1.125rem; margin: 0; flex: none; }
 code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--surface-2); padding: 0 .25em; border-radius: var(--radius); }
 :focus-visible { outline: 3px solid var(--train); outline-offset: 2px; box-shadow: 0 0 0 5px var(--train-edge); }
+/* Focus the app moves for you (main after the skip link, a new page's heading) is a place to read from, not a control */
+[tabindex="-1"]:focus { outline: none; box-shadow: none; }
 details > summary { cursor: pointer; }
 ::selection { background: var(--train); color: var(--train-edge); }
