@@ -3,7 +3,7 @@
 import { Budget } from "./budget";
 import { build, type Timeline } from "./engine";
 import type { Http } from "./http";
-import { type Board, type BoardRow, forPassengers, isEmpty } from "./models";
+import { type Board, type BoardRow, booked, forPassengers, isEmpty, type Times } from "./models";
 import { parseBoard, parseService } from "./parse";
 import { pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
@@ -180,10 +180,21 @@ export class Rail {
       }
       throw e;
     }
-    const b = parseBoard(f.body, { fallbackName: st ? st.name : code, timeFrom: when, timeTo: when + window * 60_000, today: this.clock });
+    const parsed = parseBoard(f.body, { fallbackName: st ? st.name : code, timeFrom: when, timeTo: when + window * 60_000, today: this.clock });
+    // the answer may have been fetched for a wider, earlier window: the board shown is this one
+    const b: Board = { ...parsed, timeFrom: when, timeTo: when + window * 60_000 };
+    // The answer may cover more than is shown (one call fetches FETCH_WINDOW). Keep this window: booked inside it, or
+    // booked a little earlier but not gone yet (a late train mustn't vanish because the answer was fetched earlier).
+    const until = when + window * 60_000;
+    const inWindow = (t: Times) => {
+      const bk = booked(t);
+      const live = t.actual ?? t.forecast ?? t.estimate ?? bk;
+      if (bk == null) return live == null || (live >= when && live < until);
+      return bk < until && (bk >= when || (live != null && live >= when && t.actual == null));
+    };
     let rows = mode === "arr"
-      ? b.rows.filter((r) => !isEmpty(r.arrival) && r.callType !== "ADVERTISED_PICK_UP")
-      : b.rows.filter((r) => !isEmpty(r.departure) && r.callType !== "ADVERTISED_SET_DOWN");
+      ? b.rows.filter((r) => !isEmpty(r.arrival) && r.callType !== "ADVERTISED_PICK_UP" && inWindow(r.arrival))
+      : b.rows.filter((r) => !isEmpty(r.departure) && r.callType !== "ADVERTISED_SET_DOWN" && inWindow(r.departure));
     let hidden = 0;
     if (!showAll) {
       const before = rows.length;
