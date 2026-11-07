@@ -3,19 +3,22 @@ import { describe, expect, it } from "vitest";
 import { build, type Timeline } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
 import { manualMinAge, POLL, pollAfter } from "../src/core/poll";
-import { SimTransport } from "../src/core/simulator";
+import { SimTransport, Timetable } from "../src/core/simulator";
 import { fromLondon, isoLocal, type Ms } from "../src/core/time";
 
-// one simulated Paddington to Oxford train, seen at any moment
+// One simulated Paddington to Oxford train, seen at any moment. One simulator with a movable clock and one shared
+// timetable: building the day's timetable afresh for each of ~90 steps made the end-to-end test take 2.5 to 5.5 s,
+// close enough to a time limit to fail on a busy machine.
 const t0 = fromLondon(2026, 11, 7, 9, 0);
+let simNow = t0;
+const sim = new SimTransport(() => simNow, new Timetable());
 const pick = (() => {
-  const sim = new SimTransport(() => t0);
   const r = sim.getSync("/gb-nr/location", { code: "PAD", timeFrom: isoLocal(t0), timeWindow: "60", filterTo: "OXF" });
   const b = parseBoard(r.body, { fallbackName: "PAD", timeFrom: t0, timeTo: t0 + 3_600_000, today: () => t0 });
   return b.rows[0].uniqueId;
 })();
 const at = (now: Ms): Timeline => {
-  const sim = new SimTransport(() => now);
+  simNow = now;
   return build(parseService(sim.getSync("/gb-nr/service", { uniqueIdentity: pick }).body, () => now), now);
 };
 const dep = (() => {
