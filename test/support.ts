@@ -59,3 +59,58 @@ export class MemStorage {
     return s;
   }
 }
+
+/**
+ * Just enough of a DOM for a page's wiring, without a browser: an element is a tree of named parts found by selector.
+ * Parsed markup (html.ts `fragment`) comes back as one FakeElement per selector, holding the whole view's markup.
+ */
+export class FakeElement {
+  isConnected = true;
+  dataset: Record<string, string> = {};
+  replacedWith: FakeElement[] = [];
+  appended: unknown[] = [];
+  constructor(public parts: Record<string, FakeElement> = {}, public markup = "") {}
+  querySelector(sel: string): FakeElement | null {
+    if (sel in this.parts) return this.parts[sel];
+    for (const p of Object.values(this.parts)) {
+      const found = p.querySelector(sel);
+      if (found) return found;
+    }
+    return null;
+  }
+  replaceWith(n: FakeElement): void {
+    this.replacedWith.push(n);
+  }
+  append(...n: unknown[]): void {
+    this.appended.push(...n);
+  }
+  addEventListener(): void {}
+}
+
+/** `document` for page tests: visibility you set, listeners you fire, and templates that parse to FakeElements. */
+export class FakeDocument {
+  visibilityState: "visible" | "hidden" = "visible";
+  private listeners = new Map<string, Set<() => void>>();
+  addEventListener(type: string, fn: () => void): void {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type)!.add(fn);
+  }
+  removeEventListener(type: string, fn: () => void): void {
+    this.listeners.get(type)?.delete(fn);
+  }
+  listening(type: string): number {
+    return this.listeners.get(type)?.size ?? 0;
+  }
+  fire(type: string): void {
+    for (const fn of this.listeners.get(type) ?? []) fn();
+  }
+  createElement() {
+    const tpl = { innerHTML: "", content: { querySelector: () => new FakeElement({}, tpl.innerHTML) } };
+    return tpl;
+  }
+  static install(): FakeDocument {
+    const d = new FakeDocument();
+    (globalThis as unknown as { document: FakeDocument }).document = d;
+    return d;
+  }
+}

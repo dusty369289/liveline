@@ -48,7 +48,7 @@ export class BoardPage extends Page {
     const d = board.dataset;
     if (d.crs) this.ctx.stations.remember({ name: d.station!, crs: d.crs });
     this.wireSaveJourney(root, d);
-    if (this.live) this.keepFresh(root);
+    if (this.live) this.keepFresh(board);
   }
 
   private request(o: { when?: number | null; force?: boolean; background?: boolean }): Promise<BoardResult> {
@@ -84,20 +84,25 @@ export class BoardPage extends Page {
     });
   }
 
-  /** Swap in the fresh rows and footer, without jumping to the top. */
-  private keepFresh(root: HTMLElement): void {
+  /**
+   * Swap in the fresh rows and footer, without jumping to the top. Only into this board: an answer that arrives after
+   * you've moved on to another board (the page root is shared) is dropped.
+   */
+  private keepFresh(board: HTMLElement): void {
     const opened = Date.now();
     const stop = this.every(BOARD_REFRESH.every, async () => {
       if (document.visibilityState !== "visible") return;
       if (Date.now() - opened > BOARD_REFRESH.for) {
         stop();
-        root.querySelector(".board__foot")?.append(" Stopped updating by itself to save calls: tap Refresh.");
+        board.querySelector(".board__foot")?.append(" Stopped updating by itself to save calls: tap Refresh.");
         return;
       }
       try {
-        const fresh = fragment(boardView(await this.request({ background: true }), this.query, this.nav!, true, this.ctx.rail.clock()));
+        const res = await this.request({ background: true });
+        if (!board.isConnected) return;
+        const fresh = fragment(boardView(res, this.query, this.nav!, true, this.ctx.rail.clock()));
         for (const sel of [".trains", ".board__foot", ".empty"]) {
-          const now = root.querySelector(sel);
+          const now = board.querySelector(sel);
           const next = fresh.querySelector(sel);
           if (now && next) now.replaceWith(next);
         }
