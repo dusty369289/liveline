@@ -25,7 +25,7 @@ test("running: the whole train, the station it left and the next it's due at", a
   await expect(page.locator(".scene__end--from .scene__where")).toHaveText(/^Left /);
   await expect(page.locator(".scene__end--to .scene__where")).toHaveText(/^Due at /);
   await expect(page.locator("#panel-route")).toBeHidden();
-  await expect(page.locator(".train__head .hint")).toHaveText(/^Unit \d+$/); // one unit: "Unit", not "Units"
+  await expect(page.locator("[data-formation-note]")).toContainText(/Class 800, unit \d+\./); // one unit: "unit", not "units"
   await expect(page.locator(".coaches__name").first()).toHaveText("Coach A"); // the demo sends coach letters
   // The line between the two ends runs level with both times, however the labels above them wrap
   const line = (await page.locator(".scene__line").boundingBox())!;

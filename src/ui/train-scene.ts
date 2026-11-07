@@ -196,7 +196,7 @@ export class TrainScene {
     const a = names[seen[0]] ?? "";
     const b = names[seen[seen.length - 1]] ?? "";
     this.$("[data-map-text]").textContent = !seen.length ? "" : seen.length === n ? `All ${n} coaches`
-      : `Coach${seen.length > 1 ? "es" : ""} ${seen.length > 1 ? `${a}–${b}` : a} of ${n} · scroll for the rest`;
+      : `Coach${seen.length > 1 ? "es" : ""} ${seen.length > 1 ? `${a}–${b}` : a} of ${n}`; // the bar shows there's more
   }
 
   /** The train's dot on the little line between the two ends, by the clock. */

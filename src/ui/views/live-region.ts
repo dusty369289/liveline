@@ -118,9 +118,10 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const tl = res.timeline;
   const p = tl.position;
   const [heroHtml, hs] = hero(stop, off);
-  // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
+  // Each thing once: the headline already says where it is, so a stop it has passed ("It has left X") isn't repeated,
+  // and once it has arrived the headline says that too
   const lines = p.state === "arrived" ? []
-    : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
+    : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs && sm.status !== "gone").map(([sm, v]) => stopLine(sm!, v));
   const { groupOf, size } = passGroups(tl);
   const route = tl.points.map((v) => {
     const g = groupOf.get(v.index);
@@ -136,7 +137,6 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     ${hs && hs.index === p.toIndex && p.state === "not-started" ? "" /* the big number already says when it leaves */
       : html`<p class="live__headline state-${p.state}">${p.headline}</p>`}
     ${lines}
-    ${tl.worst ? html`<p class="live__stop hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
     ${res.fetched.stale ? html`<p class="live__age hint">Showing an older answer: ${res.fetched.note}.</p>` : ""}
   </div>
   ${tl.service.reasons.length ? html`<ul class="reasons">${tl.service.reasons.map((r) => html`<li>${r.kind === "CANCEL" ? "Cancelled" : "Delayed"} because of ${r.text.slice(0, 1).toLowerCase() + r.text.slice(1)}.</li>`)}</ul>` : ""}
@@ -144,5 +144,6 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     <ol class="route" aria-label="Route">${route}</ol>
     <div class="route__train" data-train-marker hidden aria-hidden="true"></div>
   </div>
+  ${tl.worst ? html`<p class="live__aside hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
 </section>`;
 }

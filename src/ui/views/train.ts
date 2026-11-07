@@ -3,12 +3,12 @@ import type { StopSummary } from "../../core/engine";
 import { destinationName, originName } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import { hm } from "../../core/time";
+import { REFRESH_ICON } from "../components/icons";
 import { timeMark } from "../components/marks";
-import { type Html, html, raw } from "../html";
+import { type Html, html } from "../html";
 import { TRAIN_TABS, type TrainTabName } from "../store/train-tab";
 import { liveRegion } from "./live-region";
 
-const REFRESH_ICON = raw('<svg class="icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>');
 
 /** "19:00 London Paddington to Oxford": the page title, and what Recent calls it. */
 export function trainTitle(res: ServiceResult): string {
@@ -43,13 +43,12 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   const start = s.origins[0]?.time ?? null;
   const ends = s.destinations[0]?.time ?? null;
   const label = [s.operatorName, s.headcode ? ` · ${s.headcode}` : "", s.vehicles ? ` · ${s.vehicles} coaches` : "",
-    s.leadingClass ? ` · Class ${s.leadingClass}` : "", s.branding ? ` · ${s.branding}` : ""];
+    s.branding ? ` · ${s.branding}` : ""];
   return html`
 <article class="stack train" data-train data-uid="${uid}" data-at="${at}" data-to="${to}" data-title="${trainTitle(res)}" data-day="${s.runDate}" data-ends="${ends ?? ""}">
   <header class="train__head">
     <p class="label">${label}</p>
     <h1>${start != null ? html`<span class="tnum">${hm(start)}</span> ` : ""}${originName(s)} to ${destinationName(s)}</h1>
-    ${s.units.length ? html`<p class="hint">${s.units.length === 1 ? "Unit" : "Units"} ${s.units.join(", ")}</p>` : ""}
     ${s.mode !== "TRAIN" ? html`<p class="banner" role="note">This is a ${s.mode.replaceAll("_", " ").toLowerCase()}, not a train.</p>` : ""}
   </header>
   <div class="trainbar" data-trainbar>
