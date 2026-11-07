@@ -70,12 +70,15 @@ function platformArt(name: string, number: string | null, length: number): Html 
     <rect class="sc-canopy" x="${-length}" y="150" width="${length}" height="12"/>
     <rect class="sc-valance-row" x="${-length}" y="162" width="${length}" height="8"/>
     ${columns.map((x) => html`<rect class="sc-canopy" x="${x}" y="162" width="5" height="78"/>`)}
-    ${signs.map((x, i) => html`<g>
-      <rect class="sc-sign" x="${x}" y="176" width="${signW}" height="24" rx="3"/>
-      <text class="sc-sign-ink" x="${x + signW / 2}" y="193" text-anchor="middle">${name}</text>
-      ${number && i === 0 ? html`<rect class="sc-sign" x="${x + signW + 12}" y="176" width="${Math.max(24, 12 + number.length * 9)}" height="24" rx="3"/>
-        <text class="sc-sign-ink" x="${x + signW + 12 + Math.max(24, 12 + number.length * 9) / 2}" y="193" text-anchor="middle">${number}</text>` : ""}
-    </g>`)}
+    ${signs.map((x, i) => {
+      // Hung from the canopy on two rods, clear of the train's roof (at y 200), cream so it never blends into the train
+      const numW = number ? Math.max(24, 12 + number.length * 9) : 0;
+      const plate = (px: number, w: number, text: string) => html`
+        <rect class="sc-rod" x="${px + 6}" y="170" width="2" height="5"/><rect class="sc-rod" x="${px + w - 8}" y="170" width="2" height="5"/>
+        <rect class="sc-sign" x="${px}" y="175" width="${w}" height="20" rx="2"/>
+        <text class="sc-sign-ink" x="${px + w / 2}" y="190" text-anchor="middle">${text}</text>`;
+      return html`<g>${plate(x, signW, name)}${number && i === 0 ? plate(x + signW + 10, numW, number) : ""}</g>`;
+    })}
     <rect class="sc-platform" x="${-length}" y="238" width="${length}" height="14"/>
     <path class="sc-platform" d="M0 238 L18 252 L0 252 Z"/>
     <rect class="sc-edge" x="${-length}" y="246" width="${length}" height="3"/>`;

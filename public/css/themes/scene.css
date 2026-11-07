@@ -11,7 +11,8 @@
   --sc-wheel: #1b2230; --sc-spoke: #586070; --sc-plate: #f7f4ec; --sc-plate-ink: #1b2a4a; --sc-front: #ffcc00;
   --sc-screen: #1b2230; --sc-lamp: #fbf9f4; --sc-tail: #c8352a;
   --sc-wall: #b5654a; --sc-wall-line: #a0563d; --sc-canopy: #2e6b4a; --sc-valance: #f4ead0; --sc-platform: #cfc2a6;
-  --sc-edge: #ffcc00; --sc-sign: #1b2a4a; --sc-sign-ink: #ffffff;
+  /* Station signs are cream with navy letters, so they stand out from the navy train in every sky */
+  --sc-edge: #ffcc00; --sc-sign: #fbf9f4; --sc-sign-ink: #1b2a4a; --sc-sign-edge: #1b2230; --sc-rod: #3a3f4c;
 }
 .scene[data-sky="dawn"] {
   --sc-sky: #f0d6c8; --sc-low: #f6e4d2; --sc-sun: #f3b578; --sc-cloud: #fbeee6; --sc-far: #b9bfaa; --sc-mid: #9aaa8a;
@@ -47,7 +48,7 @@
     --sc-wheel: #0b0f18; --sc-spoke: #4f555e; --sc-plate: #ece7dc; --sc-plate-ink: #1b2a4a; --sc-front: #ffcc00;
     --sc-screen: #0f1420; --sc-lamp: #ece7dc;
     --sc-wall: #7a4a3c; --sc-wall-line: #6a3f33; --sc-canopy: #284a3c; --sc-valance: #a39d8d; --sc-platform: #77705f;
-    --sc-edge: #ffcc00; --sc-sign: #1b2a4a; --sc-sign-ink: #ffffff;
+    --sc-edge: #ffcc00; --sc-sign: #ece7dc; --sc-sign-ink: #1b2a4a; --sc-sign-edge: #0b0f18; --sc-rod: #727a89;
   }
   .scene[data-sky="dawn"] {
     --sc-sky: #4a4d6e; --sc-low: #7a6c7c; --sc-sun: #e0a070; --sc-stars: .35; --sc-cloud: #5d5f7e; --sc-far: #4c5661;
@@ -71,6 +72,6 @@
     --sc-roof: #232c40; --sc-house-window: #f2c46b; --sc-sheep: #3a4458; --sc-sheep-face: #1f283b; --sc-fence: #485169;
     --sc-hedge: #1c2435; --sc-ballast: #283041; --sc-sleeper: #485169; --sc-rail: #727a89; --sc-fore: #141b28;
     --sc-tuft: #1c2435; --sc-coach-window: #f2c46b; --sc-spoke: #485169; --sc-lamp: #ffffff; --sc-wall: #4a3434;
-    --sc-wall-line: #3f2c2c; --sc-canopy: #1f3a33; --sc-valance: #6f6a5e; --sc-platform: #3a3f4c; --sc-sign: #2f4f8f;
+    --sc-wall-line: #3f2c2c; --sc-canopy: #1f3a33; --sc-valance: #6f6a5e; --sc-platform: #3a3f4c;
   }
 }
