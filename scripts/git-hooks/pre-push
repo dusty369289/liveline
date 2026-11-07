@@ -1,0 +1,13 @@
+#!/bin/sh
+# Every push (installed by `npm install`). A checkout can carry more than one remote (the old repository this one
+# replaced, say), and a push by habit to the wrong one publishes a branch where nobody reviews it. Only this
+# repository is a valid target, whatever the remote is called and however it's reached.
+url="$2"
+case "$url" in
+  https://github.com/dusty369289/liveline | https://github.com/dusty369289/liveline.git \
+  | git@github.com:dusty369289/liveline.git | ssh://git@github.com/dusty369289/liveline.git)
+    exit 0 ;;
+esac
+echo "pre-push: refusing to push to $url." >&2
+echo "pre-push: this project lives at github.com/dusty369289/liveline; push to the remote with that URL." >&2
+exit 1

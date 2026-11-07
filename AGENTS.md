@@ -157,7 +157,8 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
 - Never an AI co-author trailer or a "Generated with" line. All work is attributed to the owner.
 - **Git hooks enforce this** (`scripts/git-hooks/`, switched on by `npm install`). pre-commit lists what's staged
   (deletions and renames by name), runs the leak check and `npm run check`; commit-msg refuses AI attribution and
-  subjects over 72 characters. Never `--no-verify`: fix what the hook found.
+  subjects over 72 characters; pre-push refuses any remote but this repository (a checkout may also carry the old
+  one). Tested in `test/git-hooks.test.ts`. Never `--no-verify`: fix what the hook found.
 - Before pushing a branch, check every commit on it passes alone: `git rebase --exec "npm run check" origin/main`.
 
 ### Definition of done (every PR)
