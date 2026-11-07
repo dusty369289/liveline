@@ -80,6 +80,16 @@ export interface Timeline {
   worst: Lost | null; // the section that lost the most time, if it lost at least 2 minutes
 }
 
+/**
+ * How far through a section the train is at `now`, by elapsed time against the run expected from `since` (when it
+ * left) to `expected`. It never passes `hold`: an unreported point is never passed. Shared with live-train.ts, which
+ * moves the marker every second between answers.
+ */
+export function sectionFraction(since: Ms, expected: Ms | null, now: Ms, hold = DEFAULT_ENGINE.holdFraction): number {
+  if (expected == null || expected <= since) return hold;
+  return Math.min(Math.max((now - since) / (expected - since), 0), hold);
+}
+
 /** Railway convention: lateness is whole minutes, rounded toward zero. */
 export const roundMin = (seconds: number) => (seconds >= 0 ? Math.floor(seconds / 60) : -Math.floor(-seconds / 60));
 
@@ -313,8 +323,7 @@ function position(
   const fe = firstEvent(nv.point);
   const expected = fe.forecast ?? fe.estimate ?? plannedArr.get(nxt) ?? expectedAt(nv);
   const np = pts[nxt];
-  const frac =
-    expected == null || expected <= act ? cfg.holdFraction : Math.min(Math.max((now - act) / (expected - act), 0), cfg.holdFraction);
+  const frac = sectionFraction(act, expected, now, cfg.holdFraction);
   const verb = lp.kind === "pass" ? "Passed" : "Left";
   if (expected != null && now > expected + cfg.overdueAfter) {
     const over = roundMin((now - expected) / 1000);

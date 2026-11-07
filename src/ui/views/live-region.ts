@@ -1,5 +1,5 @@
 // The part of the train page that refreshes: where the train is, your stops, and the route with every point.
-import { changed, type PointView, type StopSummary, type Timeline } from "../../core/engine";
+import { changed, DEFAULT_ENGINE, type PointView, type StopSummary, type Timeline } from "../../core/engine";
 import { isCancelled } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import { hm } from "../../core/time";
@@ -128,7 +128,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   });
   return html`
 <section class="live" aria-labelledby="live-h" data-state="${p.state}" data-from="${p.fromIndex ?? ""}" data-to="${p.toIndex ?? ""}"
-  data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}" data-hold="0.95"
+  data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}" data-hold="${DEFAULT_ENGINE.holdFraction}"
   data-refresh="${res.refreshAfter == null ? "" : Math.floor(res.refreshAfter)}" data-fetched="${res.fetched.fetchedAt}">
   <div class="live__status" role="status">
     <h2 id="live-h" class="visually-hidden">Where the train is</h2>

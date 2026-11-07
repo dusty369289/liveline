@@ -1,9 +1,11 @@
-// What a time looks like on the route: which circle it gets, when it says "On time", and the lateness words and colours.
+// What a time looks like on the route: which circle it gets, when it says "On time", and the lateness words and
+// colours; and where the marker sits between two rows.
 import { describe, expect, it } from "vitest";
 import { type PointView, roundMin, type Shown } from "../src/core/engine";
 import { emptyTimes, type Point } from "../src/core/models";
 import { markOf, type TimeKind } from "../src/ui/components/marks";
 import { delayClass, lateness } from "../src/ui/format";
+import { clampBetween, MIN_AWAY } from "../src/ui/route-place";
 import { pointTimes } from "../src/ui/views/live-region";
 
 const T = Date.UTC(2026, 10, 7, 10, 0);
@@ -81,5 +83,24 @@ describe("lateness words and colour", () => {
 
   it("a time that's only booked has nothing to compare", () => {
     expect(lateness(shown("booked", 0))).toBe("");
+  });
+});
+
+describe("the marker between two rows", () => {
+  it("keeps MIN_AWAY clear of both points on a long section", () => {
+    expect(MIN_AWAY).toBe(26);
+    expect(clampBetween(0, 200, 0)).toBe(26);
+    expect(clampBetween(0, 200, 0.05)).toBe(26);
+    expect(clampBetween(0, 200, 0.5)).toBe(100);
+    expect(clampBetween(0, 200, 1)).toBe(174);
+    expect(clampBetween(100, 300, 0.25)).toBe(150);
+  });
+
+  it("sits at half the gap on a section shorter than twice MIN_AWAY", () => {
+    for (const f of [0, 0.3, 0.95, 1]) expect(clampBetween(0, 40, f)).toBe(20);
+  });
+
+  it("takes another distance", () => {
+    expect(clampBetween(0, 200, 0, 10)).toBe(10);
   });
 });

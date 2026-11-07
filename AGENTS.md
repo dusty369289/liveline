@@ -36,6 +36,7 @@ src/
     store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists
     updates.ts   the update check, banner and one-tap install
     live-train.ts  the train page while open: marker, polling, folds, the sticky bar
+    route-place.ts where the marker sits between two rows (pure, in pixels)
     train-scene.ts the Train view while showing: slides the scenery, platforms, wheels (art in views/scene-art.ts,
                    views/train-art.ts; colours in public/css/themes/scene.css)
     html.ts, routes.ts, format.ts   the escaping template, hash routes, text formatting

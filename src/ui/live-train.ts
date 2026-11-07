@@ -1,14 +1,14 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { stopSummary } from "../core/engine";
+import { DEFAULT_ENGINE, sectionFraction, stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
+import { clampBetween } from "./route-place";
 import { liveRegion } from "./views/live-region";
 import { PassFolds } from "./widgets/pass-folds";
 
-const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
 const MIN_AGE = 15_000; // the client won't refetch anything younger either, so pressing refresh again costs nothing
 
 export class LiveTrain {
@@ -144,7 +144,7 @@ export class LiveTrain {
     let y: number | null = null;
     let waiting = false;
     if (d.state === "running" || d.state === "overdue") {
-      const hold = Number(d.hold) || 0.95;
+      const hold = Number(d.hold) || DEFAULT_ENGINE.holdFraction;
       let rowA = from;
       let rowB = to;
       let since = Number(d.since);
@@ -162,14 +162,11 @@ export class LiveTrain {
       const a = this.rowCentre(rowA, wrap);
       const b = this.rowCentre(rowB, wrap);
       let f = Number(d.fraction) || 0;
-      if (since && expected && expected > since) f = Math.min(Math.max((Date.now() - since) / (expected - since), 0), hold);
+      if (since && expected && expected > since) f = sectionFraction(since, expected, Date.now(), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
       if (d.state === "overdue") waiting = true;
       // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
-      if (a !== null && b !== null) {
-        const gap = Math.min(MIN_AWAY, (b - a) / 2);
-        y = Math.min(a + Math.max((b - a) * f, gap), b - gap);
-      }
+      if (a !== null && b !== null) y = clampBetween(a, b, f);
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
       waiting = true;
