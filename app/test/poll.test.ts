@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { build, type Timeline } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
-import { POLL, pollAfter } from "../src/core/poll";
+import { manualMinAge, POLL, pollAfter } from "../src/core/poll";
 import { SimTransport } from "../src/core/simulator";
 import { fromLondon, isoLocal, type Ms } from "../src/core/time";
 
@@ -26,6 +26,32 @@ const arr = (() => {
   const tl = at(t0);
   return tl.points.find((v) => v.point.crs === "OXF")!.arrival!.booked!;
 })();
+
+describe("manual refresh", () => {
+  it("is 4x faster than the automatic polls while the hour has plenty left", () => {
+    expect(manualMinAge(100, 10)).toBe(15);
+    expect(manualMinAge(31, 10)).toBe(15);
+  });
+  it("slows to once a minute when the hour runs low", () => {
+    expect(manualMinAge(30, 10)).toBe(60);
+    expect(manualMinAge(11, 10)).toBe(60);
+  });
+  it("never touches the calls kept for searches", () => {
+    expect(manualMinAge(10, 10)).toBeNull();
+    expect(manualMinAge(0, 10)).toBeNull();
+  });
+  it("tapping as fast as allowed from a full hour still leaves the search reserve", () => {
+    let left = 100;
+    let t = 0;
+    while (t < 3600) {
+      const m = manualMinAge(left, 10);
+      if (m == null) break;
+      left -= 1;
+      t += m;
+    }
+    expect(left).toBe(10);
+  });
+});
 
 describe("polling a train", () => {
   it("before it leaves, checks rarely and wakes up shortly before it's due", () => {

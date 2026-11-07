@@ -2,6 +2,7 @@
 // Port of the Python app's static/js/live.js. Unlike a server-rendered page, this lives inside one long-running app,
 // so stop() undoes every timer and listener when you leave the page.
 import { stopSummary } from "../core/engine";
+import { manualMinAge } from "../core/poll";
 import type { Rail } from "../core/rail";
 import { liveRegion } from "./views";
 import { prefs } from "./prefs";
@@ -239,11 +240,19 @@ export class LiveTrain {
     this.schedule(Math.min(secs * (1 + this.failures), 300));
   }
 
+  /** Faster than the automatic polls, but scaled to what's left of the hour (poll.ts, manualMinAge). */
   private refreshNow(): void {
     if (this.busy) return; // already spinning
+    const b = this.rail.budget;
+    const minAge = manualMinAge(b.state().remaining.hour, b.reserve);
+    if (minAge == null) {
+      this.say("Only the calls kept for searches are left this hour. Showing the last answer.", 5);
+      return;
+    }
     const age = Date.now() - this.fetchedAt();
-    if (age < MIN_AGE) {
-      this.say(`Already up to date (${Math.round(age / 1000)} s old)`, 3);
+    if (age < minAge * 1000) {
+      this.say(age < MIN_AGE ? `Already up to date (${Math.round(age / 1000)} s old)`
+        : `Saving calls: you can refresh again in ${Math.ceil(minAge - age / 1000)} s`, 3);
       return;
     }
     void this.refresh(true);
