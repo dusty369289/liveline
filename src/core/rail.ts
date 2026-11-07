@@ -1,6 +1,7 @@
-// What the screens call: boards, trains, the key and the plan. Port of src/liveline/services/app.py, for one
-// person on one device. With no key it runs on the simulator (demo); with one, it talks to RTT itself.
+// What the screens call: boards, trains, the key and the plan, for one person on one device. With no key it runs
+// on the simulator (demo); with one, it talks to RTT itself.
 import { Budget } from "./budget";
+import { STORE } from "./keys";
 import { build, type Timeline } from "./engine";
 import type { Http } from "./http";
 import { type Board, type BoardRow, booked, forPassengers, isEmpty, type Times } from "./models";
@@ -13,7 +14,7 @@ import { type Ms, parseDate } from "./time";
 
 export { AuthError, BusyError, OfflineError, RttError } from "./rtt";
 
-const KEY = "rtt.key";
+const KEY = STORE.key;
 
 export interface BoardResult {
   board: Board;
@@ -146,7 +147,7 @@ export class Rail {
 
   async removeKey(): Promise<void> {
     await this.store.remove(KEY);
-    await this.store.remove("rtt.access");
+    await this.store.remove(STORE.access);
     this.tokenError = null;
     this.useDemo();
   }

@@ -1,5 +1,5 @@
 // RTT next-generation JSON to models. Tolerant by design: every field may be missing (AGENTS.md lists the quirks).
-// A port of src/liveline/domain/parse.py; test/parity.test.ts holds it to the Python version's output.
+// test/parity.test.ts holds it to the frozen golden answers (test/golden/README.md).
 import {
   type Allowances,
   type Board,

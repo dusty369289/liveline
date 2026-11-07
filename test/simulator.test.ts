@@ -1,13 +1,12 @@
-// The TypeScript simulator must answer exactly as the Python reference did (scripts/export_golden.py), so demo mode
-// shows the same trains whichever version runs. Also checks the hashing and rounding it depends on.
-import { readFileSync } from "node:fs";
+// The simulator must keep answering exactly as the frozen golden files say (test/golden/README.md), so demo mode
+// shows the same trains release after release. Also checks the hashing and rounding it depends on.
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../src/core/sha256";
 import { h, roundHalfUp, SimTransport } from "../src/core/simulator";
 import { isoLocal } from "../src/core/time";
+import { readJson } from "./support";
 
-const here = new URL(".", import.meta.url).pathname;
-const golden = JSON.parse(readFileSync(`${here}golden/simulator.json`, "utf8"));
+const golden = readJson<any>("golden/simulator.json");
 
 it("sha256 matches known answers", () => {
   expect(sha256Hex("")).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
@@ -20,7 +19,7 @@ it("rounds halves up, the same in both versions", () => {
   expect([0.5, 1.5, 2.5, -0.5, -1.5, 2.4, 2.6].map(roundHalfUp)).toEqual([1, 2, 3, 0, -1, 2, 3]);
 });
 
-describe("simulator parity with the Python reference", () => {
+describe("simulator matches the golden answers", () => {
   for (const moment of golden) {
     describe(isoLocal(moment.now), () => {
       const sim = new SimTransport(() => moment.now);

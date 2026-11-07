@@ -1,14 +1,12 @@
-// The TypeScript core must give exactly the Python reference's answers (scripts/export_golden.py writes them).
-// Real RTT recordings and spec fixtures: parsed services and boards, and the engine's timeline at many moments.
-import { readFileSync } from "node:fs";
+// The core must keep giving the frozen golden answers (test/golden/README.md): parsed services and boards from real
+// RTT recordings and spec fixtures, and the engine's timeline at many moments.
 import { describe, expect, it } from "vitest";
 import { build, stopSummary } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
 import { fromLondon } from "../src/core/time";
+import { fixture, readJson } from "./support";
 
-const here = new URL(".", import.meta.url).pathname;
-const cases = JSON.parse(readFileSync(`${here}golden/fixtures.json`, "utf8"));
-const fixture = (name: string) => JSON.parse(readFileSync(`${here}fixtures/rtt/${name}`, "utf8"));
+const cases = readJson<any>("golden/fixtures.json");
 const plain = (o: unknown) => JSON.parse(JSON.stringify(o));
 
 function timelineJson(tl: ReturnType<typeof build>) {
@@ -18,7 +16,7 @@ function timelineJson(tl: ReturnType<typeof build>) {
   return d;
 }
 
-describe("parity with the Python reference", () => {
+describe("parity with the golden answers", () => {
   for (const c of cases) {
     if (c.kind === "service") {
       describe(c.file, () => {

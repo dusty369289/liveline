@@ -1,5 +1,4 @@
 // Offline station search over the bundled list (src/data/stations.json, ODbL; see src/data/README.md). No API calls.
-// Port of src/liveline/sources/stations.py.
 export interface Station {
   name: string;
   crs: string;

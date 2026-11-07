@@ -1,37 +1,11 @@
-// Budget, client, key handling and station search: the Python suite's cases (tests/test_sources.py,
-// tests/test_settings.py), carried over to the TypeScript core.
-import { readFileSync } from "node:fs";
+// Budget, client, key handling and station search (carried over from the retired Python suite).
 import { beforeEach, describe, expect, it } from "vitest";
 import { Budget } from "../src/core/budget";
 import type { Http, HttpResponse } from "../src/core/http";
 import { cleanToken, Rail } from "../src/core/rail";
-import { AuthError, BusyError, type KeyValueStore, RttClient, RttError } from "../src/core/rtt";
-import { StationIndex } from "../src/core/stations";
-import { fromLondon, type Ms } from "../src/core/time";
-
-const here = new URL(".", import.meta.url).pathname;
-const stations = StationIndex.fromRaw(JSON.parse(readFileSync(`${here}../src/data/stations.json`, "utf8")));
-
-class Clock {
-  constructor(public t: Ms) {}
-  now = () => this.t;
-  advance(s: number) {
-    this.t += s * 1000;
-  }
-}
-
-class MemStore implements KeyValueStore {
-  data = new Map<string, string>();
-  async get(k: string) {
-    return this.data.get(k) ?? null;
-  }
-  async set(k: string, v: string) {
-    this.data.set(k, v);
-  }
-  async remove(k: string) {
-    this.data.delete(k);
-  }
-}
+import { AuthError, BusyError, RttClient, RttError } from "../src/core/rtt";
+import { fromLondon } from "../src/core/time";
+import { Clock, MemStore, stations } from "./support";
 
 const GOOD = "good-refresh-token-0123456789abcdef";
 

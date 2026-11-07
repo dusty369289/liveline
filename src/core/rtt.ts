@@ -1,6 +1,7 @@
 // RTT client: token handling (access or refresh), caching, and the allowance, over any Http.
-// Port of src/liveline/sources/rtt.py. On the phone it holds one key: its owner's.
+// On the phone it holds one key: its owner's.
 import { Budget } from "./budget";
+import { STORE } from "./keys";
 import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
 import { hm, isoLocal, type Ms } from "./time";
@@ -40,7 +41,7 @@ export interface KeyValueStore {
   remove(key: string): Promise<void>;
 }
 
-const STATE_KEY = "rtt.access";
+const STATE_KEY = STORE.access;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 /** RTT's /api/info answer, not just any 200 (a captive portal or a misrouted relay answers 200 with a web page). */
 const isInfo = (v: unknown): v is Record<string, unknown> => isObj(v) && (isObj(v.credentials) || typeof v.api_version === "string");

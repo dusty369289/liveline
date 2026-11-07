@@ -1,10 +1,11 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
-// Port of the Python app's static/js/live.js. Unlike a server-rendered page, this lives inside one long-running app,
-// so stop() undoes every timer and listener when you leave the page.
+// It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
+// (TrainPage calls it from dispose()).
 import { stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail } from "../core/rail";
-import { liveRegion } from "./views";
+import { fragment } from "./html";
+import { liveRegion } from "./views/live-region";
 
 const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
 const MIN_AGE = 15_000; // the client won't refetch anything younger either, so pressing refresh again costs nothing
@@ -243,10 +244,7 @@ export class LiveTrain {
       const res = await this.rail.service(this.uid, { background: !force, force, at: this.at, to: this.to });
       if (this.stopped) return;
       const tl = res.timeline;
-      const fresh = liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false));
-      const tpl = document.createElement("template");
-      tpl.innerHTML = fresh.value;
-      const node = tpl.content.querySelector(".live");
+      const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
       if (node) this.region.replaceChildren(node);
       this.applyFolds();
       this.failures = 0;

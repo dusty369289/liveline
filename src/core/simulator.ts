@@ -1,5 +1,5 @@
 // A pretend data.rtt.io for demo mode (no key) and tests. Same paths, same JSON shapes and quirks as the real API.
-// A port of src/liveline/sources/simulator.py; test/simulator.test.ts holds it to the Python version's answers.
+// test/simulator.test.ts holds it to the frozen golden answers, so demo trains stay the same release after release.
 // Routes are real lines with plausible working-timetable times, not a copy of any real timetable. Trains move in real
 // time; each gets a delay profile from a hash of its identity.
 import type { Http, HttpResponse } from "./http";
@@ -67,7 +67,8 @@ const PATTERNS: Pattern[] = [
   P("SW", "SW", "South Western Railway", "W", "2K", null, 1.0, [20, 50], 8),
 ];
 
-/** Python's str() of the values the reference hashes. */
+/** Text for a hashed value exactly as the original (Python) implementation wrote it ("True", "1.0"), so the
+ * simulated trains stay identical to the golden files. */
 function pyStr(v: unknown): string {
   if (typeof v === "boolean") return v ? "True" : "False";
   return String(v);
