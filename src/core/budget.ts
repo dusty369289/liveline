@@ -1,5 +1,5 @@
 // One allowance for every real RTT call: obeys RTT's rate-limit headers, and is careful before it has seen any.
-// Port of src/liveline/sources/budget.py. Free and Hobbyist: 10 a minute, 100 an hour, 1000 a day.
+// Free and Hobbyist: 10 a minute, 100 an hour, 1000 a day.
 // Searches (interactive) may use the last `reserve` calls of the hour; background refreshes may not.
 import type { Ms } from "./time";
 

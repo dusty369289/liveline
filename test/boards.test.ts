@@ -2,27 +2,11 @@
 // minute ticking over cost nothing. The simulator stands in for RTT and counts the calls.
 import { describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
-import type { KeyValueStore } from "../src/core/rtt";
 import { FETCH_WINDOW, FUTURE_BOARD_TTL } from "../src/core/rtt";
 import { SimTransport } from "../src/core/simulator";
-import { StationIndex } from "../src/core/stations";
 import { fromLondon, type Ms } from "../src/core/time";
-import raw from "../src/data/stations.json";
+import { MemStore, stations } from "./support";
 
-class MemStore implements KeyValueStore {
-  data = new Map<string, string>();
-  async get(k: string) {
-    return this.data.get(k) ?? null;
-  }
-  async set(k: string, v: string) {
-    this.data.set(k, v);
-  }
-  async remove(k: string) {
-    this.data.delete(k);
-  }
-}
-
-const stations = StationIndex.fromRaw(raw as Record<string, unknown>[]);
 const KEY = "k".repeat(40);
 
 async function setup(start: Ms) {

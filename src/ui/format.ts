@@ -1,0 +1,39 @@
+// Small text formatting shared by the views. Pure: no DOM, no state.
+import type { Shown } from "../core/engine";
+import { hm, isoDate, type Ms } from "../core/time";
+
+export function ago(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  if (s < 60) return `${s} s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  return `${Math.floor(s / 3600)} h ago`;
+}
+
+/** The lateness class a time is coloured by (tokens in the theme). */
+export function delayClass(s: Shown | null): string {
+  if (!s || s.delayMin == null) return "";
+  if (s.delayMin >= 5) return "is-very-late";
+  if (s.delayMin >= 2) return "is-late";
+  if (s.delayMin <= -1) return "is-early";
+  return "is-ontime";
+}
+
+/** A time with half minutes shown (½), for working-timetable times. */
+export const hmh = (t: Ms | null) => hm(t, true);
+
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Sat 7 Nov" (UK day). */
+export function dayLabel(t: Ms): string {
+  const [y, m, d] = isoDate(t).split("-").map(Number);
+  return `${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} ${MONTHS[m - 1]}`;
+}
+
+/** "14:30" today, "Sat 7 Nov, 14:30" another day. */
+export function dayOrTime(t: Ms, now: Ms): string {
+  return isoDate(t) === isoDate(now) ? hm(t) : `${dayLabel(t)}, ${hm(t)}`;
+}
+
+/** "1 passing point", "6 passing points". */
+export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

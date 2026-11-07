@@ -1,5 +1,5 @@
 // A tiny escaping template: every value is HTML-escaped unless it's already Html (another template, or raw()).
-// Train and station names come from RTT, so they're untrusted text; this is what Jinja's autoescape did before.
+// Train and station names come from RTT, so they're untrusted text: nothing reaches the page unescaped.
 export class Html {
   constructor(readonly value: string) {}
   toString() {
@@ -26,10 +26,14 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): Html 
 /** Only for markup written in this codebase, never for data. */
 export const raw = (s: string) => new Html(s);
 
-/** Query string for a hash route, dropping empty values. */
-export function qs(params: Record<string, string | number | boolean | null | undefined>): string {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) if (v !== "" && v != null && v !== false) p.set(k, String(v));
-  const s = p.toString();
-  return s ? `?${s}` : "";
+/** Put a view on screen. The only place the UI sets innerHTML, and only from escaped Html. */
+export function render(target: Element, view: Html): void {
+  target.innerHTML = view.value;
+}
+
+/** Parse a view without showing it, to swap parts of the page in place (a refreshed board or train). */
+export function fragment(view: Html): DocumentFragment {
+  const tpl = document.createElement("template");
+  tpl.innerHTML = view.value;
+  return tpl.content;
 }

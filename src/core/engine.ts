@@ -1,5 +1,5 @@
 // Where the train is, and when it'll reach each point. Pure functions of (service, now).
-// A port of src/liveline/domain/engine.py; test/parity.test.ts holds it to the Python version's output.
+// test/parity.test.ts holds it to the frozen golden answers (test/golden/README.md).
 //
 // Display time for each event, in order of trust: RTT actual > RTT forecast > RTT's no-report estimate > ours > booked.
 // Our estimate carries the latest known delay forward along the working timetable. A late train can win back the
