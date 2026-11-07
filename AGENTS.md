@@ -69,7 +69,11 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
   "Show all".
 - **Train view:** every location RTT returns, including passes. Calls are full rows, passes are small rows. Times:
   booked (public time, or working time for passes), then actual if reported, else RTT's forecast, else our estimate,
-  each marked. Detailed-mode actuals show quarter minutes (¼ ½ ¾); our estimates are whole minutes.
+  each marked by a small circle before it (`shape()` in `views.ts`), never by weight: **filled** = reported (it
+  happened), **ring** = RTT's forecast (with "On time" when it matches the booked time), **dashed ring** = our guess.
+  Shapes, not colours, so they read in both themes and for colour-blind eyes; screen readers hear "reported",
+  "expected", "our estimate". Boards use the same marks ("● Left 14:41", "○ Exp 14:45"). Detailed-mode actuals show
+  quarter minutes (¼ ½ ¾); our estimates are whole minutes.
 - **Live position:** the last reported point and the next point give a section. Progress uses elapsed time against the
   working timetable's section time. It never passes an unreported point (holds at 95%) and says "No report at X yet"
   once the section has taken longer than booked plus 2 minutes.
