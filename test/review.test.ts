@@ -1,10 +1,10 @@
 // The test review harness itself: slow tests queue and stay queued, a slow machine isn't blamed on one test,
 // failed-then-passed on the same code is flaky, and acceptances need a reason.
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { FINGERPRINT_ROOTS, LIMITS, type TestRun, TestReview } from "./harness/review";
+import { FINGERPRINT_ROOTS, fingerprint, LIMITS, type TestRun, TestReview } from "./harness/review";
 
 let dir: string;
 let review: TestReview;
@@ -66,8 +66,17 @@ describe("flaky review", () => {
     expect(review.pending().flaky).toEqual([]);
   });
 
-  it("the fingerprint covers what the tests read beyond src/: CSS and the Android files", () => {
-    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts"]) expect(FINGERPRINT_ROOTS).toContain(r);
+  it("the fingerprint covers what the tests read beyond src/: CSS, the Android files and the scripts", () => {
+    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts"]) expect(FINGERPRINT_ROOTS).toContain(r);
+  });
+
+  it("the fingerprint sees a change to any file, a hook with no extension included", () => {
+    const root = mkdtempSync(join(tmpdir(), "fp-"));
+    writeFileSync(join(root, "pre-push"), "exit 1\n");
+    const before = fingerprint([root]);
+    writeFileSync(join(root, "pre-push"), "exit 0\n");
+    expect(fingerprint([root])).not.toBe(before);
+    rmSync(root, { recursive: true, force: true });
   });
 
   it("failed then passed after a code change is a fix, not flaky", () => {
