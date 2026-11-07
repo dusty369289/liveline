@@ -67,4 +67,14 @@ input[type="checkbox"]:checked::before {
 code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--surface-2); padding: 0 .25em; border-radius: var(--radius); }
 :focus-visible { outline: 3px solid var(--train); outline-offset: 2px; box-shadow: 0 0 0 5px var(--train-edge); }
 details > summary { cursor: pointer; }
+/* Something folded away ("How to read this", "Another time or day"): a chevron before it that turns when open, the
+   same as the passing-point folds, so it reads as a thing to tap rather than a caption */
+.disclosure > summary { min-height: var(--tap); display: flex; align-items: center; gap: var(--s-2); color: var(--ink); list-style: none; }
+.disclosure > summary::-webkit-details-marker { display: none; }
+.disclosure > summary::before {
+  content: ""; flex: none; width: .45rem; height: .45rem; margin: 0 .2rem 0 .1rem;
+  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-25%); transition: transform .15s ease;
+}
+.disclosure[open] > summary::before { transform: rotate(-135deg) translate(-25%, 0); }
+@media (prefers-reduced-motion: reduce) { .disclosure > summary::before { transition: none; } }
 ::selection { background: var(--train); color: var(--train-edge); }

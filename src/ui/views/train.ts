@@ -18,7 +18,7 @@ export function trainTitle(res: ServiceResult): string {
 }
 
 const legend = html`
-  <details class="legend">
+  <details class="legend disclosure">
     <summary>How to read this</summary>
     <dl class="legend__list">
       <dt><span class="src-actual tnum">${timeMark("actual")}14:41</span></dt><dd><strong>Happened:</strong> reported by Realtime Trains. To the minute on the free plan, to the quarter minute (¼ ½ ¾) with detailed mode.</dd>

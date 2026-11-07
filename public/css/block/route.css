@@ -149,7 +149,6 @@
 .trains__live.is-cancelled { color: var(--problem); }
 
 .legend { font-size: var(--t-sm); color: var(--muted); padding-top: var(--s-3); }
-.legend summary { min-height: var(--tap); display: flex; align-items: center; color: var(--ink); }
 .legend__list { display: grid; grid-template-columns: 5.5rem 1fr; gap: var(--s-3); margin-top: var(--s-2); }
 .legend__list dt { color: var(--ink); text-align: right; }
 .tick { display: inline-block; width: .75rem; height: 3px; background: var(--rail); vertical-align: middle; }
