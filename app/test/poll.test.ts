@@ -59,19 +59,21 @@ describe("polling a train", () => {
     expect(pollAfter(at(now), now, 30, "OXF")).toBeGreaterThanOrEqual(POLL.farAway);
   });
 
-  it("stops once it has arrived, or once you've got off", () => {
+  it("stops only once it has arrived; passing your own stop doesn't stop it", () => {
     const after = arr + 10 * 60_000;
     expect(pollAfter(at(after), after, 30)).toBeNull();
-    const tl = at(arr - 5 * 60_000);
-    const mid = tl.points.filter((v) => v.point.kind === "call" && v.point.crs && v.reported).at(-1);
-    if (mid?.point.crs && mid.point.crs !== "PAD") expect(pollAfter(tl, arr - 5 * 60_000, 30, "", mid.point.crs)).toBeNull();
+    // five minutes before Oxford it has long passed Reading: you may have got off there, and still want to watch
+    const now = arr - 5 * 60_000;
+    const tl = at(now);
+    expect(tl.points.find((v) => v.point.crs === "RDG")!.reported).toBe(true);
+    expect(pollAfter(tl, now, 30, "PAD")).not.toBeNull();
   });
 
   it("following one train end to end fits the hour, with the search reserve left over", () => {
     let now = dep - 20 * 60_000;
     let calls = 0;
     while (calls < 500) {
-      const s = pollAfter(at(now), now, 30, "PAD", "OXF");
+      const s = pollAfter(at(now), now, 30, "PAD");
       calls += 1;
       if (s == null) break;
       now += s * 1000;

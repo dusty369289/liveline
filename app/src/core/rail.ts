@@ -194,7 +194,7 @@ export class Rail {
   }
 
   async service(uniqueId: string, opts: { background?: boolean; force?: boolean; at?: string; to?: string } = {}): Promise<ServiceResult> {
-    const { background = false, force = false, at = "", to = "" } = opts;
+    const { background = false, force = false, at = "" } = opts;
     const uid = uniqueId.trim();
     const i = uid.lastIndexOf(":");
     if (i < 1) throw new RttError("That isn't a train identity (it should look like C05986:2026-09-06).");
@@ -205,6 +205,6 @@ export class Rail {
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
     const now = this.clock();
     const tl = build(parseService(f.body, this.clock), now);
-    return { timeline: tl, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at, to) };
+    return { timeline: tl, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
   }
 }
