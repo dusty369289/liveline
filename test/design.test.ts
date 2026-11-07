@@ -41,6 +41,12 @@ describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {
     expect(contrast(t[fg], t[bg]), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("the edge of a text box, radio or checkbox stands out from the page and its own fill (3:1)", () => {
+    // base/elements.css draws radios and checkboxes with this line; the browser's own were too faint at night
+    expect(contrast(t["control-line"], t.page)).toBeGreaterThanOrEqual(3);
+    expect(contrast(t["control-line"], t.control)).toBeGreaterThanOrEqual(3);
+  });
+
   it("the train marker stands out from the page (3:1), by its edge if not its yellow", () => {
     // yellow on paper alone is about 1.4:1, so the marker always carries its dark edge
     expect(Math.max(contrast(t["train-edge"], t.page), contrast(t.train, t.page))).toBeGreaterThanOrEqual(3);
