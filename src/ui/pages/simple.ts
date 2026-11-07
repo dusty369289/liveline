@@ -12,7 +12,7 @@ export class HomePage extends Page {
 
   async load(): Promise<Html> {
     const c = this.ctx;
-    return homeView({ query: queryOf(this.route.params), carry: c.trains.carryOn(Date.now()), journeys: c.journeys.all(), stations: c.stations.all() });
+    return homeView({ query: queryOf(this.route.params), carry: c.trains.carryOn(Date.now()), journeys: c.journeys.all() });
   }
 }
 

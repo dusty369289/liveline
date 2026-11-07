@@ -21,6 +21,10 @@
 .search__when[open] summary::before { transform: rotate(-135deg) translate(-25%, 0); }
 .search__when summary .hint { font-size: var(--t-xs); }
 .search__when[open] summary { margin-bottom: var(--s-2); }
+/* "Another time or day" and the button share a row, so the page fits one screen; open, the time fields need the width */
+.search__go { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.search__go:has(.search__when[open]) { flex-direction: column; align-items: stretch; }
+.search__go .search__when summary { padding-top: 0; align-items: center; } /* level with the button beside it */
 @media (prefers-reduced-motion: reduce) { .search__when summary::before { transition: none; } }
 .search__row { flex-wrap: nowrap; gap: var(--s-3); }
 .search__row .field { flex: 1 1 0; min-width: 0; }
@@ -47,7 +51,8 @@
 @media (hover: hover) { .suggest__list li:hover { background: var(--surface-2); } }
 .suggest__crs { color: var(--muted); font: 600 var(--t-sm)/1 var(--sign-font); letter-spacing: .1em; }
 
-.home { gap: var(--s-5); }
+.home { gap: var(--s-4); }
+.home .search { gap: var(--s-3); }
 .home h1 { font-size: 2.125rem; line-height: 1.05; } /* the same size as a board's station name */
 
 .recent__list { gap: var(--s-1) var(--s-4); }
