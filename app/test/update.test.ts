@@ -28,6 +28,13 @@ describe("update check", () => {
     expect(r.notes).toBe("Faster boards.");
   });
 
+  it("turns GitHub's generated notes into a readable line", () => {
+    const body = "## What's Changed\n* Sticky refresh bar; keep polling after your stop by @dusty369289 in https://github.com/dusty369289/liveline/pull/5\n"
+      + "* Circles show which times happened by @dusty369289 in https://github.com/dusty369289/liveline/pull/7\n\n\n"
+      + "**Full Changelog**: https://github.com/dusty369289/liveline/compare/v0.1.1...v0.1.2";
+    expect(readRelease(release([], { body }))!.notes).toBe("Sticky refresh bar; keep polling after your stop · Circles show which times happened");
+  });
+
   it("falls back to the .sha256 file, and ignores a malformed digest", () => {
     const r = readRelease(release([
       { name: "LiveLine-v0.2.0.apk", browser_download_url: "https://x/a.apk", digest: "sha256:nothex" },
