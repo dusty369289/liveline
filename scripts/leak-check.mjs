@@ -2,7 +2,7 @@
 // Fail if a tracked file mentions something personal: the owner's machines, servers, other projects or contact
 // details. The words themselves aren't listed (that would leak them): each is stored as the start of its SHA-256,
 // and every word and pair of words in every tracked file is hashed and compared. Extra words can go in
-// notes/leak-words.txt (gitignored, one per line), which only exists in a dev checkout.
+// notes/private/leak-words.txt (gitignored, one per line), which only exists in a dev checkout.
 //
 // Run: npm run leak-check. Exit 1 lists file:line for each hit.
 import { createHash } from "node:crypto";
@@ -35,7 +35,7 @@ function files() {
 }
 
 const banned = new Set(BANNED);
-const extra = join(ROOT, "notes", "leak-words.txt");
+const extra = join(ROOT, "notes", "private", "leak-words.txt");
 if (existsSync(extra)) {
   for (const w of readFileSync(extra, "utf8").split("\n")) if (w.trim()) banned.add(digest(w.trim().toLowerCase()));
 }
