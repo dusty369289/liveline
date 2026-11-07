@@ -2,12 +2,13 @@ apply plugin: 'com.android.application'
 
 import groovy.json.JsonSlurper
 
-// One version for everything: app/package.json. versionCode is derived (major*10000 + minor*100 + patch), so every
-// release installs over the one before. CI checks the git tag matches package.json before building.
+// The version comes from app/package.json, which the Release workflow sets to the version being released (the repo
+// itself says 0.0.0-dev). versionCode is derived (major*10000 + minor*100 + patch), so every release installs over the
+// one before; Android needs it to be at least 1.
 def pkg = new JsonSlurper().parse(file("../../package.json"))
 def parts = (pkg.version =~ /^(\d+)\.(\d+)\.(\d+)/)[0]
 def appVersionName = pkg.version
-def appVersionCode = parts[1].toInteger() * 10000 + parts[2].toInteger() * 100 + parts[3].toInteger()
+def appVersionCode = Math.max(1, parts[1].toInteger() * 10000 + parts[2].toInteger() * 100 + parts[3].toInteger())
 
 // Release signing: from environment variables in CI (GitHub secrets), or app/android/keystore.properties locally.
 // Neither is ever committed. Without them, release builds come out unsigned and can't be installed.
