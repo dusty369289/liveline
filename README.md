@@ -1,91 +1,151 @@
-# LiveLine
+<a href="#readme">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/img/banner-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/banner-dark.png">
+    <img alt="LiveLine: where your train really is, between stations. A line from London Paddington to Oxford, with the train just past Slough." src="docs/img/banner-light.png" width="100%">
+  </picture>
+</a>
 
-Where your train really is, between stations.
+<p align="center">
+  <a href="https://github.com/dusty369289/liveline/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/dusty369289/liveline?style=flat-square&color=1b2a4a&label=release"></a>
+  <a href="https://github.com/dusty369289/liveline/actions/workflows/ci.yml"><img alt="Checks" src="https://github.com/dusty369289/liveline/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-1b2a4a?style=flat-square"></a>
+  <img alt="Android" src="https://img.shields.io/badge/Android-app-1b2a4a?style=flat-square">
+  <img alt="No server" src="https://img.shields.io/badge/server-none-1b2a4a?style=flat-square">
+  <img alt="No account" src="https://img.shields.io/badge/account-not_needed-1b2a4a?style=flat-square">
+</p>
 
-Type a station and a time, pick a train, and see its whole run. That includes every stop **and every timing point it
-passes through** (junctions and the stations it runs past), with the booked, reported and expected time at each one. A
-yellow train-front panel shows where the train is *now*. Between reports it moves along the line at the booked speed for
-that section, and it holds short of the next point until that point is reported. A train held at a signal therefore
-shows as held, not as if it had arrived.
+<p align="center">
+  <a href="#install"><b>Install</b></a> &nbsp;·&nbsp;
+  <a href="#add-your-realtime-trains-key"><b>Your key</b></a> &nbsp;·&nbsp;
+  <a href="#reading-the-train-page"><b>Reading it</b></a> &nbsp;·&nbsp;
+  <a href="#how-it-places-the-train"><b>How it works</b></a> &nbsp;·&nbsp;
+  <a href="#what-it-cant-do"><b>Limits</b></a> &nbsp;·&nbsp;
+  <a href="#developing"><b>Developing</b></a>
+</p>
 
-It's built on the [Realtime Trains](https://www.realtimetrains.co.uk/) API. RTT records every timing point, not only
-stations, so the train's position can be shown more precisely than in apps that only know about stations.
+Most train apps know a train is "between Slough and Reading". **LiveLine shows where between.** It follows a train
+through every stop *and every timing point it passes* (junctions, and the stations it runs through), with the booked,
+reported and expected time at each. Between reports it moves the train along the line at the timetable's pace, and it
+holds short of the next point until that point is reported, so a train stuck at a signal looks stuck.
 
-- An **Android app**. It talks to Realtime Trains straight from your phone with your own key. There's no server in
-  between, and no account.
-- Works without a key in **demo mode**, with simulated trains on two real routes.
-- Free-tier friendly: calls are cached and paced to fit 100 an hour.
+It's an Android app that talks to [Realtime Trains](https://www.realtimetrains.co.uk/) straight from your phone with
+your own free key. There's no server and no account, and without a key it runs a clearly marked demo.
+
+<table>
+  <tr>
+    <th width="25%">Search</th>
+    <th width="25%">Pick a train</th>
+    <th width="25%">When it leaves</th>
+    <th width="25%">Where it is</th>
+  </tr>
+  <tr>
+    <td valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/img/search-dark.png"><img alt="The search page: a train to carry on tracking, a saved journey with Return, then station, Departures or Arrivals, and an optional calling-at station." src="docs/img/search-light.png"></picture></td>
+    <td valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/img/board-dark.png"><img alt="London Paddington's departures from 09:00: each train's time, whether it has left, where it's going, and a platform sign." src="docs/img/board-light.png"></picture></td>
+    <td valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/img/train-dark.png"><img alt="The 09:00 to Oxford: 42 min until it reaches Oxford, passed Iver 6 minutes late, and why it's delayed." src="docs/img/train-light.png"></picture></td>
+    <td valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/img/train-line-dark.png"><img alt="The route as a line: passing points with half-minute booked times and reported times, and the yellow train between Iver and Langley." src="docs/img/train-line-light.png"></picture></td>
+  </tr>
+</table>
+
+<sub>Pictures from the app's demo mode: the trains are simulated, on a real route. Made by <code>npm run readme-pictures</code>.</sub>
+
+| Feature | What it does |
+|---|---|
+| **Every timing point** | Stops, junctions and through stations, folded into "6 passing points" until you open them. The run the train is on opens by itself |
+| **The train on the line** | Placed between its last report and the next, never past a point that hasn't reported |
+| **The number you came for** | A big "42 min" until it leaves your stop, or reaches where you get off, with the platform |
+| **Honest about what it knows** | A filled circle is reported, a ring is forecast, a dashed ring is the app's own guess. Simulated, stale or missing data says so |
+| **Your journeys** | Save a commute once, then it's one tap, and **Return** gives the way home. Recent trains, and "Carry on" for one still running |
+| **Gentle on your allowance** | Every call is counted, cached and paced to fit Realtime Trains' free 100 an hour |
+| **Updates itself** | One tap downloads the next release, checks it and installs it over this one, keeping your key and journeys |
+| **Light and dark** | Warm paper by day, deep navy at night, styled after British station signs |
 
 ## Install
 
 1. On your phone, open the [latest release](https://github.com/dusty369289/liveline/releases/latest) and download the
    `.apk`.
-2. Open it. Android asks once to allow installs from your browser. Allow it, then install.
-3. Updates: **Settings > Check for updates** (it also checks once a day). It opens the new APK's download, which installs
-   over the old one and keeps your settings.
+2. Open it. Android asks once to allow installs from your browser: allow it, then install.
+3. After that, updates are one tap: **Update now** when a new version is out (it checks once a day), or **Settings >
+   Update to X**. The download is checked against its published SHA-256 before it installs.
 
 ## Add your Realtime Trains key
 
-1. Sign in at <https://api-portal.rtt.io> (the API portal, not the RTT+ subscriptions page) and request a token. The free
-   plan works. The Hobbyist plan (£4 a month) adds detailed mode, which the app uses automatically.
-2. In the app, **Settings**: paste the key. It's checked with RTT (1 or 2 calls) and kept on your phone only, in the
-   app's private storage, with backups off. It's never shown again in full.
+1. Sign in at <https://api-portal.rtt.io> (the API portal, not the RTT+ subscriptions page) and request a token. The
+   free plan works. The Hobbyist plan (£4 a month) adds detailed mode, which the app uses by itself.
+2. In the app, **Settings**: paste the key. It's checked with Realtime Trains (1 to 3 calls) and kept only on your
+   phone, in the app's private storage, with backups off. It's never shown again in full.
 
-## Daily use
-
-1. Search your commute with "Calling at", then **Save this journey**. From then on it's one tap, and **Return** gives
-   the way home.
-2. Tap your train. The big number counts down to your departure, and the yellow panel shows the train on the line,
-   junction by junction. If you leave and come back, it catches up at once, and the home screen offers "Carry on tracking".
-
-## How often it updates, and what refresh costs
-
-Realtime Trains allows 10 calls a minute and 100 an hour on Free and Hobbyist.
-- A train page asks again every 40 s or so (`3600 / (calls left this hour - 10)`, never under 30 s), slows down when
-  the hour runs low, and stops while the app is in the background.
-- **Refresh** gets a new answer only if the current one is over 15 s old. Pressing it again and again costs nothing.
-- Boards are kept for a minute. The last 10 calls of each hour are kept for searches, never spent on background updates.
-- If the allowance runs out, you see the last answer marked as stale, or a "busy" page that retries by itself. Never
-  "not found".
-
-## Plans
-
-| | Free | Hobbyist (£4/month) | Team and up |
-|---|---|---|---|
-| Live times | to the minute | **to the quarter minute** (berth steps) | same |
-| Passing points and the train between stations | yes | yes, more precise | same |
-| Headcodes, unit numbers and class, branding | | yes | yes |
-| Empty stock and staff-only moves (off by default) | | yes | yes |
-| Update interval | about 40 s | about 40 s | faster, from the bigger allowance |
+> [!NOTE]
+> Without a key, LiveLine runs a **demo** on two real routes (Paddington to Oxford, Waterloo to Woking) with simulated
+> trains, and a banner on every page says so.
 
 ## Reading the train page
 
 | You see | It means |
 |---|---|
-| **14:41** in bold | Reported by RTT: to the minute on Free, to the quarter minute (14:41¼) with detailed mode. |
-| 14:41 | RTT's forecast. |
-| *14:41* <sup>est</sup> in grey italic | Our estimate, where RTT gives none. It carries the delay forward, lets a late train win back booked recovery time, and never leaves a stop early. |
-| small grey rows | Timing points it passes without stopping. Their booked times are working-timetable times, which can be on the half minute (½). |
-| yellow panel | Where we think the train is now (it's the front of a train). |
-| +3 / −1 | Minutes late / early. |
+| ● 09:19 | **Reported** by Realtime Trains. To the minute on Free, to the quarter minute with detailed mode |
+| ○ 09:23 | Realtime Trains' **forecast**. "On time" when it matches the booking |
+| ◌ 09:20 | **Our guess**, only where Realtime Trains gives none (or an impossible one) |
+| +7 | Minutes late, counted toward zero as the railway does |
+| 09:13½ | A working-timetable time. Passing points are booked to the half minute |
+| <kbd>BOARD</kbd> <kbd>ALIGHT</kbd> | Where you get on and off, when you came from a board |
+| **3** in a solid plate | Platform confirmed. An outlined plate isn't confirmed yet |
 
-**What it can't show:** signals. RTT's API only gives timing points, not signals or track sections. Signal-level
-tracking would need Network Rail's own train describer feed.
+## How it places the train
 
-## Try it in a browser
+Realtime Trains reports a train as it passes each timing point. Between two reports LiveLine moves the marker by the
+time elapsed against the booked time for that section. It stops at 95% of the way until the next point is reported,
+and if that report is 2 minutes overdue it says "No report at Langley yet" rather than pretend.
+
+Where Realtime Trains has no forecast, LiveLine makes its own: it carries the delay forward and lets a late train win
+back 75% of the recovery time and long waits in the timetable, but never leave an advertised stop early. It's a
+reasoned guess, not a tested model, and it's always drawn as a dashed ring.
+
+<details>
+<summary><b>How often it asks, and what Refresh costs</b></summary>
+
+Realtime Trains allows 10 calls a minute, 100 an hour and 1000 a day on Free and Hobbyist.
+
+- A train page asks just after the next report is due, at most once a minute, and every 2 to 3 minutes while
+  nothing is due. Following one train for an hour costs about 45 calls. It stops when the train arrives, and never
+  runs in the background.
+- **Refresh** gets a new answer only when the one shown is over 15 seconds old, over 60 when the hour is running low,
+  and not at all in its last 10 calls. Tapping it again costs nothing.
+- A board is one call for three hours, so **Earlier** and **Later** are usually free. A board for now refreshes
+  itself every 2 minutes for 15 minutes.
+- The last 10 calls of each hour are kept for searches. If the allowance runs out you see the last answer, marked as
+  old, never "not found".
+
+</details>
+
+## What it can't do
+
+> [!IMPORTANT]
+> **No signals.** Realtime Trains reports timing points, not signals or track sections. Following a train signal by
+> signal would need Network Rail's train describer feed, which a phone app can't use on its own.
+
+- **It needs your own key** for real trains. Realtime Trains doesn't allow a key inside a published app.
+- **Android only, for now.** The core is platform-free, so iOS or a desktop build could follow.
+- **Great Britain's National Rail network.** No Underground, trams or buses (rail replacement buses do show).
+
+## Developing
 
 ```sh
 npm ci
-npm run dev        # http://localhost:5173, demo trains until you add a key in Settings
+npm run dev        # the app at localhost:5173, demo trains until you add a key
+npm run check      # types, unit tests, architecture rules, leak check, build
+npm run test:ui    # every page, 360 and 412 px, light and dark: see .ui-report/
 ```
 
-## Development
-
-[AGENTS.md](AGENTS.md) explains how it works, how changes are made and tested, and how releases are published.
+TypeScript, Vite and Capacitor, with plain CUBE CSS and no framework. Tests never touch the network: the unit tests
+use a simulator and recordings of real Realtime Trains answers, and the browser tests fake every request.
+[AGENTS.md](AGENTS.md) explains how it works, the rules the tests enforce, and how changes and releases are made.
 
 ## Credits
 
-- Train data: [Realtime Trains](https://www.realtimetrains.co.uk/). Not affiliated. API spec in `docs/rtt-openapi.yml` (MIT).
+- Train data: [Realtime Trains](https://www.realtimetrains.co.uk/). LiveLine isn't affiliated with them.
 - Station list: [uk-railway-stations](https://github.com/davwheat/uk-railway-stations) by David Wheatley, from
-  [Trainline EU](https://github.com/trainline-eu/stations), ODbL.
-- Typeface: Barlow and Barlow Semi Condensed by Jeremy Tribby, SIL Open Font License.
+  [Trainline EU](https://github.com/trainline-eu/stations), under the ODbL.
+- Typefaces: Barlow and Barlow Semi Condensed by Jeremy Tribby, under the
+  [SIL Open Font License](public/fonts/OFL-barlow.txt).
+- [MIT licence](LICENSE).
