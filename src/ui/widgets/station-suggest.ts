@@ -1,5 +1,6 @@
-// Type-ahead for a station box: the bundled station list, no network. Arrow keys, Enter and Escape work, and the
-// list is a proper listbox for screen readers.
+// Type-ahead for a station box: the bundled station list, no network. An empty box offers your recent stations as
+// soon as it's tapped (the search page doesn't list them separately, so it fits one screen). Arrow keys, Enter and
+// Escape work, and the list is a proper listbox for screen readers.
 import type { StationIndex } from "../../core/stations";
 
 interface Item { name: string; crs: string }
@@ -9,23 +10,29 @@ export class StationSuggest {
   private active = -1;
   private readonly input: HTMLInputElement;
   private readonly list: HTMLElement;
+  private readonly stations: StationIndex;
+  private readonly recent: () => Item[];
 
-  constructor(box: HTMLElement, private readonly stations: StationIndex) {
+  constructor(box: HTMLElement, stations: StationIndex, recent: () => Item[] = () => []) {
+    this.stations = stations;
+    this.recent = recent;
     this.input = box.querySelector("input")!;
     this.list = box.querySelector<HTMLElement>(".suggest__list")!;
     this.input.addEventListener("input", () => this.search());
+    this.input.addEventListener("focus", () => this.search());
     this.input.addEventListener("keydown", (e) => this.key(e));
     this.input.addEventListener("blur", () => setTimeout(() => this.close(), 100));
   }
 
-  /** Every station box under `root`. */
-  static wireAll(root: ParentNode, stations: StationIndex): void {
-    root.querySelectorAll<HTMLElement>("[data-suggest]").forEach((box) => new StationSuggest(box, stations));
+  /** Every station box under `root`; `recent` gives the stations to offer in an empty box. */
+  static wireAll(root: ParentNode, stations: StationIndex, recent?: () => Item[]): void {
+    root.querySelectorAll<HTMLElement>("[data-suggest]").forEach((box) => new StationSuggest(box, stations, recent));
   }
 
   private search(): void {
     const text = this.input.value.trim();
-    this.items = text.length < 2 ? [] : this.stations.search(text).map((s) => ({ name: s.name, crs: s.crs }));
+    this.items = text === "" ? this.recent().map((s) => ({ name: s.name, crs: s.crs }))
+      : text.length < 2 ? [] : this.stations.search(text).map((s) => ({ name: s.name, crs: s.crs }));
     this.active = -1;
     this.draw();
   }

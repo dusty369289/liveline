@@ -29,8 +29,9 @@ export function searchForm(q: Query = {}): Html {
     <label><input type="radio" name="mode" value="arr" ${arr ? html`checked` : ""}> Arrivals</label>
   </fieldset>
   ${stationBox("to", otherLabel(arr), "Any station", q.to ?? "", "")}
+  <div class="search__go">
   <details class="search__when" ${later ? html`open` : ""}>
-    <summary>Another time or day <span class="hint">(otherwise, now)</span></summary>
+    <summary>Another time or day</summary>
     <div class="cluster search__row">
       <div class="field field--time">
         <label for="time">Time</label>
@@ -43,6 +44,7 @@ export function searchForm(q: Query = {}): Html {
     </div>
   </details>
   <button class="button" type="submit">Find trains</button>
+  </div>
 </form>`;
 }
 

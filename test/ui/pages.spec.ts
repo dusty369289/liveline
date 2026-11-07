@@ -3,7 +3,7 @@ import { audit, expect, open, openTrain, snap, test } from "./support";
 
 test("search", async ({ page, errors }, info) => {
   await open(page, "/");
-  await expect(page.locator("main h1")).toHaveText("Where are you catching a train?");
+  await expect(page.locator("main h1")).toHaveText("Find your train");
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "01-search");
   void errors;

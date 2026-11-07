@@ -88,7 +88,7 @@ export class App {
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */
   private wireShared(): void {
-    StationSuggest.wireAll(this.root, this.ctx.rail.stations);
+    StationSuggest.wireAll(this.root, this.ctx.rail.stations, () => this.ctx.stations.all());
     SearchForm.wire(this.root);
     this.ctx.updates.wire(this.root);
   }

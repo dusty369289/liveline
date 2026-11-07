@@ -2,14 +2,13 @@
 import { searchForm } from "../components/search-form";
 import { type Html, html } from "../html";
 import { type Query, qs } from "../routes";
-import type { Journey, StationRef } from "../store/lists";
+import type { Journey } from "../store/lists";
 import type { RecentTrain } from "../store/recent-trains";
 
 export interface HomeData {
   query: Query;
   carry: RecentTrain | null; // the newest train still running: one line, so the form never moves
-  journeys: Journey[];
-  stations: StationRef[];
+  journeys: Journey[]; // (recent stations are offered in the station box itself: StationSuggest)
 }
 
 export function homeView(d: HomeData): Html {
@@ -24,13 +23,9 @@ export function homeView(d: HomeData): Html {
         <a class="journeys__back" href="#/board${qs({ station: j.to, to: j.from })}" aria-label="Return: ${j.toName} to ${j.fromName}">Return</a>
       </li>`)}</ul>
   </section>` : ""}
-  <h1>Where are you catching a train?</h1>
+  <h1>Find your train</h1>
   ${searchForm(d.query)}
   ${d.journeys.length ? "" : html`<p class="hint">Tip: put a station in “Calling at” and you can save the journey for one-tap use, both ways.</p>`}
-  ${d.stations.length ? html`<section class="recent" aria-labelledby="recent-h">
-    <h2 id="recent-h" class="label">Recent stations</h2>
-    <ul class="recent__list cluster">${d.stations.map((s) => html`<li><a href="#/board${qs({ station: s.crs })}">${s.name}</a></li>`)}</ul>
-  </section>` : ""}
 </div>`;
 }
 
