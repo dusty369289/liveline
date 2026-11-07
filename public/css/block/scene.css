@@ -45,7 +45,8 @@
 .sc-spoke { fill: var(--sc-spoke); }
 .sc-wall { fill: var(--sc-wall); } .sc-wall-line { fill: var(--sc-wall-line); } .sc-canopy { fill: var(--sc-canopy); }
 .sc-valance { fill: var(--sc-valance); } .sc-valance-row { fill: url(#sc-valance); }
-.sc-platform { fill: var(--sc-platform); } .sc-edge { fill: var(--sc-edge); } .sc-sign { fill: var(--sc-sign); }
+.sc-platform { fill: var(--sc-platform); } .sc-edge { fill: var(--sc-edge); }
+.sc-sign { fill: var(--sc-sign); stroke: var(--sc-sign-edge); stroke-width: 2; } .sc-rod { fill: var(--sc-rod); }
 .sc-sign-ink { fill: var(--sc-sign-ink); font: 700 15px var(--sign-font); }
 @keyframes graze { 50% { transform: translateY(1.2px); } }
 .sc-graze { animation: graze 2.6s ease-in-out infinite; }
