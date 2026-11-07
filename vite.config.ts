@@ -37,5 +37,9 @@ export default defineConfig({
       "/rtt": { target: "https://data.rtt.io", changeOrigin: true, rewrite: (p) => p.replace(/^\/rtt/, "") },
     },
   },
-  test: { include: ["test/**/*.test.ts"] },
+  test: {
+    include: ["test/**/*.test.ts"],
+    testTimeout: 10_000, // a hang is a bug, not a limit to raise
+    reporters: ["default", "./test/harness/review-reporter.ts"], // timing and flaky review, failures.log
+  },
 });
