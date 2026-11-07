@@ -85,7 +85,10 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
   stops ("Journey over"). Passing your own stop doesn't stop it (you may want to watch it carry on). One tracked train costs about 45 calls an hour. The allowance's own floor
   (`Budget.refreshInterval`: `3600 / (calls left this hour - 10)`) can only slow it further, and background polls never
   touch the last 10 calls of the hour, kept for searches. Nothing polls while the app is in the background, and coming
-  back fetches only if the planned poll is due. Refresh refetches only an answer over 15 s old, so spamming it is free.
+  back fetches only if the planned poll is due. Manual Refresh on a train (`manualMinAge`) may go faster than the automatic polls but never into the
+  search reserve: it refetches an answer over 15 s old while more than 30 calls are left this hour, over 60 s old with
+  11 to 30 left, and not at all with 10 or fewer (the bar says why). Tapping sooner is free. A refresh also resets
+  the automatic schedule, so it never adds a call on top.
 - **Train page bar:** a thin bar sticks to the top while you scroll the route: how old the answer is (ticking each
   second, "Updating…" during a fetch), a refresh icon that spins during any fetch, and Jump to train.
 - **Boards:** a "now" board updates itself every 2 minutes while on screen (a background call), for 15 minutes, then

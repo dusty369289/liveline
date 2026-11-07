@@ -18,6 +18,22 @@ export const POLL = {
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
 
+/** Manual refresh may go faster than the automatic polls, but never into the calls kept for searches. */
+export const MANUAL = {
+  fast: 15, // seconds an answer must be old before Refresh fetches again, while the hour has plenty left
+  slow: 60, // once the hour runs low
+  lowBelow: 30, // "low": this many calls left or fewer
+};
+
+/**
+ * How old an answer must be before a tapped Refresh fetches again, or null when Refresh mustn't fetch at all because
+ * only the hour's reserve (kept for searches) is left. Below that the tap shows the current answer and says why.
+ */
+export function manualMinAge(hourLeft: number, reserve: number): number | null {
+  if (hourLeft <= reserve) return null;
+  return hourLeft <= MANUAL.lowBelow ? MANUAL.slow : MANUAL.fast;
+}
+
 /**
  * Seconds until the next poll, or null to stop (it arrived, is cancelled, or there's no data). Passing your own stop
  * doesn't stop it: you may want to watch it carry on, and nothing polls unless the train page is on screen.
