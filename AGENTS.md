@@ -29,7 +29,7 @@ src/
     pages/       one class per page (extends Page): load() data + markup, mount() wiring, dispose() timers
     views/       pure markup functions, data in, Html out (no DOM, no state)
     components/  markup shared by views (chrome, search form, time marks)
-    widgets/     DOM behaviour shared by pages, as classes (station suggestions)
+    widgets/     DOM behaviour as classes: shared by pages, or split out of one (station suggestions, passing-point folds)
     store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists
     updates.ts   the update check, banner and one-tap install
     live-train.ts  the train page while open: marker, polling, folds, the sticky bar
@@ -80,8 +80,11 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
   waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
+- **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
+  match), and a folded "Another time or day" (otherwise, now).
 - **Train page:** every location RTT returns. Calls are full rows; passing points fold into one "N passing points" row
-  between two stops (tap to open, "Fold away" closes; open groups survive refreshes). Passed stops are filled in. Each
+  between two stops (tap to open, "Fold away" closes; both survive refreshes). The group the train is in opens by
+  itself unless you folded it. Passed stops are filled in. Each
   live time has a circle before it (`components/marks.ts`): **filled** = reported, **ring** = RTT's forecast or own
   estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle.
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. It

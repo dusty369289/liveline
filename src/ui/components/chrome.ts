@@ -25,7 +25,7 @@ export function chrome(s: ChromeState, main: Html): Html {
       ${TABS.map(([href, label, routes]) => html`<a href="${href}" aria-current="${routes.includes(s.route) ? "page" : null}">${label}</a>`)}
     </nav>
   </header>
-  ${s.demo ? html`<p class="banner banner--demo" role="note"><strong>Demo data.</strong> These trains are simulated. Add your Realtime Trains key in <a href="#/settings">Settings</a> to see real ones.</p>` : ""}
+  ${s.demo ? html`<p class="banner banner--demo" role="note"><strong>Demo:</strong> simulated trains. <a href="#/settings">Add your key</a> for real ones.</p>` : ""}
   ${!s.demo && s.budget.remaining.hour <= 15 ? html`<p class="banner" role="note">Only ${s.budget.remaining.hour} Realtime Trains calls left this hour, so pages update less often.</p>` : ""}
   ${s.banner ?? ""}
   <main id="main" class="wrap">${main}</main>

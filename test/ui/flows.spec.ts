@@ -7,9 +7,21 @@ test("search by typing and picking suggestions lands on the board", async ({ pag
   await page.locator("#station-list [role=option]").first().click();
   await page.locator("#to").fill("oxf");
   await page.locator("#to-list [role=option]").first().click();
+  await expect(page.locator("#time")).toBeHidden(); // "now" by default: time and day are folded away
+  await page.locator(".search__when summary").click();
   await page.locator("#time").fill("09:00");
   await page.locator("button[type=submit]").click();
   await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
+  void errors;
+});
+
+test("the second station's label follows Departures and Arrivals", async ({ page, errors }) => {
+  await open(page, "/");
+  await expect(page.locator('[data-label-for="to"]')).toContainText("Calling at");
+  await page.locator('input[name="mode"][value="arr"]').check();
+  await expect(page.locator('[data-label-for="to"]')).toContainText("Coming from");
+  await page.locator('input[name="mode"][value="dep"]').check();
+  await expect(page.locator('[data-label-for="to"]')).toContainText("Calling at");
   void errors;
 });
 
@@ -22,9 +34,21 @@ test("Later and Earlier step the board by an hour", async ({ page, errors }) => 
   void errors;
 });
 
+test("the passing points the train is among open by themselves, and fold away if asked", async ({ page, errors }) => {
+  await openTrain(page); // at 09:20 the 09:00 is between Paddington and Slough, inside the first group
+  const fold = page.locator("[data-fold-toggle]").first();
+  await expect(fold).toHaveAttribute("aria-expanded", "true");
+  await expect(fold).toContainText("Fold away");
+  await fold.click();
+  await expect(fold).toHaveAttribute("aria-expanded", "false"); // you folded it: it stays folded
+  await page.locator("[data-refresh-now]").click();
+  await expect(fold).toHaveAttribute("aria-expanded", "false");
+  void errors;
+});
+
 test("passing points open and fold away", async ({ page, errors }) => {
   await openTrain(page);
-  const fold = page.locator("[data-fold-toggle]").first();
+  const fold = page.locator("[data-fold-toggle]").last(); // a group the train isn't in yet
   const label = await fold.innerText();
   expect(label).toMatch(/^\d+ passing points?$/);
   const n = Number(label.split(" ")[0]);
