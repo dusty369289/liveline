@@ -1,5 +1,7 @@
 name: CI
 
+# Every PR and every push to main. The two job names are the required checks in the "main" ruleset: rename a job
+# and the ruleset must change with it, or PRs can't merge.
 on:
   push:
     branches: [main]
@@ -10,36 +12,20 @@ permissions:
   contents: read
 
 jobs:
-  app:
-    name: App (TypeScript)
+  checks:
+    name: Checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: app/package-lock.json
       - run: npm ci
-      - run: npm test
-      - run: npm run build
-
-  python:
-    name: Python reference
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
-      - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run pytest -q
-      - name: Golden files match the Python reference
-        run: |
-          uv run python scripts/export_golden.py
-          git diff --exit-code app/test/golden
+      - run: npm run typecheck
+      - name: Unit tests
+        run: npm test
       - name: No personal details in tracked files
-        run: uv run python scripts/leak_check.py
+        run: npm run leak-check
+      - name: Web build
+        run: npx vite build

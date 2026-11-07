@@ -1,0 +1,83 @@
+apply plugin: 'com.android.application'
+
+import groovy.json.JsonSlurper
+
+// The version comes from package.json, which the Release workflow sets to the version being released (the repo
+// itself says 0.0.0-dev). versionCode is derived (major*10000 + minor*100 + patch), so every release installs over the
+// one before; Android needs it to be at least 1.
+def pkg = new JsonSlurper().parse(file("../../package.json"))
+def parts = (pkg.version =~ /^(\d+)\.(\d+)\.(\d+)/)[0]
+def appVersionName = pkg.version
+def appVersionCode = Math.max(1, parts[1].toInteger() * 10000 + parts[2].toInteger() * 100 + parts[3].toInteger())
+
+// Release signing: from environment variables in CI (GitHub secrets), or android/keystore.properties locally.
+// Neither is ever committed. Without them, release builds come out unsigned and can't be installed.
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file("keystore.properties")
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+def signingValue = { String env, String prop -> System.getenv(env) ?: keystoreProps.getProperty(prop) }
+
+android {
+    namespace = "dev.liveline.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "dev.liveline.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode appVersionCode
+        versionName appVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        release {
+            def store = signingValue("LIVELINE_KEYSTORE_FILE", "storeFile")
+            if (store) {
+                storeFile file(store)
+                storePassword signingValue("LIVELINE_KEYSTORE_PASSWORD", "storePassword")
+                keyAlias signingValue("LIVELINE_KEY_ALIAS", "keyAlias")
+                keyPassword signingValue("LIVELINE_KEY_PASSWORD", "keyPassword")
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (signingValue("LIVELINE_KEYSTORE_FILE", "storeFile")) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
