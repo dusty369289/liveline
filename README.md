@@ -72,21 +72,16 @@ Realtime Trains allows 10 calls a minute and 100 an hour on Free and Hobbyist.
 **What it can't show:** signals. RTT's API only gives timing points, not signals or track sections. Signal-level
 tracking would need Network Rail's own train describer feed.
 
-## Run it on a computer
-
-The Python version is the reference implementation, and it also runs as a local web app and command line:
+## Try it in a browser
 
 ```sh
-uv sync
-uv run liveline serve                     # http://127.0.0.1:8765, demo until you add a key in Settings
-uv run liveline board RDG                 # departures now  (--arrivals, --to PAD, --time 17:30, --json)
-uv run liveline train C12345:2026-11-07   # one train's run and where it is
-uv run liveline token                     # check a key (RTT_TOKEN in .env) and the allowance
+npm ci
+npm run dev        # http://localhost:5173, demo trains until you add a key in Settings
 ```
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for how it works, the commands, and how releases are made.
+[AGENTS.md](AGENTS.md) explains how it works, how changes are made and tested, and how releases are published.
 
 ## Credits
 
