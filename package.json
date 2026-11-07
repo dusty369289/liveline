@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "playwright test",
+    "readme-pictures": "playwright test -c playwright.readme.config.ts",
     "review": "node scripts/review.mjs",
     "merge": "sh scripts/merge-pr.sh",
     "leak-check": "node scripts/leak-check.mjs",

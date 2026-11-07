@@ -1,6 +1,6 @@
 /* Platform: printed timetable paper, navy ink, signage plates. Night is a deep navy, not grey.
    Colour means something: amber late, red cancelled, and the yellow warning panel of a train's front for the train.
-   A theme only sets tokens. Contrast is checked by tests/test_design.py. */
+   A theme only sets tokens. Contrast is checked by test/design.test.ts. */
 :root {
   --page: #f3efe6;
   --surface: #fbf9f4;
