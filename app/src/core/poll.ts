@@ -1,6 +1,6 @@
 // When to ask RTT about a train again. The allowance is 10 a minute and 100 an hour, and RTT only learns something new
 // when the train reaches a timing point, so polling on a fixed beat mostly re-fetches the same answer. Instead: wait
-// until the next report could exist, and stop once nothing more can change for this person. The marker keeps moving
+// until the next report could exist, and stop once nothing more can change for the train. The marker keeps moving
 // between polls on its own (live.ts), so a slower poll doesn't freeze the picture.
 import { stopSummary, type Timeline } from "./engine";
 import type { Ms } from "./time";
@@ -19,14 +19,13 @@ export const POLL = {
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
 
 /**
- * Seconds until the next poll, or null to stop (it arrived, is cancelled, or you've left it).
+ * Seconds until the next poll, or null to stop (it arrived, is cancelled, or there's no data). Passing your own stop
+ * doesn't stop it: you may want to watch it carry on, and nothing polls unless the train page is on screen.
  * `budgetSecs` is the allowance's own floor (Budget.refreshInterval); the answer is never sooner than that.
  */
-export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = "", to = ""): number | null {
+export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): number | null {
   const p = tl.position;
   if (p.state === "arrived" || p.state === "cancelled" || p.state === "no-data") return null;
-  const off = to ? stopSummary(tl, to, false) : null;
-  if (off && (off.status === "gone" || off.status === "cancelled")) return null;
 
   const secsTo = (t: Ms | null) => (t == null ? null : (t - now) / 1000);
   let s: number;
