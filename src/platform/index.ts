@@ -5,6 +5,7 @@
 import { Capacitor, CapacitorHttp, registerPlugin } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { API_VERSION, FetchHttp, type Http, type HttpResponse, NetworkError, RTT_BASE } from "../core/http";
+import type { StoreKey } from "../core/keys";
 import type { KeyValueStore } from "../core/rtt";
 
 declare const __APP_VERSION__: string;
@@ -43,33 +44,33 @@ class NativeHttp implements Http {
 }
 
 class PreferencesStore implements KeyValueStore {
-  async get(key: string) {
+  async get(key: StoreKey) {
     return (await Preferences.get({ key })).value;
   }
-  async set(key: string, value: string) {
+  async set(key: StoreKey, value: string) {
     await Preferences.set({ key, value });
   }
-  async remove(key: string) {
+  async remove(key: StoreKey) {
     await Preferences.remove({ key });
   }
 }
 
 class LocalStore implements KeyValueStore {
-  async get(key: string) {
+  async get(key: StoreKey) {
     try {
       return localStorage.getItem(key);
     } catch {
       return null;
     }
   }
-  async set(key: string, value: string) {
+  async set(key: StoreKey, value: string) {
     try {
       localStorage.setItem(key, value);
     } catch {
       /* private mode: the key lasts this session only */
     }
   }
-  async remove(key: string) {
+  async remove(key: StoreKey) {
     try {
       localStorage.removeItem(key);
     } catch {

@@ -1,7 +1,7 @@
 // RTT client: token handling (access or refresh), caching, and the allowance, over any Http.
 // On the phone it holds one key: its owner's.
 import { Budget } from "./budget";
-import { STORE } from "./keys";
+import { STORE, type StoreKey } from "./keys";
 import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
 import { hm, isoLocal, type Ms } from "./time";
@@ -36,9 +36,9 @@ export const isDetailed = (i: TokenInfo | null) => !!i && i.entitlements.include
 
 /** Where the short-life access token and what the key may do are remembered between app launches. */
 export interface KeyValueStore {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
+  get(key: StoreKey): Promise<string | null>;
+  set(key: StoreKey, value: string): Promise<void>;
+  remove(key: StoreKey): Promise<void>;
 }
 
 const STATE_KEY = STORE.access;

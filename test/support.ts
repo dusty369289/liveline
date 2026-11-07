@@ -1,5 +1,6 @@
 // Test doubles and fixtures shared by the unit tests. One copy of each: a test needing a variant extends these.
 import { readFileSync } from "node:fs";
+import type { StoreKey } from "../src/core/keys";
 import type { KeyValueStore } from "../src/core/rtt";
 import { StationIndex } from "../src/core/stations";
 import type { Ms } from "../src/core/time";
@@ -26,14 +27,14 @@ export class Clock {
 
 /** The platform's private key store (Capacitor Preferences on the phone), in memory. */
 export class MemStore implements KeyValueStore {
-  data = new Map<string, string>();
-  async get(k: string): Promise<string | null> {
+  data = new Map<StoreKey, string>();
+  async get(k: StoreKey): Promise<string | null> {
     return this.data.get(k) ?? null;
   }
-  async set(k: string, v: string): Promise<void> {
+  async set(k: StoreKey, v: string): Promise<void> {
     this.data.set(k, v);
   }
-  async remove(k: string): Promise<void> {
+  async remove(k: StoreKey): Promise<void> {
     this.data.delete(k);
   }
 }
