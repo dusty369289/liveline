@@ -1,10 +1,13 @@
 // Test doubles and fixtures shared by the unit tests. One copy of each: a test needing a variant extends these.
 import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { KeyValueStore } from "../src/core/rtt";
 import { StationIndex } from "../src/core/stations";
 import type { Ms } from "../src/core/time";
 
-const here = new URL(".", import.meta.url).pathname;
+// Node's own path helpers, not URL: in a DOM test (happy-dom) the global URL is the DOM's, which reads file: oddly
+const here = `${dirname(fileURLToPath(import.meta.url))}/`;
 
 /** Read a file under test/ (fixtures, golden files). */
 export const readTestFile = (path: string): string => readFileSync(`${here}${path}`, "utf8");

@@ -3,7 +3,7 @@
 import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { chrome } from "./components/chrome";
 import { SearchForm } from "./components/search-form";
-import { render } from "./html";
+import { html, render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
 import { SettingsPage } from "./pages/settings";
@@ -38,7 +38,7 @@ export class App {
   constructor(private readonly root: HTMLElement, rail: Rail) {
     this.ctx = {
       rail,
-      updates: new Updates(() => void this.render()),
+      updates: new Updates(() => this.updateChanged()),
       appearance: new Appearance(),
       trains: new RecentTrains(),
       journeys: new Journeys(),
@@ -51,6 +51,7 @@ export class App {
 
   async start(): Promise<void> {
     this.ctx.appearance.apply();
+    this.ctx.updates.restore(); // before the first draw, so a banner found earlier doesn't draw the page twice
     await this.ctx.rail.start();
     window.addEventListener("hashchange", () => void this.render());
     await this.render();
@@ -84,6 +85,18 @@ export class App {
     const busy = e instanceof BusyError;
     const title = e instanceof OfflineError ? "No connection" : busy ? "Realtime Trains is busy" : "Couldn't show that";
     return new ProblemPage(this.ctx, route, problemView(title, e.message, busy, route.name === "board" ? queryOf(route.params) : null), busy);
+  }
+
+  /**
+   * An update check answered or an install failed. Settings shows it in its own section, so it's drawn again; any
+   * other page only swaps its banner, so a half-typed search or an open train page is left alone.
+   */
+  private updateChanged(): void {
+    if (this.page?.tab === "settings") return void this.render();
+    const slot = this.root.querySelector<HTMLElement>("[data-banner-slot]");
+    if (!slot || !this.page) return;
+    render(slot, this.ctx.updates.banner(this.page.tab) ?? html``);
+    this.ctx.updates.wire(slot);
   }
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */

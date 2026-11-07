@@ -30,7 +30,7 @@ export class Updates {
   info: UpdateInfo = { state: "idle", current: APP_VERSION };
   private readonly saved = new Pref<UpdateInfo | null>(KEYS.update, null);
 
-  /** `changed` redraws the page: the banner or the Settings section shows the new state. */
+  /** `changed` shows the new state: the Settings section there, the banner on any other page. */
   constructor(private readonly changed: () => void) {}
 
   async check(show: boolean): Promise<void> {
@@ -56,17 +56,20 @@ export class Updates {
     if (show || this.info.state === "available") this.changed();
   }
 
-  /** Once a day, quietly. A newer version found earlier still shows its banner. */
+  /** The last check's answer, if it's from today: called before the first page is drawn, so its banner is in it. */
+  restore(): void {
+    const last = this.recent();
+    if (last?.state === "available" && last.latest && isNewer(last.latest, APP_VERSION)) this.info = { ...last, current: APP_VERSION };
+  }
+
+  /** Once a day, quietly. A newer version found earlier today is already showing (restore). */
   async daily(): Promise<void> {
+    if (!this.recent()) await this.check(false);
+  }
+
+  private recent(): UpdateInfo | null {
     const last = this.saved.get();
-    if (last?.checkedAt && Date.now() - last.checkedAt < DAY) {
-      if (last.state === "available" && last.latest && isNewer(last.latest, APP_VERSION)) {
-        this.info = { ...last, current: APP_VERSION };
-        this.changed();
-      }
-      return;
-    }
-    await this.check(false);
+    return last?.checkedAt && Date.now() - last.checkedAt < DAY ? last : null;
   }
 
   /** The banner on every page but Settings (which has its own section). One tap installs where Android allows it. */

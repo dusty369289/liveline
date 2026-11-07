@@ -132,7 +132,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
 - **Updates** (`ui/updates.ts`): Settings, or once a day quietly, asks GitHub for the latest release. If newer, one tap
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
-  version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key.
+  version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key. Today's
+  answer is restored before the first page is drawn; a new answer or an install error redraws only the banner
+  (`data-banner-slot`), or the whole page on Settings, so a half-typed search survives it.
 
 ## UI
 
@@ -248,7 +250,9 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 - Comments say why, and stay true: a comment that would mislead after your change gets changed with it.
 
 ### Tests
-- `test/*.test.ts` (Vitest): logic, with injected clocks and fakes. 10 s hard limit per test: a hang is a bug.
+- `test/*.test.ts` (Vitest): logic, with injected clocks and fakes. 10 s hard limit per test: a hang is a bug. A test
+  of the app shell itself (`test/app.test.ts`) runs in a DOM (happy-dom, `// @vitest-environment happy-dom` at its
+  top) on the simulator; the browser suite remains the judge of what's on screen.
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
   moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
   plates, 44 px targets) and goes on the contact sheet.
