@@ -92,8 +92,11 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
 - **Train page bar:** a thin bar sticks to the top while you scroll the route: how old the answer is (ticking each
   second, "Updating…" during a fetch), a refresh icon that spins during any fetch, and Jump to train.
 - **Boards:** a "now" board updates itself every 2 minutes while on screen (a background call), for 15 minutes, then
-  waits for Refresh. A board seen again after the minute ticks over reuses the last answer if it's under a minute old.
-  The Python reference keeps its own simpler polling; this schedule lives in the app.
+  waits for Refresh. RTT charges one call however wide the window, so each board call asks for three hours
+  (`FETCH_WINDOW`) and every board inside that answer (now, Later, Later again, Earlier back to it, the minute ticking
+  over) is served from it with no call. The rows shown are those booked in the window, plus earlier ones still running
+  late into it. Answers are kept 1 minute, or 5 minutes for a board starting an hour or more ahead
+  (`FUTURE_BOARD_TTL`). The Python reference keeps its own simpler fetching and polling; this lives in the app.
 - **Your stop:** a train opened from a board knows your stop and destination; the top panel gives "N min", stops away
   and platform (solid plate confirmed, outlined expected).
 - **Tiers** come from entitlements and reported limits, not names: `allowDetailed` means Hobbyist features (detailed
@@ -175,25 +178,37 @@ GitHub enforces these with a ruleset on `main` ("main: PRs and green checks"):
   (ruff, pytest, golden files match, leak check). The branch must be up to date with `main`.
 - **History stays linear:** squash or rebase merges, no merge commits. No force-pushes to `main`, and it can't be deleted.
   Merged branches are deleted automatically.
-- Keep PRs small and about one thing. The description says what changed, why, and how it was tested, including anything
-  that couldn't be tested (for example, on a real phone).
+- **One PR per piece of work.** Everything for one request goes on one branch and one PR: follow-up fixes are more
+  commits on it, not new PRs. Commits inside it stay small and logical (rebase merge keeps them). The description says
+  what changed, why, and how it was tested, including anything that couldn't be (for example, on a real phone).
+- **Merge once the checks pass**, so open PRs don't pile up. Merging doesn't release: `main` may hold unreleased work.
 
 What runs where:
 
 | Workflow | When | What |
 |---|---|---|
 | `ci.yml` | every PR, every push to `main` | tests, typecheck, web build, golden files, leak check. No Android build |
-| `release.yml` | a pushed tag `vX.Y.Z` only | the same CI, then the tag-matches-version check, the signed APK build and the GitHub Release |
+| `release.yml` | only when someone releases (Run workflow with a version, or a pushed tag `vX.Y.Z` on `main`) | the same CI, then the signed APK built as that version, then the tag and the GitHub Release |
 
-Android compiling and publishing happen only on release tags, so a PR never needs the signing key.
+Android compiling and publishing happen only in a release, so a PR never needs the signing key.
 
 ## Releases
 
-The version lives in `app/package.json` (semver). versionCode is `major*10000 + minor*100 + patch`. To release: bump the
-version in a PR and merge it, then tag that commit on `main` as `vX.Y.Z` and push the tag. `.github/workflows/release.yml` checks the tag matches package.json, runs
-the tests, builds a signed release APK and attaches it to a GitHub Release. Signing reads `LIVELINE_KEYSTORE_FILE`,
-`LIVELINE_KEYSTORE_PASSWORD`, `LIVELINE_KEY_ALIAS`, `LIVELINE_KEY_PASSWORD` (CI secrets) or a local, gitignored
-`app/android/keystore.properties`. Without them, a release build is unsigned.
+Releasing is a choice, separate from merging. The version lives only in the release tag: `app/package.json` in the
+repo says `0.0.0-dev`, and the Release workflow writes the real version in before building, so there are no
+version-bump PRs. To release what's on `main`:
+
+```sh
+gh workflow run release.yml -f version=1.2.3     # or Actions > Release > Run workflow; or push a tag v1.2.3 on main
+```
+
+It refuses a version that isn't `X.Y.Z`, is already released, or isn't newer than the latest release (a phone wouldn't
+take it as an update), and a tag that isn't on `main`. Then: the tests, a signed APK built as that version (checked
+with apksigner and aapt2), the tag on that commit, and the Release with the APK and its `.sha256`. Semver: patch for
+fixes, minor for features. versionCode is `major*10000 + minor*100 + patch` (at least 1), so every release installs over
+the last. Signing reads `LIVELINE_KEYSTORE_FILE`, `LIVELINE_KEYSTORE_PASSWORD`, `LIVELINE_KEY_ALIAS`,
+`LIVELINE_KEY_PASSWORD` (CI secrets) or a local, gitignored `app/android/keystore.properties`. Without them, a release
+build is unsigned. A local build says `0.0.0-dev`, so its update check offers any release.
 
 ## Gotchas
 
