@@ -298,7 +298,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
       : html`<p class="live__headline state-${p.state}">${p.headline}</p>`}
     ${lines}
     ${tl.worst ? html`<p class="live__stop hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
-    <p class="live__age hint"><span data-age>Updated ${ago((tl.now - res.fetched.fetchedAt) / 1000)}</span>${res.fetched.stale ? ` (${res.fetched.note})` : ""}</p>
+    ${res.fetched.stale ? html`<p class="live__age hint">Showing an older answer: ${res.fetched.note}.</p>` : ""}
   </div>
   ${s.reasons.length ? html`<ul class="reasons">${s.reasons.map((r) => html`<li>${r.kind === "CANCEL" ? "Cancelled" : "Delayed"} because of ${r.text.slice(0, 1).toLowerCase() + r.text.slice(1)}.</li>`)}</ul>` : ""}
   <div class="route-wrap">
@@ -323,13 +323,12 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
     ${s.units.length ? html`<p class="hint">Units ${s.units.join(", ")}</p>` : ""}
     ${s.mode !== "TRAIN" ? html`<p class="banner" role="note">This is a ${s.mode.replaceAll("_", " ").toLowerCase()}, not a train.</p>` : ""}
   </header>
-  <div class="cluster train__tools">
-    <label class="check"><input type="checkbox" data-toggle-passes checked> Passing points</label>
-    <span class="cluster train__actions">
-      <button type="button" class="linkish" data-refresh-now>Refresh</button>
-      <button type="button" class="linkish" data-jump>Jump to train</button>
-    </span>
-    <p class="hint train__note" data-refresh-note role="status" aria-live="polite"></p>
+  <label class="check train__passes"><input type="checkbox" data-toggle-passes checked> Passing points</label>
+  <div class="trainbar" data-trainbar>
+    <button type="button" class="trainbar__refresh" data-refresh-now aria-label="Refresh now"><svg class="icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <p class="trainbar__age" data-age aria-live="off">Updated just now</p>
+    <p class="visually-hidden" data-refresh-note role="status" aria-live="polite"></p>
+    <button type="button" class="linkish trainbar__jump" data-jump>Jump to train</button>
   </div>
   <div data-live-region>${liveRegion(res, at, to, stop, off)}</div>
   <details class="legend">

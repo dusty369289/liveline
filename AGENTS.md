@@ -81,11 +81,13 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
 - **Polling** (`app/src/core/poll.ts`): the marker moves every second on its own; the train is refetched when the next
   report can exist, never more than once a minute. Running: 20 s after it's due at the next point (60 to 120 s).
   Waiting at a station: just after its departure time. Not started: about a minute before it's due, at least every
-  3 minutes. Overdue: every minute. Your stop over 40 minutes off: every 2 minutes. Arrived, cancelled, or past your
-  stop: polling stops ("Journey over"). One tracked train costs about 45 calls an hour. The allowance's own floor
+  3 minutes. Overdue: every minute. Your stop over 40 minutes off: every 2 minutes. Arrived or cancelled: polling
+  stops ("Journey over"). Passing your own stop doesn't stop it (you may want to watch it carry on). One tracked train costs about 45 calls an hour. The allowance's own floor
   (`Budget.refreshInterval`: `3600 / (calls left this hour - 10)`) can only slow it further, and background polls never
   touch the last 10 calls of the hour, kept for searches. Nothing polls while the app is in the background, and coming
   back fetches only if the planned poll is due. Refresh refetches only an answer over 15 s old, so spamming it is free.
+- **Train page bar:** a thin bar sticks to the top while you scroll the route: how old the answer is (ticking each
+  second, "Updating…" during a fetch), a refresh icon that spins during any fetch, and Jump to train.
 - **Boards:** a "now" board updates itself every 2 minutes while on screen (a background call), for 15 minutes, then
   waits for Refresh. A board seen again after the minute ticks over reuses the last answer if it's under a minute old.
   The Python reference keeps its own simpler polling; this schedule lives in the app.
