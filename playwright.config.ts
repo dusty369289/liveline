@@ -1,0 +1,32 @@
+// Browser tests: the built app at phone sizes, light and dark. `npm run test:ui`, then open .ui-report/index.html.
+// Never touches the network (test/ui/support.ts fakes RTT and GitHub). No retries: a flaky test is a bug to explain.
+import { defineConfig, devices } from "@playwright/test";
+
+const PORT = 4180;
+
+export default defineConfig({
+  testDir: "test/ui",
+  testMatch: "*.spec.ts",
+  timeout: 10_000, // per test, the same hard limit as the unit tests
+  expect: { timeout: 3_000 },
+  retries: 0,
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  reporter: [["list"], ["./test/ui/contact-sheet.ts"]],
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    locale: "en-GB",
+    timezoneId: "Europe/London",
+    trace: "retain-on-failure",
+  },
+  projects: [
+    { name: "phone-360-light", use: { ...devices["Pixel 5"], viewport: { width: 360, height: 800 }, colorScheme: "light" } },
+    { name: "phone-412-dark", use: { ...devices["Pixel 7"], viewport: { width: 412, height: 915 }, colorScheme: "dark" } },
+  ],
+  webServer: {
+    command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
+    url: `http://localhost:${PORT}`,
+    reuseExistingServer: false,
+    timeout: 120_000,
+  },
+});
