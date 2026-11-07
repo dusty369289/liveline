@@ -5,6 +5,7 @@ import { build, type Timeline } from "./engine";
 import type { Http } from "./http";
 import { type Board, type BoardRow, forPassengers, isEmpty } from "./models";
 import { parseBoard, parseService } from "./parse";
+import { pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
 import { SimTransport } from "./simulator";
 import type { Station, StationIndex } from "./stations";
@@ -28,7 +29,7 @@ export interface BoardResult {
 export interface ServiceResult {
   timeline: Timeline;
   fetched: Fetched;
-  refreshAfter: number; // seconds before asking again
+  refreshAfter: number | null; // seconds before asking again (poll.ts), or null: nothing more will change
 }
 
 export interface Tier {
@@ -155,8 +156,8 @@ export class Rail {
   }
 
   async board(opts: { station: string; when?: Ms | null; window?: number; to?: string | null; mode?: "dep" | "arr";
-    showAll?: boolean; force?: boolean }): Promise<BoardResult> {
-    const { station, window = 60, mode = "dep", showAll = false, force = false } = opts;
+    showAll?: boolean; force?: boolean; background?: boolean }): Promise<BoardResult> {
+    const { station, window = 60, mode = "dep", showAll = false, force = false, background = false } = opts;
     const st = this.stations.resolve(station);
     const code = st ? st.crs : station.trim().toUpperCase();
     if (!code) throw new RttError("Type a station name or code.");
@@ -170,8 +171,8 @@ export class Rail {
     let f: Fetched;
     try {
       f = mode === "arr"
-        ? await this.client.location(code, when, window, null, force, other)
-        : await this.client.location(code, when, window, other, force);
+        ? await this.client.location(code, when, window, null, force, other, background)
+        : await this.client.location(code, when, window, other, force, null, background);
     } catch (e) {
       // a code we couldn't place, refused by RTT: say so in the user's words, not RTT's
       if (!st && e instanceof RttError && !(e instanceof BusyError) && !(e instanceof AuthError)) {
@@ -192,8 +193,8 @@ export class Rail {
     return { board: b, rows, station: st, fetched: f, mode, to: toSt, hidden, showAll };
   }
 
-  async service(uniqueId: string, opts: { background?: boolean; force?: boolean } = {}): Promise<ServiceResult> {
-    const { background = false, force = false } = opts;
+  async service(uniqueId: string, opts: { background?: boolean; force?: boolean; at?: string; to?: string } = {}): Promise<ServiceResult> {
+    const { background = false, force = false, at = "", to = "" } = opts;
     const uid = uniqueId.trim();
     const i = uid.lastIndexOf(":");
     if (i < 1) throw new RttError("That isn't a train identity (it should look like C05986:2026-09-06).");
@@ -202,7 +203,8 @@ export class Rail {
     const ttl = background ? this.budget.refreshInterval() : null;
     const f = await this.client.service(uid, !background || force, ttl, force);
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
-    const tl = build(parseService(f.body, this.clock), this.clock());
-    return { timeline: tl, fetched: f, refreshAfter: Math.max(15, Math.min(this.budget.refreshInterval(), 120)) };
+    const now = this.clock();
+    const tl = build(parseService(f.body, this.clock), now);
+    return { timeline: tl, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at, to) };
   }
 }

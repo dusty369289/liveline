@@ -48,6 +48,9 @@ export function when(time: string, day: string, now: Ms): Ms | null {
   return at;
 }
 
+const BOARD_EVERY = 120_000; // a live board's own refresh
+const BOARD_AUTO_FOR = 15 * 60_000; // then it waits for Refresh
+
 export class App {
   private live: LiveTrain | null = null;
   private retry: ReturnType<typeof setTimeout> | null = null;
@@ -150,11 +153,22 @@ export class App {
     this.wireCommon();
     if (force) history.replaceState(null, "", nav.refresh.replace(/&refresh=1|refresh=1&?/, "")); // don't refetch on back
     if (live) {
-      // a "now" board updates in place every minute, without jumping to the top
+      // A "now" board updates in place, without jumping to the top: every 2 minutes while it's on screen, as a background
+      // call (it never spends the calls kept for searches), and only for the first 15 minutes. A board left open on the
+      // table would otherwise cost 30 calls an hour. After that, Refresh (or coming back to it) updates it.
+      const opened = Date.now();
       this.boardTimer = setInterval(async () => {
         if (document.visibilityState !== "visible" || stale()) return;
+        if (Date.now() - opened > BOARD_AUTO_FOR) {
+          if (this.boardTimer) clearInterval(this.boardTimer);
+          this.boardTimer = null;
+          const foot = this.root.querySelector(".board__foot");
+          if (foot) foot.insertAdjacentHTML("beforeend", " Stopped updating by itself to save calls: tap Refresh.");
+          return;
+        }
         try {
-          const fresh = await this.rail.board({ station: query.station!, to: query.to || null, mode: query.mode === "arr" ? "arr" : "dep", showAll: !!query.all });
+          const fresh = await this.rail.board({ station: query.station!, to: query.to || null, mode: query.mode === "arr" ? "arr" : "dep",
+            showAll: !!query.all, background: true });
           if (stale()) return;
           const tpl = document.createElement("template");
           tpl.innerHTML = boardView(fresh, query, nav, live, this.rail.clock()).value;
@@ -164,9 +178,9 @@ export class App {
             if (now && next) now.replaceWith(next);
           }
         } catch {
-          /* keep what's shown; the next minute tries again */
+          /* keep what's shown; the next round tries again */
         }
-      }, 60_000);
+      }, BOARD_EVERY);
     }
   }
 
@@ -174,7 +188,7 @@ export class App {
     const uid = decodeURIComponent(r.path.slice("/train/".length));
     const at = (r.params.get("at") ?? "").toUpperCase();
     const to = (r.params.get("to") ?? "").toUpperCase();
-    const res = await this.rail.service(uid);
+    const res = await this.rail.service(uid, { at, to });
     if (stale()) return;
     const tl = res.timeline;
     this.paint("", trainView(res, uid, at, to, stopSummary(tl, at), stopSummary(tl, to, false)), "Train");

@@ -260,15 +260,21 @@ export class RttClient {
   }
 
   async location(code: string, timeFrom: Ms, windowMin = 60, filterTo: string | null = null, force = false,
-    filterFrom: string | null = null): Promise<Fetched> {
+    filterFrom: string | null = null, background = false): Promise<Fetched> {
     await this.load();
     const params: Record<string, string> = { code: code.toUpperCase(), timeFrom: isoLocal(timeFrom), timeWindow: String(windowMin) };
     if (filterTo) params.filterTo = filterTo.toUpperCase();
     if (filterFrom) params.filterFrom = filterFrom.toUpperCase();
     if (isDetailed(this.info)) params.detailed = "true";
     // keyed to the minute, so "now" asked twice in a minute shares one answer
-    const key = ["loc", params.code, params.timeFrom.slice(0, 16), windowMin, params.filterTo ?? "", params.filterFrom ?? ""].join("|");
-    return this.get(key, "/gb-nr/location", params, this.boardTtl, true, force);
+    const keyAt = (t: Ms) => ["loc", params.code, isoLocal(t).slice(0, 16), windowMin, params.filterTo ?? "", params.filterFrom ?? ""].join("|");
+    const key = keyAt(timeFrom);
+    if (!force && !this.cache.has(key)) {
+      // the minute ticked over since the last look (back from a train, say): last minute's board is still good
+      const prev = this.cache.get(keyAt(timeFrom - 60_000));
+      if (prev && (this.clock() - prev.fetchedAt) / 1000 < this.boardTtl) return prev;
+    }
+    return this.get(key, "/gb-nr/location", params, this.boardTtl, !background, force);
   }
 
   async service(uniqueId: string, interactive = true, ttl: number | null = null, force = false): Promise<Fetched> {

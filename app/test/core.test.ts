@@ -220,6 +220,20 @@ describe("the app's key", () => {
     await again.board({ station: "RDG" });
     expect(http.calls).toEqual(["/gb-nr/location"]);
   });
+  it("a 'now' board seen again after the minute ticks over costs nothing", async () => {
+    const http = new FakeRtt();
+    const rail = new Rail(http, new MemStore(), stations, clock.now);
+    await rail.setKey(GOOD);
+    http.calls.length = 0;
+    clock.advance(40); // 14:20:40
+    await rail.board({ station: "RDG" });
+    clock.advance(30); // 14:21:10: a new minute, but the answer is 30 s old
+    await rail.board({ station: "RDG" });
+    expect(http.calls).toEqual(["/gb-nr/location"]);
+    clock.advance(40); // now over a minute old: worth asking again
+    await rail.board({ station: "RDG" });
+    expect(http.calls).toEqual(["/gb-nr/location", "/gb-nr/location"]);
+  });
   it("removing the key forgets everything", async () => {
     const store = new MemStore();
     const rail = new Rail(new FakeRtt(), store, stations, clock.now);
