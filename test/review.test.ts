@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { LIMITS, type TestRun, TestReview } from "./harness/review";
+import { FINGERPRINT_ROOTS, LIMITS, type TestRun, TestReview } from "./harness/review";
 
 let dir: string;
 let review: TestReview;
@@ -64,6 +64,10 @@ describe("flaky review", () => {
     expect(review.explain("f", "")).toBe(false);
     expect(review.explain("f", "the clock wasn't installed before the page loaded; fixed in support.ts")).toBe(true);
     expect(review.pending().flaky).toEqual([]);
+  });
+
+  it("the fingerprint covers what the tests read beyond src/: CSS and the Android files", () => {
+    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts"]) expect(FINGERPRINT_ROOTS).toContain(r);
   });
 
   it("failed then passed after a code change is a fix, not flaky", () => {

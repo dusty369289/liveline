@@ -45,15 +45,19 @@ const median = (xs: number[]) => {
   return s.length ? s[Math.floor(s.length / 2)] : 0;
 };
 
-/** A fingerprint of the code under test, so "failed then passed" only counts as flaky when nothing changed. */
-export function fingerprint(roots = ["src", "test"]): string {
+/**
+ * Everything the tests read, so "failed then passed" only counts as flaky when none of it changed. It must cover the
+ * CSS and the Android files too: a test that reads them fails when they break and passes when they're fixed, which is
+ * a fix, not a flake.
+ */
+export const FINGERPRINT_ROOTS = ["src", "test", "public/css", "android/app/build.gradle", "android/app/src/main/AndroidManifest.xml",
+  "capacitor.config.ts", "vite.config.ts", "package.json"];
+
+export function fingerprint(roots = FINGERPRINT_ROOTS): string {
   const h = createHash("sha256");
-  const walk = (dir: string) => {
-    for (const name of readdirSync(dir).sort()) {
-      const p = join(dir, name);
-      if (statSync(p).isDirectory()) walk(p);
-      else if (/\.(ts|json|css)$/.test(name)) h.update(p).update(readFileSync(p));
-    }
+  const walk = (p: string) => {
+    if (statSync(p).isDirectory()) for (const name of readdirSync(p).sort()) walk(join(p, name));
+    else if (/\.(ts|json|css|gradle|xml)$/.test(p)) h.update(p).update(readFileSync(p));
   };
   for (const r of roots) if (existsSync(r)) walk(r);
   return h.digest("hex").slice(0, 16);
