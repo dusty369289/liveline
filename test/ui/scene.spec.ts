@@ -119,6 +119,17 @@ test("arrow keys move between the tabs", async ({ page, errors }) => {
   void errors;
 });
 
+test("every sky, for the contact sheet (the clock here is always 09:20, so day)", async ({ page, errors }, info) => {
+  await openTrain(page);
+  await trainView(page);
+  const scene = page.locator(".scene");
+  for (const sky of ["dawn", "day", "dusk", "night"]) {
+    await scene.evaluate((el, s) => { (el as HTMLElement).dataset.sky = s; }, sky);
+    await scene.screenshot({ path: `.ui-report/${info.project.name}/23-sky-${sky}.png` });
+  }
+  void errors;
+});
+
 test("the sky follows the clock: day at 09:20 in November", async ({ page, errors }) => {
   await open(page, "/board?station=PAD&to=OXF&time=09:00");
   await page.locator(".trains__link").first().click();
