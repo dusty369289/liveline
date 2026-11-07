@@ -6,6 +6,7 @@ import { manualMinAge } from "../core/poll";
 import type { Rail } from "../core/rail";
 import { fragment } from "./html";
 import { liveRegion } from "./views/live-region";
+import { PassFolds } from "./widgets/pass-folds";
 
 const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
 const MIN_AGE = 15_000; // the client won't refetch anything younger either, so pressing refresh again costs nothing
@@ -21,7 +22,7 @@ export class LiveTrain {
   private message = "";
   private messageUntil = 0;
   private region: HTMLElement;
-  private open = new Set<string>(); // passing-point groups the user opened; kept across refreshes
+  private folds: PassFolds;
   private onVisible = () => {
     if (document.visibilityState !== "visible" || this.done) return;
     // back in the app: fetch now only if the planned poll is already due, else wait for it
@@ -34,20 +35,11 @@ export class LiveTrain {
 
   constructor(private page: HTMLElement, private rail: Rail, private uid: string, private at: string, private to: string) {
     this.region = page.querySelector<HTMLElement>("[data-live-region]")!;
+    this.folds = new PassFolds(this.region, () => this.place(true));
   }
 
   start(): void {
-    // "6 passing points" opens that group; "Fold away" at its top closes it again
-    this.region.addEventListener("click", (ev) => {
-      const btn = (ev.target as Element).closest<HTMLElement>("[data-fold-toggle]");
-      if (!btn) return;
-      const g = btn.dataset.foldToggle!;
-      if (this.open.has(g)) this.open.delete(g);
-      else this.open.add(g);
-      this.applyFolds();
-      this.place(true);
-    });
-    this.applyFolds();
+    this.folds.wire();
     this.page.querySelector("[data-jump]")!.addEventListener("click", () => this.jump(true));
     this.page.querySelector("[data-refresh-now]")!.addEventListener("click", () => this.refreshNow());
     document.addEventListener("visibilitychange", this.onVisible);
@@ -70,20 +62,6 @@ export class LiveTrain {
     this.timer = null;
     this.done = true;
     this.age();
-  }
-
-  /** Show the groups the user opened, fold the rest, and say which way each button goes. */
-  private applyFolds(): void {
-    for (const btn of this.region.querySelectorAll<HTMLElement>("[data-fold-toggle]")) {
-      const g = btn.dataset.foldToggle!;
-      const open = this.open.has(g);
-      const rows = this.region.querySelectorAll<HTMLElement>(`.route__pt[data-group="${g}"]`);
-      rows.forEach((r) => r.classList.toggle("is-folded", !open));
-      const n = rows.length;
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
-      const label = btn.querySelector("[data-fold-label]");
-      if (label) label.textContent = `${open ? "Fold away " : ""}${n} passing point${n === 1 ? "" : "s"}`;
-    }
   }
 
   private bar() {
@@ -181,8 +159,11 @@ export class LiveTrain {
       if (since && expected && expected > since) f = Math.min(Math.max((Date.now() - since) / (expected - since), 0), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
       if (d.state === "overdue") waiting = true;
-      // Once it has left, keep it clearly off the station it left, even early in a long section
-      if (a !== null && b !== null) y = a + Math.max((b - a) * f, Math.min(MIN_AWAY, (b - a) / 2));
+      // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
+      if (a !== null && b !== null) {
+        const gap = Math.min(MIN_AWAY, (b - a) / 2);
+        y = Math.min(a + Math.max((b - a) * f, gap), b - gap);
+      }
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
       waiting = true;
@@ -232,7 +213,7 @@ export class LiveTrain {
     }
     const s = Math.max(0, Math.round((Date.now() - this.fetchedAt()) / 1000));
     const when = s < 5 ? "just now" : s < 60 ? `${s} s ago` : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
-    el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? "Journey over · updated" : "Updated"} ${when}`;
+    el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? "Finished · updated" : "Updated"} ${when}`;
   }
 
   async refresh(force: boolean): Promise<void> {
@@ -246,7 +227,7 @@ export class LiveTrain {
       const tl = res.timeline;
       const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
       if (node) this.region.replaceChildren(node);
-      this.applyFolds();
+      this.folds.apply();
       this.failures = 0;
       this.place(true);
     } catch (e) {

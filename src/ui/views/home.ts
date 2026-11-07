@@ -26,7 +26,7 @@ export function homeView(d: HomeData): Html {
   </section>` : ""}
   <h1>Where are you catching a train?</h1>
   ${searchForm(d.query)}
-  <p class="hint">Tip: put a station in “Calling at” and you can save the journey for one-tap use, both ways.</p>
+  ${d.journeys.length ? "" : html`<p class="hint">Tip: put a station in “Calling at” and you can save the journey for one-tap use, both ways.</p>`}
   ${d.stations.length ? html`<section class="recent" aria-labelledby="recent-h">
     <h2 id="recent-h" class="label">Recent stations</h2>
     <ul class="recent__list cluster">${d.stations.map((s) => html`<li><a href="#/board${qs({ station: s.crs })}">${s.name}</a></li>`)}</ul>

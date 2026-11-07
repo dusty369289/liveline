@@ -70,8 +70,8 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
     <h1>${b.stationName}</h1>
     <p class="board__sub">${arr ? "Arrivals" : "Departures"}${other}, ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}</p>
     <p class="cluster board__nav">
-      <a href="${nav.earlier}">Earlier</a>
-      <a href="${nav.later}">Later</a>
+      <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
+      <a class="board__step" href="${nav.later}">Later<span aria-hidden="true">\u00a0›</span></a>
       <a href="${nav.refresh}" data-board-refresh>Refresh</a>
       <a href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
       <a href="#/${qs({ station: q.station })}">Change</a>

@@ -118,7 +118,9 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const tl = res.timeline;
   const p = tl.position;
   const [heroHtml, hs] = hero(stop, off);
-  const lines = ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
+  // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
+  const lines = p.state === "arrived" ? []
+    : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
   const { groupOf, size } = passGroups(tl);
   const route = tl.points.map((v) => {
     const g = groupOf.get(v.index);
