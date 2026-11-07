@@ -22,8 +22,10 @@ describe("updates keep the user's data", () => {
   it("stored data keeps its names", () => {
     expect(read("../src/core/rail.ts")).toContain('const KEY = "rtt.key";');
     expect(read("../src/core/rtt.ts")).toContain('const STATE_KEY = "rtt.access";');
-    const ui = read("../src/ui/app.ts") + read("../src/ui/live.ts");
-    for (const k of ["liveline.recent", "liveline.tracking", "liveline.update", "liveline.passes"]) expect(ui).toContain(`"${k}"`);
+    const ui = ["app", "live", "recents", "appearance"].map((f) => read(`../src/ui/${f}.ts`)).join("");
+    // "liveline.passes" (the old passing-points switch) is gone with the switch: nothing to keep.
+    // "liveline.tracking" is still read once and written, so updating keeps the train you were following.
+    for (const k of ["liveline.recent", "liveline.tracking", "liveline.trains", "liveline.update", "liveline.marker"]) expect(ui).toContain(`"${k}"`);
     expect(read("../src/ui/app.ts") + read("../src/ui/prefs.ts")).toContain("liveline.journeys");
   });
 

@@ -39,10 +39,27 @@
 .recent__list { gap: var(--s-1) var(--s-4); }
 .recent__list a { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: 500; }
 
-/* Carry on tracking: the train's yellow panel says this one is live */
-.tracking__link { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--s-3); align-items: center; text-decoration: none; min-height: var(--tap); padding-block: var(--s-2); }
-.tracking__link::before { content: ""; grid-row: span 2; width: 1rem; height: 1.4rem; background: var(--train); border: 2px solid var(--train-edge); border-radius: 3px 3px 2px 2px; }
-.tracking__title { font: 600 var(--t-md)/1.2 var(--sign-font); }
+/* Carry on: one line for the newest train still running, so the search form stays where it is */
+.carry {
+  display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); padding-block: var(--s-1);
+  border-bottom: 1px solid var(--line); text-decoration: none;
+}
+.carry::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--train); border: 3px solid var(--train-edge); box-sizing: border-box; }
+.carry::after { content: "›"; color: var(--muted); font-size: var(--t-md); }
+.carry__label { flex: none; font: 600 var(--t-xs)/1 var(--sign-font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.carry__title { flex: 1; min-width: 0; font: 600 var(--t-base)/1.2 var(--sign-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Recent trains */
+.recents__list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
+.recents__item { border-bottom: 1px solid var(--line); }
+.recents__link { display: grid; gap: .15rem; min-height: 3.5rem; align-content: center; padding-block: var(--s-2); text-decoration: none; }
+.recents__title { font: 600 var(--t-md)/1.2 var(--sign-font); }
+.recents__when { font-size: var(--t-sm); color: var(--muted); }
+.recents__item.is-running .recents__when { color: var(--ink); }
+.recents__item.is-running .recents__when::before {
+  content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .4em; vertical-align: .02em;
+  border-radius: 50%; background: var(--train); border: 2px solid var(--train-edge); box-sizing: border-box;
+}
 
 .journeys__list { display: grid; border-top: 1px solid var(--line); }
 .journeys__item { display: flex; align-items: center; gap: var(--s-3); border-bottom: 1px solid var(--line); }

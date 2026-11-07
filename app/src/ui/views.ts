@@ -17,6 +17,7 @@ import type { BudgetState } from "../core/budget";
 import type { TokenInfo } from "../core/rtt";
 import { hm, isoDate, type Ms } from "../core/time";
 import { type Html, html, qs, raw } from "./html";
+import { isRunning, type RecentTrain } from "./recents";
 
 export interface Query {
   station?: string;
@@ -71,8 +72,8 @@ export function chrome(route: string, demo: boolean, budget: BudgetState, main: 
     <a class="topbar__logo" href="#/">LiveLine</a>
     <nav class="topbar__nav" aria-label="Main">
       <a href="#/" aria-current="${cur("home")}">Search</a>
-      <a href="#/settings" aria-current="${cur("settings")}">Settings</a>
-      <a href="#/about" aria-current="${cur("about")}">About</a>
+      <a href="#/recent" aria-current="${cur("recent")}">Recent</a>
+      <a href="#/settings" aria-current="${cur("settings") ?? cur("about")}">Settings</a>
     </nav>
   </header>
   ${demo ? html`<p class="banner banner--demo" role="note"><strong>Demo data.</strong> These trains are simulated. Add your Realtime Trains key in <a href="#/settings">Settings</a> to see real ones.</p>` : ""}
@@ -122,13 +123,10 @@ export function searchForm(q: Query = {}): Html {
 </form>`;
 }
 
-export function home(q: Query = {}): Html {
+export function home(q: Query = {}, carry: RecentTrain | null = null): Html {
   return html`
 <div class="stack home">
-  <section class="tracking" data-tracking hidden aria-labelledby="tracking-h">
-    <h2 id="tracking-h" class="label">Carry on tracking</h2>
-    <a class="tracking__link" href="#/"><span class="tracking__title"></span><span class="tracking__sub hint"></span></a>
-  </section>
+  ${carry ? html`<a class="carry" href="${carry.href}"><span class="carry__label">Carry on</span><span class="carry__title">${carry.title}</span></a>` : ""}
   <section class="journeys" data-journeys hidden aria-labelledby="journeys-h">
     <h2 id="journeys-h" class="label">My journeys</h2>
     <ul class="journeys__list"></ul>
@@ -257,6 +255,24 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const s = tl.service;
   const [heroHtml, hs] = hero(stop, off);
   const lines = ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
+  // Passing points fold into one row between two stops ("6 passing points"), tap to open. A group is named by its
+  // first point's index, so it keeps its open/closed state across refreshes (live.ts).
+  const groupOf: Record<number, number> = {};
+  const groupSize: Record<number, number> = {};
+  let current = -1;
+  for (const v of tl.points) {
+    if (v.point.kind !== "pass") current = -1;
+    else {
+      if (current < 0) current = v.index;
+      groupOf[v.index] = current;
+      groupSize[current] = (groupSize[current] ?? 0) + 1;
+    }
+  }
+  const foldRow = (g: number) => html`
+    <li class="route__fold" data-fold="${g}">
+      <span class="route__mark" aria-hidden="true"></span>
+      <button type="button" class="route__fold-btn" data-fold-toggle="${g}" aria-expanded="false"><svg class="route__fold-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-fold-label>${groupSize[g]} passing point${groupSize[g] === 1 ? "" : "s"}</span></button>
+    </li>`;
   const points = tl.points.map((v) => {
     const pt = v.point;
     const main = pt.kind === "pass" ? v.passing : (v.departure ?? v.arrival);
@@ -283,16 +299,20 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     if (main) {
       const src = main.source === "actual" ? "actual" : main.source === "est" ? "est" : main.source === "booked" ? "booked" : "forecast";
       let shownTime: Html | "" = "";
-      if (!isCancelled(pt) && main.source === "forecast" && !changed(main) && pt.kind === "call") {
-        shownTime = html`${shape("forecast")}<span class="route__ontime">On time</span>`;
-      } else if (!isCancelled(pt) && main.source !== "booked" && !(main.source === "est" && !changed(main)) && !(main.source === "forecast" && !changed(main))) {
+      const predicted = main.source === "forecast" || main.source === "est";
+      if (!isCancelled(pt) && predicted && !changed(main)) {
+        // Expected on time. A stop says so; a junction shows only the circle, so 30 of them don't all say "On time".
+        shownTime = pt.kind === "call"
+          ? html`${shape(main.source)}<span class="route__ontime">On time</span>`
+          : html`${shape(main.source)}<span class="visually-hidden">on time</span>`;
+      } else if (!isCancelled(pt) && main.source !== "booked") {
         shownTime = html`${shape(main.source)}${main.source === "est" ? hm(main.time) : hmh(main.time)}${
           main.delayMin ? html`<span class="route__delay">${main.delayMin > 0 ? "+" : "−"}${Math.abs(main.delayMin)}</span>` : ""}`;
       }
       times = html`<span class="route__booked tnum">${pt.kind === "pass" ? hmh(main.booked) : hm(main.booked)}</span><span class="route__live tnum ${delayClass(main)} src-${src}">${shownTime}</span>`;
     } else times = html`<span class="route__booked"></span><span class="route__live"></span>`;
     return html`
-    <li class="route__pt ${cls}" data-index="${v.index}" id="${isAt ? "your-stop" : null}" data-t-in="${tin?.time ?? ""}" data-t-out="${tout?.time ?? ""}">
+    <li class="route__pt ${cls}${pt.kind === "pass" ? " is-folded" : ""}" data-index="${v.index}" data-group="${pt.kind === "pass" ? groupOf[v.index] : null}" id="${isAt ? "your-stop" : null}" data-t-in="${tin?.time ?? ""}" data-t-out="${tout?.time ?? ""}">
       <span class="route__mark" aria-hidden="true"></span>
       <span class="route__name"><span class="route__place">${pt.name}</span><span class="route__meta">${isAt ? html`<span class="route__tag">Board</span>` : isTo ? html`<span class="route__tag">Alight</span>` : ""}${meta}</span></span>
       ${times}
@@ -313,7 +333,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   </div>
   ${s.reasons.length ? html`<ul class="reasons">${s.reasons.map((r) => html`<li>${r.kind === "CANCEL" ? "Cancelled" : "Delayed"} because of ${r.text.slice(0, 1).toLowerCase() + r.text.slice(1)}.</li>`)}</ul>` : ""}
   <div class="route-wrap">
-    <ol class="route" aria-label="Route">${points}</ol>
+    <ol class="route" aria-label="Route">${tl.points.map((v, i) => html`${groupOf[v.index] === v.index ? foldRow(v.index) : ""}${points[i]}`)}</ol>
     <div class="route__train" data-train-marker hidden aria-hidden="true"></div>
   </div>
 </section>`;
@@ -334,7 +354,6 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
     ${s.units.length ? html`<p class="hint">Units ${s.units.join(", ")}</p>` : ""}
     ${s.mode !== "TRAIN" ? html`<p class="banner" role="note">This is a ${s.mode.replaceAll("_", " ").toLowerCase()}, not a train.</p>` : ""}
   </header>
-  <label class="check train__passes"><input type="checkbox" data-toggle-passes checked> Passing points</label>
   <div class="trainbar" data-trainbar>
     <button type="button" class="trainbar__refresh" data-refresh-now aria-label="Refresh now"><svg class="icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <p class="trainbar__age" data-age aria-live="off">Updated just now</p>
@@ -348,11 +367,82 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
       <dt><span class="src-actual tnum">${shape("actual")}14:41</span></dt><dd><strong>Happened:</strong> reported by Realtime Trains. To the minute on the free plan, to the quarter minute (¼ ½ ¾) with detailed mode.</dd>
       <dt><span class="src-forecast tnum">${shape("forecast")}14:41</span></dt><dd><strong>Expected:</strong> Realtime Trains’ forecast. “On time” when it matches the booked time.</dd>
       <dt><span class="src-est tnum">${shape("est")}14:41</span></dt><dd><strong>Our guess</strong>, where Realtime Trains gives none. It carries the delay forward and allows for booked recovery time.</dd>
-      <dt><span class="tick" aria-hidden="true"></span> Small rows</dt><dd>Timing points the train passes without stopping: junctions and stations it runs through. Booked times there are working-timetable times, which can be on the half minute (½). Signals aren't in Realtime Trains' data.</dd>
+      <dt><span class="tick" aria-hidden="true"></span> Passing points</dt><dd>Timing points the train passes without stopping: junctions and stations it runs through. They're folded between stops (“6 passing points”): tap to open them, and “Fold away” at the top closes them again. Booked times there are working-timetable times, which can be on the half minute (½). Signals aren't in Realtime Trains' data.</dd>
       <dt><span class="train-swatch" aria-hidden="true"></span> Yellow panel</dt><dd>Where we think the train is now. Between reports it moves at the booked speed for that section and stops short of the next point until that point is reported.</dd>
     </dl>
   </details>
 </article>`;
+}
+
+/** The key. Once it works it folds to one line (plan, the key's last characters, Manage); it opens by itself when
+ * there's no key yet or a problem, because then it's the thing to do. */
+function keySection(o: { demo: boolean; tier: Tier; info: TokenInfo | null; hint: string | null; tokenError: string | null;
+  budget: BudgetState; native: boolean }, open: boolean): Html {
+  const form = html`    <form class="stack" data-key-form autocomplete="off">
+      <div class="field">
+        <label for="token">${o.demo ? "Paste your key" : "Replace key"}</label>
+        <input id="token" name="token" type="password" required minlength="20" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="eyJ…">
+      </div>
+      <p class="hint">It's checked with Realtime Trains first (1 to 3 calls), then kept <strong>only on this ${o.native ? "phone" : "device"}</strong>${
+        o.native ? ", in the app's private storage" : ""}. The app talks to Realtime Trains directly, so your key never goes anywhere else.</p>
+      <button class="button" type="submit">Check and save key</button>
+    </form>
+    ${o.demo ? "" : html`<p><button class="linkish" type="button" data-forget-key>Forget my key on this ${o.native ? "phone" : "device"}</button></p>`}`;
+  if (o.demo) {
+    return html`<section class="stack" aria-labelledby="key-h">
+    <h2 id="key-h">Realtime Trains key</h2>
+    <p>No key yet, so the trains you see are <strong>simulated</strong>. Get a free key at
+      <a href="https://api-portal.rtt.io" target="_blank" rel="noopener">api-portal.rtt.io</a>, then paste it here.</p>
+    ${form}
+  </section>`;
+  }
+  return html`<section aria-labelledby="key-h"><details class="keybox" ${open ? html`open` : ""}>
+    <summary class="keybox__summary"><span class="keybox__text"><h2 id="key-h" class="keybox__title">Realtime Trains key</h2>
+      <span class="keybox__line">${o.tokenError ? html`<span class="problem">Needs attention</span>`
+        : html`${shapeOk()}<strong>${o.tier.name}</strong> · <span class="tnum">${o.hint ?? "set"}</span>`}</span></span>
+      <span class="keybox__manage">Manage</span></summary>
+    <div class="stack keybox__body">
+      <dl class="facts">
+        <dt>Plan</dt><dd><strong>${o.tier.name}</strong></dd>
+          <dt>Key</dt><dd class="tnum">${o.hint ?? "set"}${o.info ? ` (${o.info.kind} token)` : ""}</dd>
+          ${o.tokenError ? html`<dt>Problem</dt><dd class="problem">${o.tokenError}</dd>` : ""}
+          <dt>Times</dt><dd>Reported ${precision(o.tier)}</dd>
+          <dt>Allowance</dt><dd class="tnum">${o.budget.remaining.minute} of ${o.tier.perMinute} left this minute, ${o.budget.remaining.hour} of ${o.tier.perHour} this hour</dd>
+          ${o.info?.historyDays ? html`<dt>History</dt><dd>Trains from the last ${o.info.historyDays} days</dd>` : ""}
+        </dl>
+      ${form}
+    </div></details></section>`;
+}
+
+/** A small filled disc: the same "it works" mark the route uses for what happened. */
+function shapeOk(): Html {
+  return raw('<svg class="when-mark" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><circle cx="5" cy="5" r="4.5" fill="currentColor"/></svg>');
+}
+
+const MARKERS: Array<[string, string]> = [["dot", "Dot"], ["bar", "Bar"], ["arrow", "Arrow"], ["front", "Train front"]];
+
+// ---- recent ----
+export function recentView(list: RecentTrain[], now: Ms): Html {
+  const items = list.map((t) => {
+    const running = isRunning(t, now);
+    const when = running ? "Running now" : t.ends ? `Finished ${dayOrTime(t.ends, now)}` : `Seen ${ago((now - t.seen) / 1000)}`;
+    return html`<li class="recents__item${running ? " is-running" : ""}"><a class="recents__link" href="${t.href}">
+      <span class="recents__title">${t.title}</span><span class="recents__when">${when}</span></a></li>`;
+  });
+  return html`
+<div class="stack recents">
+  <h1>Recent trains</h1>
+  ${list.length
+    ? html`<ol class="recents__list">${items}</ol>
+      <p><button type="button" class="linkish" data-clear-recent>Clear this list</button></p>
+      <p class="hint">Kept on this device only. The newest 30 trains you've opened.</p>`
+    : html`<p class="empty">Trains you open show up here, newest first, so you can get back to them in one tap.</p>
+      <p><a href="#/">Search for a train</a></p>`}
+</div>`;
+}
+
+function dayOrTime(t: Ms, now: Ms): string {
+  return isoDate(t) === isoDate(now) ? hm(t) : `${dayLabel(t)}, ${hm(t)}`;
 }
 
 // ---- settings ----
@@ -374,6 +464,7 @@ export interface UpdateInfo {
 export function settingsView(o: {
   demo: boolean; tier: Tier; info: TokenInfo | null; hint: string | null; tokenError: string | null; budget: BudgetState;
   message?: string | null; error?: string | null; update: UpdateInfo; native: boolean; selfUpdate?: boolean;
+  marker: string;
 }): Html {
   const isCurrent = (name: string) => o.tier.name === name || (name === "Team" && o.tier.name === "Team or above");
   const u = o.update;
@@ -397,29 +488,16 @@ export function settingsView(o: {
   <h1>Settings</h1>
   ${o.message ? html`<p class="banner" role="status">${o.message}</p>` : ""}
   ${o.error ? html`<p class="problem" role="alert">${o.error}</p>` : ""}
-  <section class="stack" aria-labelledby="key-h">
-    <h2 id="key-h">Realtime Trains key</h2>
-    ${o.demo
-      ? html`<p>No key yet, so the trains you see are <strong>simulated</strong>. Get a free key at
-          <a href="https://api-portal.rtt.io" target="_blank" rel="noopener">api-portal.rtt.io</a>, then paste it here.</p>`
-      : html`<dl class="facts">
-        <dt>Plan</dt><dd><strong>${o.tier.name}</strong></dd>
-        <dt>Key</dt><dd class="tnum">${o.hint ?? "set"}${o.info ? ` (${o.info.kind} token)` : ""}</dd>
-        ${o.tokenError ? html`<dt>Problem</dt><dd class="problem">${o.tokenError}</dd>` : ""}
-        <dt>Times</dt><dd>Reported ${precision(o.tier)}</dd>
-        <dt>Allowance</dt><dd class="tnum">${o.budget.remaining.minute} of ${o.tier.perMinute} left this minute, ${o.budget.remaining.hour} of ${o.tier.perHour} this hour</dd>
-        ${o.info?.historyDays ? html`<dt>History</dt><dd>Trains from the last ${o.info.historyDays} days</dd>` : ""}
-      </dl>`}
-    <form class="stack" data-key-form autocomplete="off">
-      <div class="field">
-        <label for="token">${o.demo ? "Paste your key" : "Replace key"}</label>
-        <input id="token" name="token" type="password" required minlength="20" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="eyJ…">
-      </div>
-      <p class="hint">It's checked with Realtime Trains first (1 to 3 calls), then kept <strong>only on this ${o.native ? "phone" : "device"}</strong>${
-        o.native ? ", in the app's private storage" : ""}. The app talks to Realtime Trains directly, so your key never goes anywhere else.</p>
-      <button class="button" type="submit">Check and save key</button>
-    </form>
-    ${o.demo ? "" : html`<p><button class="linkish" type="button" data-forget-key>Forget my key on this ${o.native ? "phone" : "device"}</button></p>`}
+  ${o.demo || o.tokenError || o.error ? keySection(o, true) : keySection(o, false)}
+  <section class="stack" aria-labelledby="look-h">
+    <h2 id="look-h">Appearance</h2>
+    <fieldset class="markers">
+      <legend>The train on the route</legend>
+      ${MARKERS.map(([value, label]) => html`<label class="markers__opt">
+        <input type="radio" name="marker" value="${value}" data-marker-choice ${o.marker === value ? html`checked` : ""}>
+        <span class="markers__demo" aria-hidden="true"><span class="route__train" data-m="${value}"></span></span>
+        <span>${label}</span></label>`)}
+    </fieldset>
   </section>
   <section class="stack" aria-labelledby="update-h">
     <h2 id="update-h">Updates</h2>
@@ -439,6 +517,7 @@ export function settingsView(o: {
     <p class="hint">The app switches features on from what your key is actually allowed, as Realtime Trains reports it.
       A higher plan's bigger allowance means trains refresh more often, worked out from the limits each answer reports.</p>
   </section>
+  <p class="settings__about"><a href="#/about">About LiveLine: the data, the allowance and what it can't show</a></p>
 </div>`;
 }
 

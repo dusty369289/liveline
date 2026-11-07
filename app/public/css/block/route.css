@@ -1,10 +1,11 @@
 .train__head { display: grid; gap: var(--s-1); }
 .train__head h1 { font-size: 1.6rem; line-height: 1.1; }
-.train__passes { justify-self: start; }
 
 /* Thin bar that stays at the top while you scroll the route: how old the answer is, refresh, and back to the train */
 .trainbar {
   position: sticky; top: 0; z-index: 5;
+  /* edge-to-edge phones: the bar's own paper covers the status bar and its buttons start below it */
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex; align-items: center; gap: var(--s-2);
   margin-inline: calc(-1 * var(--gutter)); padding-inline: calc(var(--gutter) - .5rem) var(--gutter);
   min-height: var(--tap); background: var(--page); border-bottom: 1px solid var(--line);
@@ -79,9 +80,21 @@
 .route__delay { display: block; font-size: var(--t-xs); line-height: 1.1; }
 .route__ontime { font-size: var(--t-xs); color: var(--muted); }
 
-.route.hide-passes .is-pass { min-height: 0; height: 0; padding: 0; overflow: hidden; visibility: hidden; }
+/* Folded passing points: one row between two stops that opens them */
+.route__pt.is-folded { display: none; }
+.route__fold { display: grid; grid-template-columns: 2.25rem 1fr; gap: 0 var(--s-2); align-items: stretch; }
+.route__fold-btn {
+  display: inline-flex; align-items: center; gap: .4rem; justify-self: start; min-height: var(--tap); padding: 0;
+  border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--t-sm); cursor: pointer;
+}
+.route__fold-btn:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }
+.route__fold-icon { flex: none; transition: transform .15s ease; }
+.route__fold-btn[aria-expanded="true"] .route__fold-icon { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .route__fold-icon { transition: none; } }
 
-/* The train: the yellow warning panel on the front of every British train */
+/* The train. Its look is a setting (Settings > Appearance): data-m on the marker, from <html data-marker>.
+   "front" is the yellow warning panel of a British train front; "dot" (default), "bar" and "arrow" are plainer and
+   easier to see on the line. All are yellow with an ink edge, so the train is the one yellow thing on the route. */
 .route__train {
   position: absolute; left: calc(1.125rem - 10px); width: 20px; height: 28px; margin-top: -14px;
   background: var(--train); border: 2px solid var(--train-edge); border-radius: 6px 6px 3px 3px;
@@ -99,6 +112,26 @@
 @keyframes idle { 50% { transform: translateY(-2px); } }
 .route-wrap.is-instant .route__train, .route-wrap.is-instant .route__done { transition: none; }
 @media (prefers-reduced-motion: reduce) { .route__train, .route__done { transition: none; } .route__train.is-waiting { animation: none; } }
+
+.route__train[data-m="dot"] { left: calc(1.125rem - 12px); width: 24px; height: 24px; margin-top: -12px; border-width: 4px; border-radius: 50%; }
+.route__train[data-m="dot"]::before { content: none; }
+.route__train[data-m="dot"]::after { bottom: -10px; }
+.route__train[data-m="bar"] { left: calc(1.125rem - 17px); width: 34px; height: 14px; margin-top: -7px; border-width: 3px; border-radius: 4px; }
+.route__train[data-m="bar"]::before { content: none; }
+.route__train[data-m="arrow"] {
+  left: calc(1.125rem - 13px); width: 26px; height: 28px; margin-top: -14px; border: 0; border-radius: 0;
+  background: var(--train-edge); clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.route__train[data-m="arrow"]::before {
+  left: 4px; right: 4px; top: 4px; height: auto; bottom: 6px; border-radius: 0;
+  background: var(--train); clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.route__train[data-m="arrow"]::after { content: none; }
+
+/* Passed stops are filled in, as "filled = it happened" everywhere else: you can see the train has left a station
+   even when the next stop is a long way down the line. */
+.is-call.is-reported .route__mark::after { background: var(--ink); }
+.is-call.is-reported.is-cancelled .route__mark::after { background: var(--page); }
 
 /* time states */
 /* What kind of time it is shows as a shape before it, not as weight: filled = it happened, ring = Realtime Trains'

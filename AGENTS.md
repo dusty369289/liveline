@@ -67,7 +67,9 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
 - **Board:** departures (or arrivals) at a station from a chosen time, default now, 60-minute window, optional
   "calling at" filter. Cached 60 s per query. Empty stock, staff-only calls and set-down-only rows are hidden unless
   "Show all".
-- **Train view:** every location RTT returns, including passes. Calls are full rows, passes are small rows. Times:
+- **Train view:** every location RTT returns, including passes. Calls are full rows; passing points fold into one
+  "N passing points" row between two stops (tap to open, "Fold away" at the top closes; folded by default, open
+  groups kept across refreshes). Stops and points the train has passed are filled in. Times:
   booked (public time, or working time for passes), then actual if reported, else RTT's forecast, else our estimate,
   each marked by a small circle before it (`shape()` in `views.ts`), never by weight: **filled** = reported (it
   happened), **ring** = RTT's forecast (with "On time" when it matches the booked time), **dashed ring** = our guess.
@@ -101,6 +103,12 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
   over) is served from it with no call. The rows shown are those booked in the window, plus earlier ones still running
   late into it. Answers are kept 1 minute, or 5 minutes for a board starting an hour or more ahead
   (`FUTURE_BOARD_TTL`). The Python reference keeps its own simpler fetching and polling; this lives in the app.
+- **Recent:** the Recent tab lists the trains you've opened, newest first (30 kept, one entry per train, on this device
+  only, `ui/recents.ts`). The search page shows one line for the newest one still running (until 30 min after it's
+  due in), so the search form never moves.
+- **Settings:** the key folds to one line (plan, last characters, Manage) once it works, and opens by itself with
+  no key or a problem. Appearance (`ui/appearance.ts`, `<html data-marker>`) holds the train marker: Dot (default),
+  Bar, Arrow or Train front. About is linked from the foot of Settings (the top bar is Search, Recent, Settings).
 - **Your stop:** a train opened from a board knows your stop and destination; the top panel gives "N min", stops away
   and platform (solid plate confirmed, outlined expected).
 - **Tiers** come from entitlements and reported limits, not names: `allowDetailed` means Hobbyist features (detailed
@@ -123,8 +131,9 @@ goes through its host's `/rtt` relay (Vite's dev proxy).
 ## UI
 
 The "Platform" look, from British rail signage: warm paper and navy ink (deep navy at night), Barlow and Barlow Semi
-Condensed, navy sign plates for platforms, a thick Beck-style line with ringed stops, the train as the yellow warning
-panel of a train front, and one giant "N min" number. No cards, boxes, glow, gradients or pills; hierarchy comes from
+Condensed, navy sign plates for platforms, a thick Beck-style line with ringed stops, the train as a marker in yellow with an ink edge (its shape is a setting), and one giant "N min" number. Edge to edge on Android:
+the top bar, the sticky train bar, the footer and the page sides step around the status bar, notch and gesture bar
+with `env(safe-area-inset-*)`. No cards, boxes, glow, gradients or pills; hierarchy comes from
 type. CUBE layers: `tokens, base, composition, block, utility, exception`; themes are token-only files. Phone first
 (412 px), 44 px touch targets.
 

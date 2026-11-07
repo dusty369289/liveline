@@ -5,8 +5,8 @@ import { stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail } from "../core/rail";
 import { liveRegion } from "./views";
-import { prefs } from "./prefs";
 
+const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
 const MIN_AGE = 15_000; // the client won't refetch anything younger either, so pressing refresh again costs nothing
 
 export class LiveTrain {
@@ -20,7 +20,7 @@ export class LiveTrain {
   private message = "";
   private messageUntil = 0;
   private region: HTMLElement;
-  private passes: HTMLInputElement;
+  private open = new Set<string>(); // passing-point groups the user opened; kept across refreshes
   private onVisible = () => {
     if (document.visibilityState !== "visible" || this.done) return;
     // back in the app: fetch now only if the planned poll is already due, else wait for it
@@ -33,15 +33,20 @@ export class LiveTrain {
 
   constructor(private page: HTMLElement, private rail: Rail, private uid: string, private at: string, private to: string) {
     this.region = page.querySelector<HTMLElement>("[data-live-region]")!;
-    this.passes = page.querySelector<HTMLInputElement>("[data-toggle-passes]")!;
   }
 
   start(): void {
-    this.passes.checked = prefs.get("liveline.passes", true);
-    this.passes.addEventListener("change", () => {
-      prefs.set("liveline.passes", this.passes.checked);
+    // "6 passing points" opens that group; "Fold away" at its top closes it again
+    this.region.addEventListener("click", (ev) => {
+      const btn = (ev.target as Element).closest<HTMLElement>("[data-fold-toggle]");
+      if (!btn) return;
+      const g = btn.dataset.foldToggle!;
+      if (this.open.has(g)) this.open.delete(g);
+      else this.open.add(g);
+      this.applyFolds();
       this.place(true);
     });
+    this.applyFolds();
     this.page.querySelector("[data-jump]")!.addEventListener("click", () => this.jump(true));
     this.page.querySelector("[data-refresh-now]")!.addEventListener("click", () => this.refreshNow());
     document.addEventListener("visibilitychange", this.onVisible);
@@ -64,6 +69,20 @@ export class LiveTrain {
     this.timer = null;
     this.done = true;
     this.age();
+  }
+
+  /** Show the groups the user opened, fold the rest, and say which way each button goes. */
+  private applyFolds(): void {
+    for (const btn of this.region.querySelectorAll<HTMLElement>("[data-fold-toggle]")) {
+      const g = btn.dataset.foldToggle!;
+      const open = this.open.has(g);
+      const rows = this.region.querySelectorAll<HTMLElement>(`.route__pt[data-group="${g}"]`);
+      rows.forEach((r) => r.classList.toggle("is-folded", !open));
+      const n = rows.length;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      const label = btn.querySelector("[data-fold-label]");
+      if (label) label.textContent = `${open ? "Fold away " : ""}${n} passing point${n === 1 ? "" : "s"}`;
+    }
   }
 
   private bar() {
@@ -126,7 +145,7 @@ export class LiveTrain {
     if (instant) wrap.classList.add("is-instant");
     const route = live.querySelector<HTMLElement>(".route")!;
     const marker = live.querySelector<HTMLElement>("[data-train-marker]")!;
-    route.classList.toggle("hide-passes", !this.passes.checked);
+    marker.dataset.m = document.documentElement.dataset.marker ?? "dot"; // Settings > Appearance
     let done = wrap.querySelector<HTMLElement>(".route__done");
     if (!done) {
       done = document.createElement("div");
@@ -145,12 +164,13 @@ export class LiveTrain {
       let rowB = to;
       let since = Number(d.since);
       let expected = Number(d.expected);
-      if (!this.passes.checked) {
-        // Hidden rows have no height, so run between the nearest visible stops, by their times
+      const folded = (r: HTMLElement | null) => !!r && r.classList.contains("is-folded");
+      if (folded(from) || folded(to)) {
+        // A folded row has no height, so run between the nearest rows you can see, by their times
         const ia = from ? rows.indexOf(from) : -1;
         const ib = to ? rows.indexOf(to) : rows.length;
-        for (let i = ia; i >= 0; i--) if (!rows[i].classList.contains("is-pass")) { rowA = rows[i]; break; }
-        for (let i = ib; i < rows.length; i++) if (!rows[i].classList.contains("is-pass")) { rowB = rows[i]; break; }
+        for (let i = ia; i >= 0; i--) if (!folded(rows[i])) { rowA = rows[i]; break; }
+        for (let i = ib; i < rows.length; i++) if (!folded(rows[i])) { rowB = rows[i]; break; }
         if (rowA && rowA !== from) since = Number(rowA.dataset.tOut) || since;
         if (rowB && rowB !== to) expected = Number(rowB.dataset.tIn) || expected;
       }
@@ -160,7 +180,8 @@ export class LiveTrain {
       if (since && expected && expected > since) f = Math.min(Math.max((Date.now() - since) / (expected - since), 0), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
       if (d.state === "overdue") waiting = true;
-      if (a !== null && b !== null) y = a + (b - a) * f;
+      // Once it has left, keep it clearly off the station it left, even early in a long section
+      if (a !== null && b !== null) y = a + Math.max((b - a) * f, Math.min(MIN_AWAY, (b - a) / 2));
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
       waiting = true;
@@ -227,6 +248,7 @@ export class LiveTrain {
       tpl.innerHTML = fresh.value;
       const node = tpl.content.querySelector(".live");
       if (node) this.region.replaceChildren(node);
+      this.applyFolds();
       this.failures = 0;
       this.place(true);
     } catch (e) {

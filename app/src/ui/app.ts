@@ -6,8 +6,10 @@ import { isNewer, readRelease, RELEASES_API } from "../core/update";
 import { APP_VERSION, canSelfUpdate, getJson, installUpdate, native } from "../platform";
 import { type Html, html, qs } from "./html";
 import { LiveTrain } from "./live";
+import { applyAppearance, markerStyle, setMarkerStyle } from "./appearance";
 import { prefs } from "./prefs";
-import { aboutView, boardView, chrome, home, problem, type Query, settingsView, trainView, type UpdateInfo } from "./views";
+import { carryOn, forgetTrains, recentTrains, rememberTrain } from "./recents";
+import { aboutView, boardView, chrome, home, problem, type Query, recentView, settingsView, trainView, type UpdateInfo } from "./views";
 
 interface Route {
   name: string;
@@ -62,6 +64,7 @@ export class App {
   constructor(private root: HTMLElement, private rail: Rail) {}
 
   async start(): Promise<void> {
+    applyAppearance();
     await this.rail.start();
     window.addEventListener("hashchange", () => void this.render());
     await this.render();
@@ -100,6 +103,7 @@ export class App {
       if (r.name === "train") return await this.train(r, stale);
       if (r.name === "settings") return await this.settings(stale);
       if (r.name === "about") return await this.about(stale);
+      if (r.name === "recent") return this.recentPage();
       this.paint("", problem("Not found", "There's no page here.", false), "Not found");
     } catch (e) {
       if (stale()) return;
@@ -116,8 +120,17 @@ export class App {
 
   // ---- pages ----
   private home(r: Route) {
-    this.paint("home", home(q(r.params)), "");
+    this.paint("home", home(q(r.params), carryOn(Date.now())), "");
     this.wireCommon();
+  }
+
+  private recentPage() {
+    this.paint("recent", recentView(recentTrains(), Date.now()), "Recent trains");
+    this.wireCommon();
+    this.root.querySelector("[data-clear-recent]")?.addEventListener("click", () => {
+      forgetTrains();
+      void this.render();
+    });
   }
 
   private async board(r: Route, stale: () => boolean) {
@@ -195,7 +208,7 @@ export class App {
     this.wireCommon();
     const page = this.root.querySelector<HTMLElement>("[data-train]")!;
     document.title = `${page.dataset.title} · LiveLine`;
-    prefs.set("liveline.tracking", { href: location.hash, title: page.dataset.title, ends: Number(page.dataset.ends) || 0, seen: Date.now() });
+    rememberTrain({ href: location.hash, title: page.dataset.title ?? "Train", ends: Number(page.dataset.ends) || 0, seen: Date.now() });
     this.live = new LiveTrain(page, this.rail, uid, at, to);
     this.live.start();
   }
@@ -205,7 +218,8 @@ export class App {
     const info = await this.rail.tokenInfo();
     if (stale()) return;
     this.paint("settings", settingsView({ demo: this.rail.demo, tier, info, hint: this.rail.tokenHint, tokenError: this.rail.lastTokenError,
-      budget: this.rail.budget.state(), ...this.settingsMsg, update: this.update, native, selfUpdate: canSelfUpdate }), "Settings");
+      budget: this.rail.budget.state(), ...this.settingsMsg, update: this.update, native, selfUpdate: canSelfUpdate,
+      marker: markerStyle() }), "Settings");
     this.settingsMsg = {};
     this.wireCommon();
     const form = this.root.querySelector<HTMLFormElement>("[data-key-form]")!;
@@ -228,6 +242,8 @@ export class App {
       void this.render();
     });
     this.root.querySelector("[data-check-update]")!.addEventListener("click", () => void this.checkUpdate(true));
+    this.root.querySelectorAll<HTMLInputElement>("[data-marker-choice]").forEach((input) =>
+      input.addEventListener("change", () => setMarkerStyle(input.value)));
     this.root.querySelector("[data-install-update]")?.addEventListener("click", () => void this.installNow());
   }
 
@@ -313,7 +329,6 @@ export class App {
     });
     this.recent();
     this.journeys();
-    this.tracking();
   }
 
   private suggest(box: HTMLElement) {
@@ -421,19 +436,6 @@ export class App {
         <a class="journeys__go" href="#/board${qs({ station: j.from, to: j.to })}">${j.fromName} → ${j.toName}</a>
         <a class="journeys__back" href="#/board${qs({ station: j.to, to: j.from })}" aria-label="Return: ${j.toName} to ${j.fromName}">Return</a>
       </li>`.value).join("");
-    box.hidden = false;
-  }
-
-  private tracking() {
-    const box = this.root.querySelector<HTMLElement>("[data-tracking]");
-    const t = prefs.get<{ href: string; title: string; ends: number; seen: number } | null>("liveline.tracking", null);
-    if (!box || !t) return;
-    // offered until half an hour after the train is due to finish (or 3 hours after it was opened)
-    const until = t.ends ? t.ends + 30 * 60_000 : t.seen + 3 * 3_600_000;
-    if (Date.now() > until || !t.href.startsWith("#/train/")) return;
-    box.querySelector("a")!.setAttribute("href", t.href);
-    box.querySelector(".tracking__title")!.textContent = t.title;
-    box.querySelector(".tracking__sub")!.textContent = "Tap to see where it is now";
     box.hidden = false;
   }
 }
