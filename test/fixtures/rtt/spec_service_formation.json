@@ -1,0 +1,44 @@
+{
+ "_note": "Spec-derived, not a recording: the allocation and Know Your Train parts of a service answer (rtt-openapi.yml NetworkRailAllocation, KnowYourTrainDataGroup). The owner's Hobbyist key gets allocations without knowYourTrainData; this is the shape when it's there. Two 5-coach units joined, a different allocation (one unit) after Swindon.",
+ "service": {
+  "locations": [
+   {"location": {"description": "London Paddington"}, "locationMetadata": {"allocationIndex": 0, "numberOfVehicles": 10}},
+   {"location": {"description": "Reading"}, "locationMetadata": {"allocationIndex": 0, "numberOfVehicles": 10}},
+   {"location": {"description": "Swindon"}, "locationMetadata": {"allocationIndex": 1, "numberOfVehicles": 5}},
+   {"location": {"description": "Bristol Temple Meads"}, "locationMetadata": {"allocationIndex": 1, "numberOfVehicles": 5}}
+  ],
+  "allocationData": [
+   {
+    "allocationIndex": 0, "leadingClass": "800", "passengerVehicles": 10,
+    "allocationItems": [
+     {"stockType": "UNIT", "identity": "800010", "inReverse": false, "identitySuppressed": false, "numberOfVehicles": 5},
+     {"stockType": "UNIT", "identity": "800023", "inReverse": false, "identitySuppressed": false, "numberOfVehicles": 5}
+    ],
+    "knowYourTrainData": {
+     "stockBranding": null,
+     "commonFacilities": ["wifi", "power", "aircon"],
+     "data": [
+      {"identity": "800010", "groupFacilities": ["toilet"], "vehicles": [
+       {"graphic": "/img/800/dmf.png", "isPassengerVehicle": true, "coachLetter": "A", "individualFacilities": ["first", "Quiet"]},
+       {"graphic": "/img/800/mf.png", "isPassengerVehicle": true, "coachLetter": "B", "individualFacilities": ["first", "wheelchair"]},
+       {"graphic": "/img/800/ms.png", "isPassengerVehicle": true, "coachLetter": "C", "individualFacilities": ["buffet"]},
+       {"graphic": "/img/800/ms.png", "isPassengerVehicle": true, "coachLetter": "D", "individualFacilities": null},
+       {"graphic": "/img/800/dms.png", "isPassengerVehicle": true, "coachLetter": "E", "individualFacilities": ["bicycle", "toilet"]}
+      ]},
+      {"identity": "800023", "groupFacilities": null, "vehicles": [
+       {"graphic": "/img/800/dms.png", "isPassengerVehicle": true, "coachLetter": "F"},
+       {"graphic": "/img/800/ms.png", "isPassengerVehicle": true, "coachLetter": "G", "individualFacilities": ["quiet"]},
+       {"graphic": "/img/800/ms.png", "isPassengerVehicle": true, "coachLetter": "H"},
+       {"graphic": "/img/800/mf.png", "isPassengerVehicle": true, "coachLetter": "J", "individualFacilities": ["first"]},
+       {"graphic": "/img/800/dmf.png", "isPassengerVehicle": true, "coachLetter": "K", "individualFacilities": ["first"]}
+      ]}
+     ]
+    }
+   },
+   {
+    "allocationIndex": 1, "leadingClass": "800", "passengerVehicles": 5,
+    "allocationItems": [{"stockType": "UNIT", "identity": "800010", "numberOfVehicles": 5}]
+   }
+  ]
+ }
+}

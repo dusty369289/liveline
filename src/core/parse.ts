@@ -21,9 +21,10 @@ import { isoDate, type Ms, parseTime } from "./time";
 type Json = Record<string, unknown>;
 const ADVERTISED = new Set(["ADVERTISED_OPEN", "ADVERTISED_SET_DOWN", "ADVERTISED_PICK_UP"]);
 
-const obj = (v: unknown): Json => (v && typeof v === "object" && !Array.isArray(v) ? (v as Json) : {});
-const isObj = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
-const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
+// Reading untrusted JSON: also used by formation.ts
+export const obj = (v: unknown): Json => (v && typeof v === "object" && !Array.isArray(v) ? (v as Json) : {});
+export const isObj = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
+export const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
 const truthy = (v: unknown) => !!v && v !== 0;
 
 function times(raw: unknown): Times {

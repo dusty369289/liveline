@@ -5,6 +5,7 @@ import { STORE } from "./keys";
 import { build, type Timeline } from "./engine";
 import type { Http } from "./http";
 import { type Board, type BoardRow, booked, forPassengers, isEmpty, type Times } from "./models";
+import { type Formation, formationFor, parseFormations } from "./formation";
 import { parseBoard, parseService } from "./parse";
 import { pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
@@ -29,6 +30,7 @@ export interface BoardResult {
 
 export interface ServiceResult {
   timeline: Timeline;
+  formation: Formation; // how it's made up where it is now (formation.ts); kept off Service, which the goldens pin
   fetched: Fetched;
   refreshAfter: number | null; // seconds before asking again (poll.ts), or null: nothing more will change
 }
@@ -217,6 +219,7 @@ export class Rail {
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
     const now = this.clock();
     const tl = build(parseService(f.body, this.clock), now);
-    return { timeline: tl, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
+    const formation = formationFor(parseFormations(f.body, tl.service.vehicles), tl.position.fromIndex);
+    return { timeline: tl, formation, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
   }
 }
