@@ -262,7 +262,9 @@ layers `tokens, base, composition, block, utility, exception`; themes are token-
 page opens at the top; redrawing the same page keeps its place. Every text
 colour is at least 4.5:1 on what it sits on, in both themes, and the train marker 3:1 (`test/design.test.ts`, which
 also works out the cascade for the board's platform plate). Text grows with the phone's text size: content sets
-heights and text wraps rather than ending in "…" (the Train view and train bar are checked at 200%).
+heights and text wraps rather than ending in "…". Where a row can't fit at large text, container queries (whose rem
+follows the root text size, unlike a media query's) stack it: board rows and route times go under the name, and the
+top bar's nav takes a line of its own. Checked at 200%: the board, the Route tab, the Train view and the train bar.
 
 ## RTT API essentials
 
@@ -425,7 +427,8 @@ so. Release notes leave out PRs labelled `process` (`.github/release.yml`; `npm 
   `// @vitest-environment happy-dom` at its top) on the simulator; the browser suite remains the judge of what's on
   screen.
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
-  moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
+  moment on the simulated railway. Every page runs the layout audit (no sideways scroll or anything past the screen's
+  edge, measured against the viewport Playwright set, as innerWidth grows with wide content; nothing clipped, no split sign
   plates, 44 px targets) and goes on the contact sheet. `keyed.spec.ts` runs with a dummy key against faked RTT
   answers (a recording, at the time it was made) and counts the calls a page makes; a check that nothing more was
   asked waits a moment of real time first, as a call a round starts is asynchronous. What only happens with a key (a
