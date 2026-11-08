@@ -126,6 +126,23 @@ describe("launch", () => {
     expect(root.querySelector("[data-banner-slot]")?.textContent).toContain("Version 99.0.0");
     expect(neverFetch).not.toHaveBeenCalled();
   });
+
+  it("the day's check finding a newer version swaps only the banner, so a half-typed search keeps its text and focus", async () => {
+    let answer!: (r: Response) => void;
+    vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((r) => (answer = r)))); // GitHub, held until told
+    const { app, root } = await setUp("#/");
+    await app.start();
+    const main = root.querySelector("main");
+    const field = root.querySelector<HTMLInputElement>("#station")!;
+    field.focus();
+    field.value = "Read";
+    answer(new Response(JSON.stringify({ tag_name: "v99.0.0", html_url: "https://example.invalid/r", assets: [] }), { status: 200 }));
+    await vi.waitFor(() => expect(root.querySelector("[data-banner-slot]")?.textContent).toContain("Version 99.0.0"));
+    expect(root.querySelector("main")).toBe(main);
+    expect(root.querySelector("#station")).toBe(field);
+    expect(field.value).toBe("Read");
+    expect(document.activeElement).toBe(field);
+  });
 });
 
 describe("focus", () => {
