@@ -1,34 +1,11 @@
 // Budget, client, key handling and station search (carried over from the retired Python suite).
 import { beforeEach, describe, expect, it } from "vitest";
 import { Budget } from "../src/core/budget";
-import type { Http, HttpResponse } from "../src/core/http";
+import type { Http } from "../src/core/http";
 import { cleanToken, Rail } from "../src/core/rail";
 import { AuthError, BusyError, RttClient, RttError } from "../src/core/rtt";
 import { fromLondon } from "../src/core/time";
-import { Clock, MemStore, stations } from "./support";
-
-const GOOD = "good-refresh-token-0123456789abcdef";
-
-/** Refresh-token flow like the real one: /api/info refuses the refresh token, the access token works. */
-class FakeRtt implements Http {
-  calls: string[] = [];
-  constructor(private ents = ["allowAllocationsPassenger", "allowDetailed"], private hour = "100", private service: HttpResponse | null = null) {}
-  async get(path: string, _p: Record<string, string>, token?: string | null): Promise<HttpResponse> {
-    this.calls.push(path);
-    const h = { "x-ratelimit-limit-minute": "10", "x-ratelimit-limit-hour": this.hour };
-    if (path === "/api/get_access_token") {
-      return token === GOOD ? { status: 200, headers: h, body: { token: "short-access", validUntil: "2026-11-07T18:00:00Z" } }
-        : { status: 401, headers: h, body: { error: "no" } };
-    }
-    if (path === "/api/info") {
-      return token === "short-access" ? { status: 200, headers: h, body: { api_version: "2026-07-25", credentials: { entitlements: this.ents } } }
-        : { status: 401, headers: h, body: { error: "no" } };
-    }
-    if (path === "/gb-nr/service") return this.service ?? { status: 200, headers: h, body: { service: { scheduleMetadata: { identity: "X1", departureDate: "2026-11-07" } } } };
-    if (path === "/gb-nr/location") return { status: 204, headers: h, body: null };
-    return { status: 404, headers: h, body: null };
-  }
-}
+import { Clock, FakeRtt, GOOD, MemStore, stations } from "./support";
 
 let clock: Clock;
 beforeEach(() => {

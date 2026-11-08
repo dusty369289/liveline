@@ -1,5 +1,6 @@
 // Test doubles and fixtures shared by the unit tests. One copy of each: a test needing a variant extends these.
 import { readFileSync } from "node:fs";
+import { type Http, type HttpResponse, NetworkError } from "../src/core/http";
 import type { Rail } from "../src/core/rail";
 import type { KeyValueStore } from "../src/core/rtt";
 import { StationIndex } from "../src/core/stations";
@@ -27,6 +28,39 @@ export class Clock {
   now = (): Ms => this.t;
   advance(seconds: number): void {
     this.t += seconds * 1000;
+  }
+}
+
+/** A key FakeRtt accepts, as a refresh token. */
+export const GOOD = "good-refresh-token-0123456789abcdef";
+
+/**
+ * RTT, faked. Refresh-token flow like the real one: /api/info refuses the refresh token, the access token works.
+ * `offline` makes every request fail as a dropped connection; `remainingHour` adds that rate-limit header.
+ */
+export class FakeRtt implements Http {
+  calls: string[] = [];
+  params: Array<Record<string, string>> = [];
+  offline = false;
+  remainingHour: string | null = null;
+  constructor(private ents = ["allowAllocationsPassenger", "allowDetailed"], private hour = "100", private service: HttpResponse | null = null) {}
+  async get(path: string, p: Record<string, string>, token?: string | null): Promise<HttpResponse> {
+    if (this.offline) throw new NetworkError("offline");
+    this.calls.push(path);
+    this.params.push(p);
+    const h: Record<string, string> = { "x-ratelimit-limit-minute": "10", "x-ratelimit-limit-hour": this.hour };
+    if (this.remainingHour != null) h["x-ratelimit-remaining-hour"] = this.remainingHour;
+    if (path === "/api/get_access_token") {
+      return token === GOOD ? { status: 200, headers: h, body: { token: "short-access", validUntil: "2026-11-07T18:00:00Z" } }
+        : { status: 401, headers: h, body: { error: "no" } };
+    }
+    if (path === "/api/info") {
+      return token === "short-access" ? { status: 200, headers: h, body: { api_version: "2026-07-25", credentials: { entitlements: this.ents } } }
+        : { status: 401, headers: h, body: { error: "no" } };
+    }
+    if (path === "/gb-nr/service") return this.service ?? { status: 200, headers: h, body: { service: { scheduleMetadata: { identity: "X1", departureDate: "2026-11-07" } } } };
+    if (path === "/gb-nr/location") return { status: 204, headers: h, body: null };
+    return { status: 404, headers: h, body: null };
   }
 }
 
