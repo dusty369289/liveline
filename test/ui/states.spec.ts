@@ -72,7 +72,47 @@ test("train: arrived", async ({ page, errors }, info) => {
   void errors;
 });
 
-test("recent: nothing yet", async ({ page, errors }, info) => {
+test("settings: a key Realtime Trains refused, said above the page", async ({ page, errors }, info) => {
+  await open(page, "/settings");
+  await page.locator("#token").fill("x".repeat(40));
+  await page.locator("[data-key-form] button[type=submit]").click();
+  await expect(page.locator("[data-flash]")).toContainText("refused the key");
+  await shot(page, info, "18-settings-key-refused");
+  void errors;
+});
+
+test("waiting for Realtime Trains: the old page stays, with a thin line along the top", async ({ page, errors }, info) => {
+  // A made-up key (never a real one), so the board asks the faked RTT, which holds its answer until told
+  await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-key-for-tests-only-0123456789"));
+  let release!: () => void;
+  const held = new Promise<void>((r) => (release = r));
+  await page.route("**/rtt/**", async (r) => {
+    await held;
+    await r.fulfill({ status: 401, contentType: "application/json", body: '{"error":"no"}' });
+  });
+  await open(page, "/recent");
+  await page.evaluate(() => (location.hash = "#/board?station=PAD&time=09:00"));
+  await expect(page.locator("#app")).toHaveClass(/is-navigating/);
+  await page.waitForTimeout(500); // the line shows after 300 ms, so a quick answer doesn't flicker
+  await page.screenshot({ path: `.ui-report/${info.project.name}/19-loading.png` }); // the screen, where the line is
+  release();
+  await page.locator("main h1").waitFor();
+  void errors;
+});
+
+test("something nobody planned for: a sentence and Try again, not Loading… for good", async ({ page, errors }, info) => {
+  // A saved-journeys list no version of the app would write: drawing the search page throws, standing for any bug
+  await page.addInitScript(() => localStorage.setItem("liveline.journeys", "[null]"));
+  await open(page, "/");
+  await expect(page.locator("main h1")).toHaveText("Something went wrong");
+  await expect(page.locator("[data-retry]")).toHaveText("Try again");
+  await shot(page, info, "19-something-went-wrong");
+  // The app logs the bug for a report: expected here, and nothing else may be in the list
+  expect(errors.filter((e) => !e.startsWith("console:"))).toEqual([]);
+  errors.length = 0;
+});
+
+test("recent: nothing yet",async ({ page, errors }, info) => {
   await open(page, "/recent");
   await expect(page.locator(".empty")).toBeVisible();
   await shot(page, info, "17-recent-empty");
