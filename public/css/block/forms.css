@@ -17,6 +17,13 @@
 .search__row { flex-wrap: nowrap; gap: var(--s-3); }
 .search__row .field { flex: 1 1 0; min-width: 0; }
 .search .hint { margin-top: calc(-1 * var(--s-2)); }
+/* Departures or Arrivals, and at the end of that row, between the two station boxes, the flip */
+.search__between { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.search__flip {
+  flex: none; display: inline-grid; place-items: center; min-width: var(--tap); min-height: var(--tap);
+  background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer;
+}
+.search__flip:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
 .mode label, .check { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); cursor: pointer; }
 
 .button {

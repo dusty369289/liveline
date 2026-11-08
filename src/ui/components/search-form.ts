@@ -2,6 +2,7 @@
 // ("Calling at" or "Coming from", following the mode), and only then, folded away, another time or day: most
 // searches are "this station, now". Its station boxes are wired by StationSuggest; SearchForm handles the rest.
 import { type Html, html, render } from "../html";
+import { FLIP_ICON } from "./icons";
 import { boardHash, type Query } from "../routes";
 
 const stationBox = (id: string, label: Html, placeholder: string, value: string, extra: Html | "") => html`
@@ -24,11 +25,14 @@ export function searchForm(q: Query = {}): Html {
   return html`
 <form class="search stack" data-search role="search" autocomplete="off">
   ${stationBox("station", html`Station`, "e.g. Reading or RDG", q.station ?? "", html`required enterkeyhint="search"`)}
+  <div class="search__between">
   <fieldset class="cluster mode">
     <legend class="visually-hidden">Show</legend>
     <label><input type="radio" name="mode" value="dep" ${!arr ? html`checked` : ""}> Departures</label>
     <label><input type="radio" name="mode" value="arr" ${arr ? html`checked` : ""}> Arrivals</label>
   </fieldset>
+  <button type="button" class="search__flip" data-flip-stations aria-label="Swap the two stations" title="Swap the two stations">${FLIP_ICON}</button>
+  </div>
   ${stationBox("to", otherLabel(arr), "Any station", q.to ?? "", "")}
   <div class="search__go">
   <details class="search__when disclosure"${later ? html` open` : ""}>
@@ -61,6 +65,12 @@ export class SearchForm {
       const hash = boardHash({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "dep" });
       history.replaceState(null, "", hash.replace("#/board", "#/")); // so Back comes to this form as it was filled in
       location.hash = hash;
+    });
+    // Flip: the two station boxes swap what's in them, typed or picked (owner, 2026-11-08)
+    form.querySelector("[data-flip-stations]")?.addEventListener("click", () => {
+      const a = form.querySelector<HTMLInputElement>("#station");
+      const b = form.querySelector<HTMLInputElement>("#to");
+      if (a && b) [a.value, b.value] = [b.value, a.value];
     });
     const label = form.querySelector('[data-label-for="to"]');
     form.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach((r) => r.addEventListener("change", () => {

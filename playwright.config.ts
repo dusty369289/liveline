@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: "phone-412-dark", use: { ...devices["Pixel 7"], viewport: { width: 412, height: 915 }, colorScheme: "dark" },
       grepInvert: /@once/,
-      testIgnore: ["calls.spec.ts", "focus.spec.ts", "train-bar.spec.ts", "calm.spec.ts"],
+      testIgnore: ["calls.spec.ts", "focus.spec.ts", "train-bar.spec.ts", "calm.spec.ts", "flip.spec.ts"],
     },
   ],
   webServer: {

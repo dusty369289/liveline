@@ -128,14 +128,16 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   bar in the train's colour along the plate's foot (either kind) and "Platform changed" in the row's details. The summary line under
   the nameboard ("Departures calling at Oxford · 10:00 to 11:00") links to the search form filled in with this board's
   query, and Back from a board you searched for returns to the form as you filled it. Its controls are few and plain:
-  Earlier, Later and the other direction as words, Refresh as an icon, and a star on the nameboard to save a journey.
+  Earlier, Later and the other direction as words; Flip (the two stations swapped, same time and mode; only with a
+  second station) and Refresh as icons; and a star on the nameboard to save a journey.
 
 **Calm pages** (owner, 2026-11-07: the UI felt overstimulating; `test/ui/calm.spec.ts`): the answer first, each fact
 said once, few controls in view, small print only where it's wanted. A train's status is the big number, one line
 and any delay reason: stops already passed aren't restated, and "lost most time" sits below the route. Its header is
 one line of facts; class and units are in the Train view. Explanations (an outlined platform plate) live on About.
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
-  match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
+  match), a flip at the end of the Departures/Arrivals row that swaps the two station boxes, and a folded "Another
+  time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped; each station box is an ARIA combobox with a status line saying how many
   match. The page fits a 360 × 700 app screen with no scrolling, first visit or
   coming back (`test/ui/fit.spec.ts`).

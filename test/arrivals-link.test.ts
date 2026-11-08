@@ -10,7 +10,7 @@ import { liveRegion } from "../src/ui/views/live-region";
 import { MemStore, simulator, stations } from "./support";
 
 const T0 = fromLondon(2026, 11, 7, 9, 0);
-const NAV = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c" };
+const NAV = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c", flip: null };
 const rail = new Rail(simulator(() => T0), new MemStore(), stations, () => T0);
 
 /** Each row's train link on a drawn board, as the uid and its query. */
