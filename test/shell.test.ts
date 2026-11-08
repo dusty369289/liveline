@@ -172,6 +172,35 @@ describe("the launch screen", () => {
   });
 });
 
+// Android closes an app to update it and, since Android 10, won't let it bring itself back: the sanctioned way is a
+// notification. The decision (announce only the update this app started) is UpdatedNoticeTest's (JUnit); this reads
+// the wiring, as the emulator crashes on the dev machine.
+describe("the notice after an in-app update", () => {
+  const java = (name: string) => readFileSync(new URL(`../android/app/src/main/java/dev/liveline/app/${name}`, import.meta.url), "utf8");
+  const manifest = readFileSync(new URL("../android/app/src/main/AndroidManifest.xml", import.meta.url), "utf8");
+
+  it("is a receiver for Android's own 'this app was replaced', with the notification permission declared", () => {
+    expect(manifest).toContain('<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />');
+    expect(manifest).toMatch(/<receiver[^>]*android:name="\.UpdatedNotice"[\s\S]*?android\.intent\.action\.MY_PACKAGE_REPLACED[\s\S]*?<\/receiver>/);
+  });
+
+  it("asks for the permission when Update is tapped, and notes the version before installing it", () => {
+    const plugin = java("UpdaterPlugin.java");
+    expect(plugin).toMatch(/requestPermissionForAlias\("notifications"/);
+    const commit = plugin.slice(plugin.indexOf("private void commit("));
+    expect(commit.indexOf("UpdatedNotice.expect(")).toBeGreaterThan(-1);
+    expect(commit.indexOf("UpdatedNotice.expect(")).toBeLessThan(commit.indexOf("s.commit("));
+  });
+
+  it("posts only for that update, only with permission, opening the app by an immutable intent", () => {
+    const notice = java("UpdatedNotice.java");
+    expect(notice).toContain("shouldAnnounce(");
+    expect(notice).toContain("Manifest.permission.POST_NOTIFICATIONS");
+    expect(notice).toContain("PendingIntent.FLAG_IMMUTABLE");
+    expect(notice).not.toMatch(/startActivity\(/); // Android blocks it from the background: the notification is the way
+  });
+});
+
 // No Java test harness here (and the emulator crashes on the dev machine), so this reads UpdaterPlugin.java for the
 // shape of the fix. Capacitor calls handleOnResume from inside Activity.onResume, before AndroidX moves the lifecycle
 // to RESUMED, so showConfirm (which needs RESUMED) must run from an ON_RESUME observer instead.

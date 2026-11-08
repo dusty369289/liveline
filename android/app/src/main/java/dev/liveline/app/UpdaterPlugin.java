@@ -1,5 +1,6 @@
 package dev.liveline.app;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -18,10 +19,13 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,7 +39,10 @@ import java.io.OutputStream;
  * carry on when they come back), and it shows its own "Update this app?" dialog unless it lets us skip it (Android 12+,
  * when this app installed the version being replaced). Android also refuses any APK not signed with the same key.
  */
-@CapacitorPlugin(name = "Updater")
+@CapacitorPlugin(name = "Updater", permissions = {
+    // "LiveLine updated: tap to open" afterwards (UpdatedNotice): Android 13+ asks once, when Update is tapped
+    @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS })
+})
 public class UpdaterPlugin extends Plugin {
     private static final String ACTION = "dev.liveline.app.INSTALL_STATUS";
     private PluginCall waitingForPermission;
@@ -87,6 +94,13 @@ public class UpdaterPlugin extends Plugin {
                 return;
             }
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && getPermissionState("notifications") != PermissionState.GRANTED
+            && !call.getBoolean("askedNotifications", false)) {
+            // asked once per tap; whatever the answer, the install carries on (afterNotifications)
+            call.getData().put("askedNotifications", true);
+            requestPermissionForAlias("notifications", call, "afterNotifications");
+            return;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getContext().getPackageManager().canRequestPackageInstalls()) {
             // one-time system switch; handleOnResume carries on if the user turns it on
             call.setKeepAlive(true);
@@ -100,6 +114,11 @@ public class UpdaterPlugin extends Plugin {
             return;
         }
         start(call);
+    }
+
+    @PermissionCallback
+    private void afterNotifications(PluginCall call) {
+        install(call);
     }
 
     @Override
@@ -150,7 +169,7 @@ public class UpdaterPlugin extends Plugin {
                     throw new Exception("The download didn't match its checksum, so it wasn't installed. Try again.");
                 }
                 progress("installing", 1.0);
-                commit(apk);
+                commit(apk, call.getString("version"));
             } catch (Exception e) {
                 finish(false, e.getMessage() != null ? e.getMessage() : "The update failed.", "FAILED");
             }
@@ -161,7 +180,7 @@ public class UpdaterPlugin extends Plugin {
         return new File(getContext().getCacheDir(), "updates");
     }
 
-    private void commit(File apk) throws Exception {
+    private void commit(File apk, String version) throws Exception {
         Context ctx = getContext();
         PackageInstaller pi = ctx.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
@@ -184,6 +203,7 @@ public class UpdaterPlugin extends Plugin {
                 throw e;
             }
             listen();
+            if (version != null) UpdatedNotice.expect(ctx, version); // the new version announces itself (only this one)
             Intent i = new Intent(ACTION).setPackage(ctx.getPackageName());
             int flags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0);
             s.commit(PendingIntent.getBroadcast(ctx, id, i, flags).getIntentSender());

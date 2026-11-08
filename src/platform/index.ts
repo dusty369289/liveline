@@ -139,7 +139,8 @@ export interface UpdateProgress {
   fraction?: number;
 }
 interface UpdaterPlugin {
-  install(o: { url: string; sha256?: string | null; sha256Url?: string | null }): Promise<{ message: string }>;
+  // version: what's being installed, so the new version's "tap to open" notice (UpdatedNotice) names only this update
+  install(o: { url: string; version: string; sha256?: string | null; sha256Url?: string | null }): Promise<{ message: string }>;
   addListener(ev: "progress", fn: (p: UpdateProgress) => void): Promise<{ remove: () => Promise<void> }>;
 }
 const Updater = registerPlugin<UpdaterPlugin>("Updater");
@@ -152,7 +153,7 @@ export const canSelfUpdate = native && platformName === "android";
  * journeys and recent stations in WebView storage) is kept: Android replaces only the code of the same app.
  */
 export async function installUpdate(
-  o: { url: string; sha256: string | null; sha256Url: string | null },
+  o: { url: string; version: string; sha256: string | null; sha256Url: string | null },
   onProgress: (p: UpdateProgress) => void,
 ): Promise<void> {
   const sub = await Updater.addListener("progress", onProgress);
