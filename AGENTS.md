@@ -99,7 +99,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle.
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. A
   point RTT flags as passed without a report (`realtimeNoReport`) counts as reached, "(not reported)", timed by
-  RTT's estimate; only actuals count for lateness. It
+  RTT's forecast, unless RTT still gives it an estimate (then it's still ahead); only actuals count for lateness. Our
+  reading of that flag is untested against a real answer, so only a report at its end makes a train "arrived": a
+  flag there leaves it heading for its end, polled, until the cut-off below says its arrival wasn't reported. It
   never passes an unreported point (holds at 95%), says "No report at X yet" 2 minutes after expected, and once
   departed sits at least 26 px clear of the station it left. When RTT's answer says it has no live data
   (`SCHEDULE_ONLY` or `REALTIME_DATA_NONE`, `feedOf` in `core/models.ts`), a missing report is put down to that,

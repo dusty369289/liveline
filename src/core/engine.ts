@@ -136,13 +136,15 @@ function actualOf(p: Point): [Ms | null, Times | null] {
 
 /**
  * Where the train is known to have been: an actual, or an event RTT flags as passed without a report
- * (`realtimeNoReport`), timed by RTT's estimate or forecast, else the working timetable. Only actuals count for lateness.
+ * (`realtimeNoReport`), timed by RTT's forecast, else the working timetable. A flagged event that still has RTT's
+ * estimate isn't passed: RTT is still timing it as ahead. Our reading of the flag is untested against a real answer,
+ * so it never ends a journey (see build). Only actuals count for lateness.
  */
 function passedOf(p: Point): [Ms | null, Times | null] {
   const seen = actualOf(p);
   if (seen[0] != null) return seen;
   const events = p.kind === "call" ? [p.departure, p.passing, p.arrival] : [p.passing];
-  for (const t of events) if (t.noReport) return [t.estimate ?? t.forecast ?? planned(t), t];
+  for (const t of events) if (t.noReport && t.estimate == null) return [t.forecast ?? planned(t), t];
   return [null, null];
 }
 
@@ -161,8 +163,11 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   const pts = service.points.map(asRun);
   const usable = pts.map((p, i) => (isCancelled(p) ? -1 : i)).filter((i) => i >= 0);
 
-  let last: number | null = null; // the last point it's known to have reached
-  for (const i of usable) if (passedOf(pts[i])[0] != null) last = i;
+  // The last point it's known to have reached. Only a report proves it reached its end: "arrived" stops the polling,
+  // so a flag alone leaves it heading there, followed until the cut-off (giveUpAfter) says "not reported".
+  const endIx = usable[usable.length - 1];
+  let last: number | null = null;
+  for (const i of usable) if ((i === endIx ? actualOf(pts[i]) : passedOf(pts[i]))[0] != null) last = i;
 
   // --- our estimates, propagated forward from the last report (or from the start if none) ---
   const oursArr = new Map<number, Ms>();
@@ -396,7 +401,8 @@ function position(
 
   const nxtK = usable.indexOf(last) + 1;
   if (nxtK >= usable.length) {
-    return P("arrived", last, null, act, null, 1, delay, seen ? `Arrived at ${where}, ${late}.` : `Arrived at ${where}.`);
+    // only ever with a report at its end (build), so `where` has the actual time
+    return P("arrived", last, null, act, null, 1, delay, `Arrived at ${where}, ${late}.`);
   }
   const nxt = usable[nxtK];
   if (pastEnd) {

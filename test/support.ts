@@ -18,6 +18,7 @@ export interface FakeEvent {
   wtt?: string;
   actual?: string;
   forecast?: string;
+  estimate?: string; // RTT's own estimate when there's no report
   noReport?: boolean;
   cancelled?: boolean;
 }
@@ -34,7 +35,7 @@ export interface FakeLocation {
 const at = (hms?: string) => (hms ? `2026-11-07T${hms.length === 5 ? `${hms}:00` : hms}` : undefined);
 const event = (e?: FakeEvent) => e && {
   scheduleAdvertised: at(e.gbtt), scheduleInternal: at(e.wtt), realtimeActual: at(e.actual), realtimeForecast: at(e.forecast),
-  realtimeNoReport: e.noReport, isCancelled: e.cancelled ?? false,
+  realtimeEstimate: at(e.estimate), realtimeNoReport: e.noReport, isCancelled: e.cancelled ?? false,
 };
 
 /** A small RTT service answer in the shape parse.ts reads, for rule tests that don't need a whole recording. */

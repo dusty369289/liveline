@@ -142,6 +142,32 @@ describe(`giving up ${DEFAULT_ENGINE.giveUpAfter / M} min after the booked arriv
     expect(tl.position.headline).toMatch(/Beta \(not reported\)/);
     expect(tl.worst).toBeNull();
   });
+
+  // Only a report proves it got to its end: the flag alone is RTT's guess, so it's followed until the cut-off
+  const flaggedEnd = (): FakeLocation[] => {
+    const locs = route({ gbtt: "10:40", wtt: "10:40", noReport: true });
+    locs[0].dep!.actual = "10:01";
+    locs[1].arr!.actual = "10:22";
+    locs[1].dep!.actual = "10:23"; // left Beta 10:23, 19 min booked to Omega: expected 10:42, cut-off 11:12
+    return locs;
+  };
+
+  it("a final arrival flagged as passed without a report is never 'arrived', and it keeps asking", () => {
+    const now = clock(10, 45);
+    const tl = timeline(flaggedEnd(), now);
+    expect(tl.position.state).not.toBe("arrived");
+    expect(tl.position.fromIndex).toBe(1);
+    expect(pollAfter(tl, now, 30)).not.toBeNull();
+  });
+
+  it("that flagged final arrival is given up on at the cut-off, not called arrived", () => {
+    expect(timeline(flaggedEnd(), clock(11, 12)).position.state).toBe("overdue");
+    const now = clock(11, 13);
+    const tl = timeline(flaggedEnd(), now);
+    expect(tl.position.state).toBe("unreported");
+    expect(tl.position.headline).toMatch(/arrival at Omega was not reported/);
+    expect(pollAfter(tl, now, 30)).toBeNull();
+  });
 });
 
 // Each rule runs with the defaults and with a different EngineConfig, so the rule follows its setting
@@ -211,6 +237,20 @@ for (const cfg of [DEFAULT_ENGINE, OTHER]) {
       expect(late.state).toBe("overdue");
       expect(late.fraction).toBe(cfg.holdFraction);
       expect(late.headline).toMatch(/No report at Junction yet/);
+    });
+
+    it("a point flagged as passed without a report, but with RTT's estimate, is still ahead: RTT has it en route", () => {
+      const flagged: FakeLocation[] = [
+        section[0],
+        { name: "Junction", pass: { wtt: "10:10", noReport: true, estimate: "10:12" } },
+        { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40", noReport: true, estimate: "10:42" } },
+      ];
+      for (const now of [clock(10, 5), clock(10, 20)]) {
+        const p = at(flagged, now, cfg).position;
+        expect(["running", "overdue"], `at ${new Date(now).toISOString()}`).toContain(p.state);
+        expect(p.fromIndex).toBe(0);
+        expect(p.toIndex).toBe(1);
+      }
     });
   });
 }
