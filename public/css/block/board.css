@@ -24,9 +24,11 @@
 .board__star .icon--star { fill: none; }
 .board__star[aria-pressed="true"] .icon--star { fill: var(--train); stroke: var(--train); }
 .board__star:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
-.board__sub { color: var(--muted); }
-/* The whole line is a link (it changes the search), so it gets a full tap target; its own height spaces the header */
-.board__sub a { display: inline-flex; align-items: center; min-height: var(--tap); }
+/* Spaced by its own margin and padding, not by centring in the link: a sub-line that wraps to two lines fills the
+   44 px and would otherwise sit tight under the nameboard */
+.board__sub { color: var(--muted); margin-top: var(--s-2); }
+/* The whole line is a link (it changes the search), so it keeps a full tap target */
+.board__sub a { display: inline-flex; align-items: center; min-height: var(--tap); padding-block: var(--s-1); }
 /* Few controls, in plain words rather than a row of underlines; refresh is an icon at the end */
 .board__nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-4); font-size: var(--t-sm); } /* wraps at large text */
 .board__nav a { min-height: var(--tap); display: inline-flex; align-items: center; }
