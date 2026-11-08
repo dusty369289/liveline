@@ -2,7 +2,7 @@
 // as they're laid out now (folds, fonts and resizes all move them). live-train.ts calls place() every second.
 import { DEFAULT_ENGINE, sectionFraction } from "../core/engine";
 import type { Ms } from "../core/time";
-import { clampBetween } from "./route-place";
+import { clampBetween, MIN_AWAY, PASS_AWAY } from "./route-place";
 
 export class LiveMarker {
   private jumped = false;
@@ -61,8 +61,10 @@ export class LiveMarker {
       let f = Number(d.fraction) || 0;
       if (since && expected && expected > since) f = sectionFraction(since, expected, this.clock(), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
-      // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
-      if (a !== null && b !== null) y = clampBetween(a, b, f);
+      // Once it has left, keep it clear of both points (not sitting on a station's ring), even early or late in a long
+      // section; a passing point is only a tick, so less, which leaves it room to move between passes
+      const away = (r: HTMLElement | null) => (r?.classList.contains("is-pass") ? PASS_AWAY : MIN_AWAY);
+      if (a !== null && b !== null) y = clampBetween(a, b, f, away(rowA), away(rowB));
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
     } else if (d.state === "not-started") {
