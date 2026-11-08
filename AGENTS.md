@@ -55,7 +55,9 @@ test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt
                (saved apksigner and aapt2 output), golden/ (frozen answers), harness/ (the test review), ui/
                (Playwright: *.spec.ts)
                readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
-docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`
+docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`; the two allowance pictures
+               (test/readme/allowance.pictures.ts) draw the rules of core/budget.ts and core/poll.ts, so a change to
+               those rules redraws them in the same PR
 scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run commit), open-pr.sh (npm run pr),
                merge-pr.sh (npm run merge), history-check.mjs (commits and PR text), leak-check.mjs, owner.sh (the one commit identity),
                attribution.re (the AI attribution pattern), review.mjs, android-build.sh, release-check.sh (the

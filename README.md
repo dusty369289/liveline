@@ -101,6 +101,26 @@ Where Realtime Trains has no forecast, LiveLine makes its own: it carries the de
 back 75% of the recovery time and long waits in the timetable, but never leave an advertised stop early. It's a
 reasoned guess, not a tested model, and it's always drawn as a dashed ring.
 
+## How it spends your allowance
+
+Your key's allowance is 10 calls a minute, 100 an hour and 1000 a day (Free and Hobbyist). Each window rolls: a call
+counts against it until it's that old. Every call goes through one budget, which also obeys the limits Realtime
+Trains reports with each answer, and any "wait until" it sends.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/allowance-call-dark.png">
+  <img alt="Every call to Realtime Trains, drawn as a railway line. The app wants an answer. First junction: is a recent answer kept (a board for 1 minute, or 5 for one an hour ahead)? If yes, it's shown from what's kept, with no call. If not: who's asking? Your searches and taps go straight on. The app's own calls (a train's next poll, a board's own refresh) take a branch through a junction asking whether more than 10 calls are left this hour; if not, they wait, as the hour's last 10 are kept for your searches. Both lines then meet: is a call free this minute, this hour and today, with no 'wait' from Realtime Trains? If yes, it asks Realtime Trains, one call, counted. If not, it shows the last answer, marked old, and says when it can ask again." src="docs/img/allowance-call-light.png">
+</picture>
+
+As the hour's calls run down, the app slows itself, so they last the hour:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/img/allowance-hour-dark.png">
+  <img alt="The hour's 100 calls as a line from 100 left to none, the train partway along. Each call leaves the count an hour after it's made, so the train runs back along the line as time passes. From 100 to 30 left: Refresh fetches an answer over 15 seconds old, and polls come when the train next reports, at most once a minute. From 30 to 10: Refresh only for an answer over 60 seconds old, and polls spread over the hour, no sooner than 3600 seconds divided by the calls left minus 10. From 10 to none: searches only; Refresh shows what's on screen, and polls wait for calls to free up. None left: the last answers, marked old, and 'Allowance used up' says when searches work again." src="docs/img/allowance-hour-light.png">
+</picture>
+
+<sub>Drawn like the app's route line by <code>npm run readme-pictures</code>, from the rules in <code>src/core/budget.ts</code> and <code>src/core/poll.ts</code>.</sub>
+
 <details>
 <summary><b>How often it asks, and what Refresh costs</b></summary>
 
