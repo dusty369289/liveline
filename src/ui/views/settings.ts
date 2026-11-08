@@ -3,8 +3,9 @@ import type { BudgetState } from "../../core/budget";
 import { precision, type Tier, TIERS } from "../../core/rail";
 import type { TokenInfo } from "../../core/rtt";
 import { doneMark } from "../components/marks";
+import { themePreview } from "../components/theme-preview";
 import { type Html, html } from "../html";
-import { MARKER_STYLES, type MarkerStyle } from "../store/appearance";
+import { MARKER_STYLES, type MarkerStyle, type Theme, THEMES } from "../store/appearance";
 import type { UpdateInfo } from "../updates";
 
 export interface SettingsData {
@@ -18,6 +19,7 @@ export interface SettingsData {
   native: boolean; // on the phone (key in private storage) or a browser
   selfUpdate: boolean; // can install its own updates (Android)
   marker: MarkerStyle;
+  theme: Theme;
 }
 
 function keyForm(d: SettingsData): Html {
@@ -75,6 +77,16 @@ function keySection(d: SettingsData): Html {
 
 function appearanceSection(d: SettingsData): Html {
   return group("look-h", "Appearance", html`
+    <fieldset class="themes">
+      <legend class="panel__row panel__legend">Theme</legend>
+      <div class="themes__list panel__row">
+        ${THEMES.map(([value, label]) => html`<label class="themes__opt">
+          ${themePreview(value)}
+          <span class="themes__name"><input type="radio" name="theme" value="${value}" data-theme-choice ${d.theme === value ? html`checked` : ""}>${label}</span>
+        </label>`)}
+      </div>
+      <p class="panel__row hint">Each one follows your phone's light or dark setting.</p>
+    </fieldset>
     <fieldset class="markers">
       <legend class="panel__row panel__legend">The train on the route</legend>
       ${MARKER_STYLES.map(([value, label]) => html`<label class="markers__opt panel__row">

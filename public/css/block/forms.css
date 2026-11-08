@@ -3,7 +3,7 @@
 .field input[type="text"], .field input[type="time"], .field input[type="date"], .field input[type="password"] {
   min-height: 3rem; padding: var(--s-2) var(--s-3);
   background: var(--control); border: 0; border-bottom: 2px solid var(--control-line);
-  border-radius: var(--radius) var(--radius) 0 0; font-size: 1.0625rem; width: 100%;
+  border-radius: min(var(--radius), 6px) min(var(--radius), 6px) 0 0; font-size: 1.0625rem; width: 100%;
 }
 .field input:focus-visible { border-bottom-color: var(--ink); }
 .field input::placeholder { color: var(--faint); }
@@ -21,8 +21,8 @@
 
 .button {
   min-height: 3rem; padding: var(--s-2) var(--s-5);
-  background: var(--primary); color: var(--on-primary); border: 0; border-radius: var(--radius);
-  font: 600 1.0625rem/1 var(--sign-font); letter-spacing: .02em; cursor: pointer;
+  background: var(--primary); color: var(--on-primary); border: 0; border-radius: var(--radius-button);
+  font: 700 1.0625rem/1 var(--sign-font); cursor: pointer;
 }
 .button:active { transform: translateY(1px); }
 .linkish { background: none; border: 0; padding: var(--s-2) 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: var(--tap); }

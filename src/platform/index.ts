@@ -83,22 +83,22 @@ class LocalStore implements KeyValueStore {
 // ---- the shell around the page (Android) ----
 
 /**
- * Light status-bar icons. What's under the status bar is navy in both themes, whatever the page is scrolled to (a fixed
- * strip, body::before in chrome.css), so the system's default (dark icons in light mode) would be unreadable.
+ * Both system bars follow the phone's theme. Under the status bar is the top bar's colour, whatever the page is
+ * scrolled to (a fixed strip, body::before in chrome.css), and every theme's top bar is light by day and dark at
+ * night, as is the page under the gesture bar: so the system's own choice of icons always reads.
  *
- * The gesture bar sits over the page's own colour, so it follows the system theme. Capacitor turns DEFAULT into a fixed
- * light or dark style at launch, so after a day/night switch with the app open the handle would vanish against the
- * page: a dark-mode listener (registered once) asks for DEFAULT again, and re-applies the status bar's style with it.
+ * Capacitor turns DEFAULT into a fixed light or dark style at launch, so after a day/night switch with the app open
+ * the icons would vanish: a dark-mode listener (registered once) asks for DEFAULT again on both bars.
  */
 export async function styleStatusBar(): Promise<void> {
   if (!native) return;
-  await SystemBars.setStyle({ style: SystemBarsStyle.Dark, bar: SystemBarType.StatusBar });
+  await SystemBars.setStyle({ style: SystemBarsStyle.Default, bar: SystemBarType.StatusBar });
   if (themeWatched || typeof matchMedia !== "function") return;
   themeWatched = true;
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
     const ignore = () => {}; // a refused style leaves the old one: nothing to tell the user
     SystemBars.setStyle({ style: SystemBarsStyle.Default, bar: SystemBarType.NavigationBar }).catch(ignore);
-    SystemBars.setStyle({ style: SystemBarsStyle.Dark, bar: SystemBarType.StatusBar }).catch(ignore);
+    SystemBars.setStyle({ style: SystemBarsStyle.Default, bar: SystemBarType.StatusBar }).catch(ignore);
   });
 }
 

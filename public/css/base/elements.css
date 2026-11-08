@@ -1,13 +1,20 @@
-/* Foundations. Barlow is drawn from highway and rail signage, and the semi-condensed cut fits long station names. */
-@font-face { font-family: "Barlow"; font-style: normal; font-weight: 400; font-display: swap; src: url("../../fonts/barlow-latin-400-normal.woff2") format("woff2"); }
-@font-face { font-family: "Barlow"; font-style: normal; font-weight: 500; font-display: swap; src: url("../../fonts/barlow-latin-500-normal.woff2") format("woff2"); }
-@font-face { font-family: "Barlow"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../fonts/barlow-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("../../fonts/barlow-semi-condensed-latin-600-normal.woff2") format("woff2"); }
-@font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 700; font-display: swap; src: url("../../fonts/barlow-semi-condensed-latin-700-normal.woff2") format("woff2"); }
+/* Foundations. Each theme picks its typeface and shapes (themes/*.css); a browser downloads only the faces in use.
+   Figtree for Operator colour, Inter Tight for Swiss timetable, Atkinson Hyperlegible Next for Quiet (all SIL OFL). */
+@font-face { font-family: "Figtree"; font-weight: 400; font-display: swap; src: url("../../fonts/figtree-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 600; font-display: swap; src: url("../../fonts/figtree-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 700; font-display: swap; src: url("../../fonts/figtree-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 800; font-display: swap; src: url("../../fonts/figtree-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-weight: 900; font-display: swap; src: url("../../fonts/figtree-latin-900-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter Tight"; font-weight: 400; font-display: swap; src: url("../../fonts/inter-tight-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter Tight"; font-weight: 500; font-display: swap; src: url("../../fonts/inter-tight-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter Tight"; font-weight: 700; font-display: swap; src: url("../../fonts/inter-tight-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Inter Tight"; font-weight: 800; font-display: swap; src: url("../../fonts/inter-tight-latin-800-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 200; font-display: swap; src: url("../../fonts/atkinson-hyperlegible-next-latin-200-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 300; font-display: swap; src: url("../../fonts/atkinson-hyperlegible-next-latin-300-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 400; font-display: swap; src: url("../../fonts/atkinson-hyperlegible-next-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 600; font-display: swap; src: url("../../fonts/atkinson-hyperlegible-next-latin-600-normal.woff2") format("woff2"); }
 
 :root {
-  --font: "Barlow", ui-sans-serif, system-ui, sans-serif;
-  --sign-font: "Barlow Semi Condensed", "Barlow", ui-sans-serif, system-ui, sans-serif;
   --t-xs: .8125rem;
   --t-sm: .875rem;
   --t-base: 1rem;
@@ -21,7 +28,6 @@
   --s-5: 1.5rem;
   --s-6: 2.25rem;
   --s-7: 3.5rem;
-  --radius: 2px;
   --gutter: var(--s-5);
   --measure: 40rem;
   --tap: 44px;
@@ -48,7 +54,7 @@ main { flex: 1; }
 h1, h2, h3, p, ul, ol, dl, dd, fieldset, figure { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
 fieldset { border: 0; min-width: 0; }
-h1 { font: 700 var(--t-lg)/1.1 var(--sign-font); letter-spacing: -.005em; text-wrap: balance; }
+h1 { font: var(--head-weight) var(--t-lg)/1.1 var(--sign-font); letter-spacing: var(--head-tracking); text-wrap: balance; }
 h2 { font: 600 var(--t-md)/1.2 var(--sign-font); }
 a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 @media (hover: hover) { a:hover { text-decoration-thickness: 2px; } }
@@ -60,13 +66,13 @@ input[type="checkbox"], input[type="radio"] {
   background: var(--control); border: 2px solid var(--control-line); cursor: pointer;
 }
 input[type="radio"] { border-radius: 50%; }
-input[type="checkbox"] { border-radius: var(--radius); }
+input[type="checkbox"] { border-radius: min(var(--radius), 4px); } /* a theme's round plates would make it a radio */
 input[type="radio"]:checked { border-color: var(--ink); box-shadow: inset 0 0 0 3px var(--control), inset 0 0 0 1rem var(--ink); }
 input[type="checkbox"]:checked { background: var(--ink); border-color: var(--ink); }
 input[type="checkbox"]:checked::before {
   content: ""; width: .3rem; height: .6rem; border: solid var(--control); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg);
 }
-code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--surface-2); padding: 0 .25em; border-radius: var(--radius); }
+code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; background: var(--surface-2); padding: 0 .25em; border-radius: min(var(--radius), 4px); }
 :focus-visible { outline: 3px solid var(--train); outline-offset: 2px; box-shadow: 0 0 0 5px var(--train-edge); }
 /* Focus the app moves for you (main after the skip link, a new page's heading) is a place to read from, not a control */
 [tabindex="-1"]:focus { outline: none; box-shadow: none; }

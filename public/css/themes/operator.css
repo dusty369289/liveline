@@ -1,0 +1,72 @@
+[data-theme="operator"] {
+  /* Operator colour, the default: a calm grey page, white panels with round corners, and each train in its
+     operator's colour (operators.css). The one yellow is the train and the main button. Tokens only; contrast is
+     checked by test/design.test.ts. On [data-theme], not :root, so its preview in Settings can wear it too. */
+  --page: #eeeeea;
+  --surface: #ffffff;
+  --surface-2: #e2e2dd;
+  --ink: #16181d;
+  --muted: #545862;
+  --faint: #5f636c;
+  --line: #d9d9d3;
+  --rail: #c2c2bb;
+  --control: #ffffff;
+  --control-line: #7a7e87;
+  --primary: #ffd21f;
+  --on-primary: #16181d;
+  --sign: #16181d;
+  --on-sign: #ffffff;
+  --nameboard: #16181d;
+  --on-nameboard: #ffffff;
+  --bar: #eeeeea;
+  --on-bar: #16181d;
+  --problem: #b3261e;
+  --late: #8a5600;
+  --very-late: #b42d0c;
+  --early: #2c6a3c;
+  --train: #ffd21f;
+  --train-edge: #16181d;
+  --demo: #f8e7b0;
+  --demo-ink: #4f3b00;
+  --font: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --sign-font: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --head-weight: 800;
+  --head-tracking: -.02em;
+  --hero-weight: 900;
+  --radius: 12px;
+  --radius-panel: 20px;
+  --radius-button: 14px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="operator"] {
+    --page: #0f1114;
+    --surface: #1b1e24;
+    --surface-2: #262a32;
+    --ink: #eef0f3;
+    --muted: #a3a8b3;
+    --faint: #9a9fab;
+    --line: #2c3038;
+    --rail: #3d424c;
+    --control: #1b1e24;
+    --control-line: #7c818c;
+    --primary: #ffd21f;
+    --on-primary: #16181d;
+    --sign: #eef0f3;
+    --on-sign: #0f1114;
+    --nameboard: #1b1e24;
+    --on-nameboard: #eef0f3;
+    --bar: #0f1114;
+    --on-bar: #eef0f3;
+    --problem: #ff9b8f;
+    --late: #f2c46b;
+    --very-late: #ff8a66;
+    --early: #9ad5a6;
+    --train: #ffd21f;
+    --train-edge: #0f1114;
+    --demo: #2c2614;
+    --demo-ink: #f0d9a0;
+    color-scheme: dark;
+  }
+}

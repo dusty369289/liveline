@@ -101,13 +101,25 @@ test("board: changed platforms, confirmed and only expected", async ({ page, err
   for (const dest of ["Bristol Temple Meads", "Manchester Piccadilly"]) {
     await expect(row(dest).locator(".trains__meta")).toContainText(/Platform\schanged/);
   }
-  // What the browser really paints, whatever order the stylesheets come in: white on the navy plate, ink when outlined
+  // What the browser really paints, whatever order the stylesheets come in: the sign's own text colour on the plate,
+  // and the train's colour for the change bar, outlined or not
   const style = (dest: string) => row(dest).locator(".trains__plat").evaluate((el) => {
     const cs = getComputedStyle(el);
-    return { color: cs.color, shadow: cs.boxShadow };
+    const token = (name: string) => {
+      const probe = document.createElement("i");
+      probe.style.color = `var(--${name})`;
+      el.append(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    };
+    return { color: cs.color, shadow: cs.boxShadow, onSign: token("on-sign"), train: token("train") };
   });
-  expect((await style("Bristol Temple Meads")).color).toBe("rgb(255, 255, 255)");
-  expect((await style("Manchester Piccadilly")).shadow).toMatch(/rgb\(255, 204, 0\)/); // keeps the yellow bar
+  const confirmed = await style("Bristol Temple Meads");
+  expect(confirmed.color).toBe(confirmed.onSign);
+  expect(confirmed.shadow).toContain(confirmed.train);
+  const expected = await style("Manchester Piccadilly");
+  expect(expected.shadow).toContain(expected.train); // keeps the change bar
   await shot(page, info, "18-board-platform-changed");
   void errors;
 });

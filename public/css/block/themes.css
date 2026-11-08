@@ -1,0 +1,39 @@
+/* Settings > Appearance > Theme: a miniature of each theme above its name, side by side. The chosen one is ringed.
+   Each miniature carries its own data-theme, so everything in it below is that theme's tokens, light or dark with the
+   phone. Its sizes are pixels, not rem: a picture, which needn't grow with the text size (the names under it do). */
+.themes { border: 0; margin: 0; padding: 0; display: grid; }
+.themes__list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); }
+.themes__opt { display: grid; gap: var(--s-2); cursor: pointer; }
+.themes__name { display: flex; align-items: flex-start; gap: var(--s-2); min-height: var(--tap); font-size: var(--t-sm); line-height: 1.25; }
+.themes__name input { margin-top: .05rem; }
+.themes__opt:has(input:checked) .preview { box-shadow: 0 0 0 2px var(--surface), 0 0 0 5px var(--ink); }
+.themes__opt:has(input:checked) .themes__name { font-weight: 700; }
+
+.preview {
+  display: flex; flex-direction: column; gap: 5px; overflow: hidden; padding: 0 7px 8px;
+  background: var(--page); color: var(--ink); font-family: var(--font); font-size: 9px; line-height: 1.2;
+  border: 1px solid var(--line); border-radius: min(var(--radius-panel), 12px);
+}
+.preview__bar { display: flex; align-items: center; justify-content: space-between; margin: 0 -7px; padding: 6px 7px; background: var(--bar); }
+.preview__logo { width: 5px; height: 8px; background: var(--train); border-radius: 1px; box-shadow: inset 0 0 0 1px var(--on-bar); }
+.preview__nav { width: 26px; height: 3px; background: var(--muted); border-radius: 2px; }
+.preview__board {
+  padding: 5px 6px; background: var(--nameboard); color: var(--on-nameboard); border-radius: min(var(--radius-panel), 8px);
+  font: var(--head-weight) 12px/1 var(--sign-font); letter-spacing: var(--head-tracking);
+}
+.preview__row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 5px; align-items: center; padding: 3px 4px;
+  background: var(--surface); border-radius: min(var(--radius), 6px);
+}
+.preview__time { font-weight: 700; font-variant-numeric: tabular-nums; }
+.preview__dest { overflow: hidden; white-space: nowrap; }
+.preview__plat {
+  min-width: 14px; height: 14px; display: grid; place-items: center; font-weight: 700;
+  background: var(--sign); color: var(--on-sign); border-radius: min(var(--radius), 4px);
+}
+.preview__hero { font: var(--hero-weight) 26px/1 var(--sign-font); letter-spacing: -.03em; margin-top: 2px; }
+.preview__unit { font-size: 10px; font-weight: 600; letter-spacing: 0; margin-left: 2px; }
+.preview__button {
+  margin-top: auto; padding: 4px 6px; text-align: center; font-weight: 700;
+  background: var(--primary); color: var(--on-primary); border-radius: min(var(--radius-button), 10px);
+}

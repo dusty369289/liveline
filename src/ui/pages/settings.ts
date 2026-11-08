@@ -1,4 +1,4 @@
-// Settings: save or forget the key, choose the train marker, check for updates.
+// Settings: save or forget the key, choose the theme and the train marker, check for updates.
 import { canSelfUpdate, native } from "../../platform";
 import { fragment, type Html } from "../html";
 import type { RouteName } from "../routes";
@@ -18,7 +18,7 @@ export class SettingsPage extends Page {
     // key is said under its field, by mount()
     return settingsView({ demo: rail.demo, tier, info, hint: rail.tokenHint, tokenError: rail.lastTokenError,
       budget: rail.budget.state(), update: updates.info, native,
-      selfUpdate: canSelfUpdate, marker: appearance.marker() });
+      selfUpdate: canSelfUpdate, marker: appearance.marker(), theme: appearance.theme() });
   }
 
   mount(root: HTMLElement): void {
@@ -50,6 +50,9 @@ export class SettingsPage extends Page {
     root.querySelector("[data-check-update]")!.addEventListener("click", () => void updates.check(true));
     root.querySelectorAll<HTMLInputElement>("[data-marker-choice]").forEach((input) =>
       input.addEventListener("change", () => appearance.setMarker(input.value)));
+    // The page itself changes at once (data-theme on <html>), so nothing is drawn again and focus stays on the radio
+    root.querySelectorAll<HTMLInputElement>("[data-theme-choice]").forEach((input) =>
+      input.addEventListener("change", () => appearance.setTheme(input.value)));
   }
 }
 

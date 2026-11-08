@@ -1,0 +1,10 @@
+/* Swiss timetable, beyond its tokens: rules instead of boxes, a station name set huge and heavy instead of on a plate,
+   square stops on the line. On :root[data-theme], so a theme's miniature in Settings never picks these up. */
+:root[data-theme="swiss"] .topbar { border-bottom: 2px solid var(--ink); }
+:root[data-theme="swiss"] .board__plate { padding: 0 0 var(--s-2); border-bottom: 2px solid var(--ink); }
+:root[data-theme="swiss"] .board__plate h1 { font-size: 2.5rem; line-height: .95; }
+:root[data-theme="swiss"] .trains__time { font-weight: 800; letter-spacing: -.02em; }
+:root[data-theme="swiss"] .live__hero-num { font-size: min(5.5rem, 24vw); letter-spacing: -.05em; }
+:root[data-theme="swiss"] .is-call .route__mark::after { border-radius: 0; }
+:root[data-theme="swiss"] .tabs__tab[aria-selected="true"] { border-bottom-color: var(--train); }
+:root[data-theme="swiss"] #station { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; }

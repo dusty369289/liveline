@@ -1,31 +1,33 @@
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--train); color: var(--train-edge); padding: var(--s-2) var(--s-3); z-index: 10; }
 .skip-link:focus { left: var(--s-2); }
 
-/* Behind the status bar on an edge-to-edge phone, always navy: its icons are light (platform/index.ts), and the top bar
-   scrolls away, so without this they would sit on paper. Above everything, and never in the way of a tap. */
+/* Behind the status bar on an edge-to-edge phone: the top bar's colour, which scrolls away, so the page never shows
+   through. Every theme's bar is light by day and dark at night, so the system's icons, which follow the phone's
+   theme (platform/index.ts), always read on it. Above everything, and never in the way of a tap. */
 body::before {
   content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--inset-top);
-  background: var(--sign); z-index: 20; pointer-events: none;
+  background: var(--bar); z-index: 20; pointer-events: none;
 }
 
-/* The top bar is a band of ink, like the name strip along a station sign. At large system text the nav drops to a line
-   of its own rather than pushing the page wider than the screen. */
+/* The top bar: the app's name, and the pages. At large system text the nav drops to a line of its own rather than
+   pushing the page wider than the screen. */
 .topbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-4);
   padding: var(--s-1) var(--gutter);
   padding-top: max(var(--s-1), var(--inset-top));
-  background: var(--sign); color: var(--on-sign);
+  background: var(--bar); color: var(--on-bar);
 }
 .topbar__logo {
-  font: 700 1.125rem/1 var(--sign-font); text-decoration: none; letter-spacing: .01em;
+  font: var(--head-weight) 1.125rem/1 var(--sign-font); text-decoration: none; letter-spacing: var(--head-tracking);
   display: inline-flex; align-items: center; gap: .5rem; min-height: var(--tap);
 }
-.topbar__logo::before { /* a little train front: the yellow warning panel */
+.topbar__logo::before { /* a little train front, in the train's colour */
   content: ""; width: .7rem; height: 1rem; background: var(--train); border-radius: 2px 2px 1px 1px;
+  box-shadow: inset 0 0 0 1.5px var(--on-bar);
 }
 .topbar__nav { display: flex; gap: var(--s-4); margin-left: auto; }
-.topbar__nav a { color: var(--on-sign); opacity: .78; text-decoration: none; min-height: var(--tap); display: inline-flex; align-items: center; }
-.topbar__nav a[aria-current="page"] { opacity: 1; box-shadow: inset 0 -3px 0 var(--train); }
+.topbar__nav a { color: var(--muted); text-decoration: none; min-height: var(--tap); display: inline-flex; align-items: center; }
+.topbar__nav a[aria-current="page"] { color: var(--on-bar); font-weight: 700; box-shadow: inset 0 -3px 0 var(--on-bar); }
 .topbar__cog { min-width: var(--tap); justify-content: center; }
 .topbar__icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -62,7 +64,7 @@ main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late
 .settings { gap: var(--s-5); }
 .settings__group { display: grid; gap: var(--s-2); }
 .settings__title { font: 600 var(--t-xs)/1.2 var(--sign-font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-inline: var(--s-1); }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; }
 .panel__row { padding: var(--s-3) var(--s-4); }
 .panel > * + *, .panel__row + .panel__row { border-top: 1px solid var(--line); }
 .panel__row--split { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }

@@ -132,6 +132,8 @@ export async function audit(page: Page): Promise<string[]> {
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden" || el.closest("[hidden], .visually-hidden")) continue;
+      // Hidden for sight but kept for screen readers by a theme (the operator's name behind its badge): clipped on purpose
+      if (cs.position === "absolute" && cs.clip === "rect(0px, 0px, 0px, 0px)") continue;
       const b = el.getBoundingClientRect();
       if (!b.width || !b.height) continue;
       // Past the screen's right edge. Scenery (aria-hidden) and anything inside its own sideways scroller may be

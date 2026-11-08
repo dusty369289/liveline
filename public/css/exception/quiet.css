@@ -1,0 +1,12 @@
+/* Quiet, beyond its tokens: a station name in plain type instead of on a plate, a thin line, light figures and one
+   big thin number. On :root[data-theme], so a theme's miniature in Settings never picks these up. */
+:root[data-theme="quiet"] .board__plate { padding: 0; }
+:root[data-theme="quiet"] .board__plate h1 { font-size: 1.625rem; }
+:root[data-theme="quiet"] .trains__time { font-weight: 400; }
+:root[data-theme="quiet"] .live__hero-num { font-size: min(6rem, 26vw); }
+/* The line drawn thin: the line, what's travelled and the stops' rings, all on the same 1.125rem centre */
+:root[data-theme="quiet"] .route__mark::before { width: 2px; left: calc(50% - 1px); }
+:root[data-theme="quiet"] .route__done { width: 2px; left: calc(1.125rem - 1px); }
+:root[data-theme="quiet"] .is-call .route__mark::after { border-width: 2px; }
+:root[data-theme="quiet"] #station { font-size: 1.75rem; font-weight: 300; }
+:root[data-theme="quiet"] .tabs__tab[aria-selected="true"] { border-bottom-color: var(--train); }

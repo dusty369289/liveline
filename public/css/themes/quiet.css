@@ -1,0 +1,71 @@
+[data-theme="quiet"] {
+  /* Quiet: soft paper, light type, one big thin number, and everything else steps back. Soft grey plates; blue is the
+     train. Atkinson Hyperlegible Next is drawn for low vision. Tokens only; contrast is checked by test/design.test.ts. */
+  --page: #f7f7f5;
+  --surface: #ffffff;
+  --surface-2: #ebebe6;
+  --ink: #1d232b;
+  --muted: #5b636e;
+  --faint: #636b76;
+  --line: #e2e2dc;
+  --rail: #cfd2cc;
+  --control: #ffffff;
+  --control-line: #858b94;
+  --primary: #1d232b;
+  --on-primary: #f7f7f5;
+  --sign: #e4e6e9;
+  --on-sign: #1d232b;
+  --nameboard: #f7f7f5;
+  --on-nameboard: #1d232b;
+  --bar: #f7f7f5;
+  --on-bar: #1d232b;
+  --problem: #b3261e;
+  --late: #8a5600;
+  --very-late: #b4470c;
+  --early: #2c6a3c;
+  --train: #2d5bd7;
+  --train-edge: #ffffff;
+  --demo: #f8eccb;
+  --demo-ink: #4f3b00;
+  --font: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
+  --sign-font: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
+  --head-weight: 600;
+  --head-tracking: 0;
+  --hero-weight: 200;
+  --radius: 8px;
+  --radius-panel: 14px;
+  --radius-button: 999px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="quiet"] {
+    --page: #121417;
+    --surface: #1b1e22;
+    --surface-2: #262a30;
+    --ink: #e8eaed;
+    --muted: #9aa1ab;
+    --faint: #8f96a0;
+    --line: #2a2e34;
+    --rail: #3a3f47;
+    --control: #1b1e22;
+    --control-line: #7a818b;
+    --primary: #e8eaed;
+    --on-primary: #121417;
+    --sign: #2c3138;
+    --on-sign: #e8eaed;
+    --nameboard: #121417;
+    --on-nameboard: #e8eaed;
+    --bar: #121417;
+    --on-bar: #e8eaed;
+    --problem: #ff9b8f;
+    --late: #f2c46b;
+    --very-late: #ff9d66;
+    --early: #9ad5a6;
+    --train: #7fa2ff;
+    --train-edge: #121417;
+    --demo: #2c2614;
+    --demo-ink: #f0d9a0;
+    color-scheme: dark;
+  }
+}

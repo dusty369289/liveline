@@ -179,24 +179,20 @@ async function fakeStatusBar(page: Page, px = INSET): Promise<void> {
 async function statusStrip(page: Page) {
   return page.evaluate(() => {
     const s = getComputedStyle(document.body, "::before");
-    const probe = document.createElement("i");
-    probe.style.color = "var(--sign)";
-    document.body.append(probe);
-    const sign = getComputedStyle(probe).color;
-    probe.remove();
-    return { position: s.position, top: s.top, height: s.height, z: Number(s.zIndex), colour: s.backgroundColor, sign };
+    const bar = getComputedStyle(document.querySelector(".topbar")!).backgroundColor;
+    return { position: s.position, top: s.top, height: s.height, z: Number(s.zIndex), colour: s.backgroundColor, bar };
   });
 }
 
-test("a navy strip sits behind the status bar on every page, however far it's scrolled", async ({ page, errors }) => {
-  // the status icons are light on a phone (platform/index.ts): they need navy under them, not paper
+test("a strip in the top bar's colour sits behind the status bar on every page, however far it's scrolled", async ({ page, errors }) => {
+  // the status icons follow the phone's theme (platform/index.ts), as the top bar does: the page never shows through
   await open(page, "/board?station=PAD&time=09:00");
   await page.locator(".trains__row").first().waitFor();
   await fakeStatusBar(page);
   await scrollFar(page);
   const strip = await statusStrip(page);
   expect(strip).toMatchObject({ position: "fixed", top: "0px", height: `${INSET}px` });
-  expect(strip.colour).toBe(strip.sign);
+  expect(strip.colour).toBe(strip.bar);
   expect(strip.z).toBeGreaterThan(5); // above the sticky train bar and the suggestion lists
   await page.evaluate(() => window.scrollTo(0, 0));
   const logo = await page.locator(".topbar__logo").boundingBox();
