@@ -12,15 +12,15 @@ import { MemStore, stations } from "./support";
 const NOW = fromLondon(2026, 11, 7, 9, 20); // a Saturday
 
 /** The train page for the first train on a board, opened from that board (or, with `at` "", from Recent). */
-async function trainFrom(station: string, when: Ms, at = station) {
-  const clock = () => NOW;
+async function trainFrom(station: string, when: Ms, at = station, now = NOW) {
+  const clock = () => now;
   const rail = new Rail(new SimTransport(clock), new MemStore(), stations, clock);
   await rail.setKey("k".repeat(40));
   const board = await rail.board({ station, when });
   const uid = board.rows[0].uniqueId;
   const res = await rail.service(uid, { at });
   const tl = res.timeline;
-  return String(trainView(res, uid, at, "", stopSummary(tl, at), null, { tab: "route", scene: html``, now: NOW }));
+  return String(trainView(res, uid, at, "", stopSummary(tl, at), null, { tab: "route", scene: html``, now }));
 }
 
 const h1 = (page: string) => /<h1>([\s\S]*?)<\/h1>/.exec(page)![1];
@@ -47,6 +47,14 @@ describe("a train on another day", () => {
     const hero = heroOf(page);
     expect(hero).not.toMatch(/live__hero-unit">min/);
     expect(hero).toMatch(/live__hero-num">14:\d\d/);
+  });
+
+  it("a train just past midnight still counts down in minutes", async () => {
+    const lateNight = fromLondon(2026, 11, 7, 23, 50);
+    const page = await trainFrom("SUR", fromLondon(2026, 11, 8, 0, 0), "SUR", lateNight);
+    const hero = heroOf(page);
+    expect(hero).toMatch(/live__hero-unit">min/);
+    expect(hero).not.toContain("Sun 8 Nov");
   });
 
   it("a train soon today still counts down in minutes", async () => {

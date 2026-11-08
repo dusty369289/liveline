@@ -21,9 +21,10 @@ function hero(stop: StopSummary | null, off: StopSummary | null, now: Ms): [Html
   const t = hs.shown?.time ?? null;
   const otherDay = t != null && isoDate(t) !== isoDate(now);
   let inner: Html | "" = "";
-  if (t != null && hs.status === "ahead" && (otherDay || (hs.minutes ?? 0) > HERO_COUNTDOWN_MAX)) {
+  // Only a far-off train loses its countdown: one just past midnight still counts down, and the day shows only then
+  if (t != null && hs.status === "ahead" && (hs.minutes ?? 0) > HERO_COUNTDOWN_MAX) {
     inner = html`<span class="live__hero-num">${hm(t)}</span>${otherDay ? html`<span class="live__hero-unit">${dayLabel(t)}</span>` : ""}
-      <span class="live__hero-what">when it ${isStop ? "leaves" : "reaches"} ${hs.name}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span>`;
+      <span class="live__hero-what">when it ${isStop ? "leaves" : "reaches"} ${hs.name}${plat}</span>`;
   } else if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
   else if (hs.minutes != null && hs.minutes < 1) inner = html`<span class="live__hero-num">Due</span><span class="live__hero-what">at ${hs.name}${plat}</span>`;
   else if (hs.minutes != null) {
