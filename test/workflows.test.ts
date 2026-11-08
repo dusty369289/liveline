@@ -51,6 +51,24 @@ describe("workflows", () => {
     for (const f of files) expect(Object.keys(load(f).jobs ?? {}).length, f).toBeGreaterThan(0);
   });
 
+  it("every action is pinned to a commit (or image digest), with its version beside it for Dependabot", () => {
+    for (const f of ["ci.yml", "release.yml"]) {
+      const lines = readFileSync(new URL(f, DIR), "utf8").split("\n").filter((l) => /^\s*(-\s+)?uses:/.test(l));
+      expect(lines.length, f).toBeGreaterThan(0);
+      for (const line of lines) {
+        const ref = line.replace(/^\s*(-\s+)?uses:\s*/, "");
+        if (ref.startsWith("./")) continue; // this repo's own workflow
+        expect(ref, `${f}: ${line.trim()}`).toMatch(
+          /^([\w.-]+\/[\w.-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+|docker:\/\/[\w./-]+@sha256:[0-9a-f]{64} # \d+\.\d+\.\d+)$/);
+      }
+    }
+  });
+
+  it("CI checks the workflows themselves with actionlint", () => {
+    const steps: Step[] = load("ci.yml").jobs.checks.steps;
+    expect(steps.some((s) => s.uses?.startsWith("docker://rhysd/actionlint@"))).toBe(true);
+  });
+
   it("CI cancels only an older run of the same PR, never a release's tests or a run by hand", () => {
     const { concurrency } = load("ci.yml");
     // Called from release.yml, github.workflow is "Release": its tests get a group of their own.
