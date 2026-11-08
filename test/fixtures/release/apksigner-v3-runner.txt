@@ -1,0 +1,4 @@
+V3.0 Signer: certificate DN: CN=LiveLine
+V3.0 Signer: certificate SHA-256 digest: f5d35a356e38c418cdbcfc4b4e8353932cad2f9a0cb62da2cae2ccb86b009785
+V3.0 Signer: certificate SHA-1 digest: 0d4b680660cf54fbf5f5884de71dba355c8223fd
+V3.0 Signer: certificate MD5 digest: a7f3d5dab2b3d2b7fa9bfaba3ebdf728

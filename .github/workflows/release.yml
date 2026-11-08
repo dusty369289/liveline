@@ -147,14 +147,17 @@ jobs:
           aapt2 dump badging "LiveLine-$TAG.apk" > apk-badging.txt
           cat apk-certs.txt
 
-      # Tested in test/workflows.test.ts against saved apksigner and aapt2 output.
+      # Tested in test/workflows.test.ts against saved apksigner and aapt2 output. apksigner words its lines
+      # "Signer #1 certificate ..." or, newer, "V3.0 Signer: certificate ...", so every SHA-256 line counts, whatever
+      # its prefix: the release key's must be among them, and no other.
       - name: Check the signer and version
         run: |
-          if ! grep -qx "Signer #1 certificate SHA-256 digest: $SIGNER_SHA256" apk-certs.txt; then
+          digests=$(sed -n 's/^.*[Ss]igner.* certificate SHA-256 digest: //p' apk-certs.txt | sort -u)
+          if ! printf '%s\n' "$digests" | grep -qx "$SIGNER_SHA256"; then
             echo "::error::The APK isn't signed with the release key ($SIGNER_SHA256), so phones would refuse it as an update."
             exit 1
           fi
-          if grep -q '^Signer #2 ' apk-certs.txt; then
+          if [ "$digests" != "$SIGNER_SHA256" ]; then
             echo "::error::The APK has more than one signer. It should carry the release key only."
             exit 1
           fi
