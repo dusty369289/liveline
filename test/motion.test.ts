@@ -53,6 +53,56 @@ describe("arriving", () => {
   });
 });
 
+describe("hopping from one station to the next in one answer", () => {
+  // An answer standing at Bescot, then the next standing at Tame Bridge: it pulls away from the old platform, which
+  // keeps its sign until it's gone behind, then the next platform comes in and it brakes onto it (2026-11-08)
+  it("speeds up, then slows, and stands exactly at the next platform", () => {
+    const m = new Motion("stop");
+    m.hop(1800, 700);
+    expect(m.busy()).toBe(true);
+    const vs: number[] = [];
+    let secs = 0;
+    run(m, 20, (x) => {
+      if (x.v > 0) secs += FRAME;
+      vs.push(x.v);
+    });
+    const peak = vs.indexOf(Math.max(...vs));
+    expect(peak).toBeGreaterThan(30); // it accelerates, not jumps to speed
+    expect(vs.slice(0, peak).every((v, i) => i === 0 || v >= vs[i - 1])).toBe(true);
+    expect(vs.slice(peak).filter((v) => v > 0).every((v, i, a) => i === 0 || v <= a[i - 1])).toBe(true);
+    expect(m.x).toBe(1800);
+    expect(m.v).toBe(0);
+    expect(m.platformAhead()).toBe(0);
+    expect(m.busy()).toBe(false);
+    expect(secs).toBeLessThan(12); // a short hop, not a journey
+    expect(Math.max(...vs)).toBeLessThanOrEqual(MOTION.cruise);
+  });
+
+  it("the old platform slides away behind until the swap, then the new one is ahead", () => {
+    const m = new Motion("stop");
+    m.hop(1800, 700);
+    expect(m.arriving()).toBe(false);
+    run(m, 0.5);
+    expect(m.platformAhead()).toBeLessThan(0); // the old one, behind the nose now
+    run(m, 20, (x) => {
+      if (!x.arriving()) expect(x.platformAhead()!).toBeLessThanOrEqual(0);
+      else expect(x.platformAhead()!).toBeGreaterThanOrEqual(0);
+    });
+    expect(m.arriving()).toBe(false); // landed: an ordinary stop again
+  });
+
+  it("never runs backwards, and gives way to a real departure or a run", () => {
+    const m = new Motion("stop");
+    m.hop(1800, 700);
+    run(m, 1);
+    const x = m.x;
+    m.set("run"); // the next answer: it's left Tame Bridge too
+    run(m, 1);
+    expect(m.x).toBeGreaterThan(x);
+    expect(m.arriving()).toBe(false);
+  });
+});
+
 describe("leaving", () => {
   it("accelerates away from the platform up to speed, leaving it behind", () => {
     const m = new Motion("stop");

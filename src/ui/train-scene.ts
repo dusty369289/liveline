@@ -20,6 +20,7 @@ const SCENE = {
   platformBeyond: 20, // px the platform runs past the nose when stopped
   platformExtra: 260, // px of platform beyond the train's length, so its ends are seen
   wheelR: 6, // px, for turning the wheels by the distance travelled
+  offScreen: 40, // px past the screen's edge a platform is before its sign is swapped on a hop, so it's never seen
 };
 
 /** The sky where the train is now (the station it's at or last passed), or over the middle of GB. */
@@ -44,6 +45,7 @@ export class TrainScene {
   private stopped = false;
   private seenRange = "";
   private placed = false; // scrolled to the front once; after that, where you scrolled stays
+  private pending: { name: string; number: string | null } | null = null; // on a hop: the sign it's going to
   private readonly reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   private readonly panel: HTMLElement;
   private readonly stations: StationIndex;
@@ -88,15 +90,21 @@ export class TrainScene {
   /** A new answer: what the train is doing now, how it's made up, and the two ends. */
   update(res: ServiceResult): void {
     const sc = sceneOf(res.timeline);
+    const was = this.sc;
     this.sc = sc;
     const mode = MODE[sc.phase];
-    if (!this.motion || this.reduced) this.motion = new Motion(mode); // first sight, or no animation: straight there
-    else this.motion.set(mode);
     const scene = this.$("[data-scene]");
     scene.dataset.phase = sc.phase;
     scene.dataset.sky = skyFor(sc, this.stations, this.clock());
     this.drawFormation(res.formation);
-    if (sc.station && mode === "stop") this.drawPlatform(sc.station.name, sc.station.platform);
+    // Standing at one station in the last answer and at the next in this one (between polls it left and arrived):
+    // show the trip, not a sign that changes under it (2026-11-08)
+    const hop = !!this.motion && !this.reduced && mode === "stop" && was != null && MODE[was.phase] === "stop"
+      && !!sc.station && !!was.station && sc.station.name !== (this.pending?.name ?? was.station.name) && !this.motion.busy();
+    if (!this.motion || this.reduced) this.motion = new Motion(mode); // first sight, or no animation: straight there
+    else if (hop && sc.station) this.startHop(sc.station.name, sc.station.platform);
+    else this.motion.set(mode);
+    if (sc.station && mode === "stop" && !this.pending) this.drawPlatform(sc.station.name, sc.station.platform);
     render(this.$("[data-ends]"), sceneEnds(sc));
     this.$("[data-headline]").textContent = res.timeline.position.headline;
     render(this.$("[data-formation-note]"), formationNote(res.formation));
@@ -118,6 +126,21 @@ export class TrainScene {
     const bar = this.$("[data-map]");
     bar.replaceChildren(...f.coaches.map(() => document.createElement("i")));
     this.seenRange = "";
+  }
+
+  /**
+   * Pull away from this platform and brake onto the next one's. Far enough that the old platform goes off the screen
+   * behind before the swap, and the next comes in from off the screen ahead, so a sign is never seen to change.
+   */
+  private startHop(name: string, number: string | null): void {
+    const scroller = this.$("[data-scroller]");
+    const w = scroller.clientWidth || 360;
+    const front = this.padLeft + trainWidth(this.coaches) - scroller.scrollLeft; // the nose, on screen
+    const len = trainWidth(this.coaches) + SCENE.platformExtra;
+    const leave = Math.max(front + SCENE.platformBeyond + SCENE.offScreen, SCENE.offScreen);
+    const enter = Math.max(w + SCENE.offScreen - front - SCENE.platformBeyond + len, SCENE.offScreen);
+    this.pending = { name, number };
+    this.motion!.hop(leave + enter, leave);
   }
 
   private drawPlatform(name: string, number: string | null): void {
@@ -161,6 +184,11 @@ export class TrainScene {
     this.last = t;
     const m = this.motion;
     if (!this.reduced) m.step(dt);
+    // On a hop, once the old platform is gone behind: the next station's sign, on the platform coming in
+    if (this.pending && (m.arriving() || !m.busy())) {
+      this.drawPlatform(this.pending.name, this.pending.number);
+      this.pending = null;
+    }
     const scroller = this.$("[data-scroller]");
     const camera = m.x + scroller.scrollLeft;
     // CSS transforms on whole layers: composited, so sliding them repaints nothing

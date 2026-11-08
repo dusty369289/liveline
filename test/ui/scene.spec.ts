@@ -2,7 +2,8 @@
 // These run with reduced motion (the scene stands still: nothing to wait for, and that path is tested too), except
 // the ones about movement, which say so.
 import type { Page, TestInfo } from "@playwright/test";
-import { audit, expect, largeText, open, openTrain, snap, test } from "./support";
+import { fakeService, type FakeLocation } from "../support";
+import { audit, expect, largeText, open, openTrain, seedKey, snap, test } from "./support";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -74,6 +75,52 @@ test("pulls away from the platform once it's reported gone", async ({ page, erro
   const first = await at();
   await page.clock.runFor(1000);
   expect(await at()).toBeLessThan(first); // the platform slides back as the train picks up speed
+  void errors;
+});
+
+test("from standing at one station to standing at the next in one answer, it shows the trip between", async ({ page, errors }, info) => {
+  // 2026-11-08: a poll went from "at Bescot" to "at Tame Bridge Parkway" and the sign just changed. Made-up answers
+  // behind a made-up key: standing at Bescot (09:15), then, refreshed, standing at Tame Bridge (in 09:19).
+  const stops = (atTame: boolean): FakeLocation[] => [
+    { name: "Walsall", crs: "WSL", dep: { gbtt: "09:10", wtt: "09:10", actual: "09:10" } },
+    { name: "Bescot Stadium", crs: "BSC", arr: { gbtt: "09:15", wtt: "09:15", actual: "09:15" },
+      dep: { gbtt: "09:16", wtt: "09:16", actual: atTame ? "09:16" : undefined } },
+    { name: "Tame Bridge Parkway", crs: "TAB", arr: { gbtt: "09:19", wtt: "09:19", actual: atTame ? "09:19" : undefined },
+      dep: { gbtt: "09:24", wtt: "09:24" } },
+    { name: "Birmingham New Street", crs: "BHM", arr: { gbtt: "09:35", wtt: "09:35" } },
+  ];
+  let atTame = false;
+  await seedKey(page);
+  await page.route("**/rtt/api/info**", (r) => r.fulfill({ json: { api_version: "2026-07-25", credentials: { entitlements: [] } } }));
+  await page.route("**/rtt/gb-nr/service**", (r) => r.fulfill({ json: fakeService(stops(atTame)) }));
+  await page.goto("/#/train/X12345:2026-11-07?at=BSC&to=BHM");
+  await page.locator("[data-trainbar]").waitFor();
+  await trainView(page);
+  const sign = page.locator("[data-platform] text").first();
+  await expect(sign).toHaveText("Bescot Stadium");
+  const at = async () => (await page.locator("[data-platform]").boundingBox())!.x;
+  const standing = await at();
+
+  atTame = true;
+  await page.clock.fastForward(20_000); // old enough for a tap to fetch
+  await page.locator("[data-refresh-now]").click();
+  await expect(page.locator("[data-scene-panel] [data-ends]").first()).toContainText("Tame Bridge Parkway");
+  // It pulls away from Bescot: the old sign still up, its platform sliding back
+  expect(await sign.textContent()).toBe("Bescot Stadium");
+  await page.clock.runFor(1500);
+  expect(await at()).toBeLessThan(standing);
+  expect(await sign.textContent()).toBe("Bescot Stadium");
+  await snap(page, info, "27-train-view-hop-leaving");
+  // Then Tame Bridge's platform comes in, and the train brakes onto it and stands
+  await expect.poll(async () => { await page.clock.runFor(250); return sign.textContent(); }).toBe("Tame Bridge Parkway");
+  await page.clock.runFor(1000);
+  await snap(page, info, "28-train-view-hop-arriving");
+  await page.clock.runFor(15_000);
+  await expect(sign).toHaveText("Tame Bridge Parkway");
+  const landed = await at();
+  await page.clock.runFor(1000);
+  expect(await at()).toBe(landed);
+  expect(Math.abs(landed - standing)).toBeLessThan(1); // where a standing train's platform always is
   void errors;
 });
 });
