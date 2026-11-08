@@ -63,7 +63,9 @@ export async function audit(page: Page): Promise<string[]> {
         out.push(`clipped: .${el.className} "${el.textContent.trim().slice(0, 30)}"`);
       }
     }
-    // The route line is one unbroken line: each row's piece of rail (its mark's ::before) meets the next row's
+    // The route line is one unbroken line: each row's piece of rail (its mark's ::before) overlaps the next row's.
+    // Merely touching isn't enough: rows end at fractions of a device pixel, where two edges that meet blend into a
+    // hairline seam across the line, so each piece must reach at least half a pixel into the next.
     let railEnd: number | null = null;
     for (const li of document.querySelectorAll<HTMLElement>(".route > li")) {
       const mark = li.querySelector<HTMLElement>(".route__mark");
@@ -71,7 +73,7 @@ export async function audit(page: Page): Promise<string[]> {
       if (!mark || !b?.height || getComputedStyle(li).display === "none") continue;
       const rail = getComputedStyle(mark, "::before");
       const top = b.top + parseFloat(rail.top);
-      if (railEnd !== null && top > railEnd + 0.5) out.push(`route line gap ${Math.round(top - railEnd)}px above "${li.textContent?.trim().slice(0, 30)}"`);
+      if (railEnd !== null && top > railEnd - 0.5) out.push(`route line gap or seam (${(top - railEnd).toFixed(2)}px) above "${li.textContent?.trim().slice(0, 30)}"`);
       railEnd = b.bottom - parseFloat(rail.bottom);
     }
     for (const el of document.querySelectorAll<HTMLElement>(".route__tag, .trains__plat, .topbar__nav a, .keybox__manage")) {

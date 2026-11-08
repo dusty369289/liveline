@@ -48,11 +48,12 @@
 .route__pt.is-pass { min-height: 2rem; padding-block: .15rem; font-size: var(--t-sm); color: var(--muted); }
 .route__mark { align-self: stretch; position: relative; }
 .route__mark::before { /* the line */
-  content: ""; position: absolute; left: calc(50% - 3px); top: 0; bottom: 0; width: 6px; background: var(--rail);
+  content: ""; position: absolute; left: calc(50% - 3px); top: 0; bottom: -1px; width: 6px; background: var(--rail);
 }
-/* Each row's piece of line runs through its padding, so the pieces meet and the line is drawn whole */
-.route__pt .route__mark::before { top: calc(-1 * var(--s-2)); bottom: calc(-1 * var(--s-2)); }
-.route__pt.is-pass .route__mark::before { top: -.15rem; bottom: -.15rem; }
+/* Each row's piece of line runs through its padding, so the pieces meet and the line is drawn whole, and 1px on into
+   the next row: rows end at fractions of a device pixel, where two edges that only touch show a hairline seam */
+.route__pt .route__mark::before { top: calc(-1 * var(--s-2)); bottom: calc(-1 * var(--s-2) - 1px); }
+.route__pt.is-pass .route__mark::before { top: -.15rem; bottom: calc(-.15rem - 1px); }
 .route__pt:first-child .route__mark::before { top: 50%; }
 .route__pt:last-child .route__mark::before { bottom: 50%; }
 .route__mark::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; }
