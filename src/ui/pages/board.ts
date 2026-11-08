@@ -1,5 +1,6 @@
 // A board page: fetch the board, remember the station, save the journey, and keep a "now" board fresh (gently).
 import type { BoardResult } from "../../core/rail";
+import { isoDate } from "../../core/time";
 import { fragment, type Html } from "../html";
 import { type Query, queryOf, qs, type RouteName, timeParams, when } from "../routes";
 import { type BoardNav, boardView } from "../views/board";
@@ -37,7 +38,8 @@ export class BoardPage extends Page {
     if (stale()) return null;
     this.title = res.board.stationName;
     this.nav = this.links(res);
-    this.live = !q.time;
+    // "now" only with no time and today's date: a board for another day stays as asked, not refreshed into today's
+    this.live = !q.time && (!q.day || q.day === isoDate(this.ctx.rail.clock()));
     if (force) history.replaceState(null, "", this.nav.refresh.replace(/&refresh=1|refresh=1&?/, "")); // don't refetch on back
     return boardView(res, q, this.nav, this.live, this.ctx.rail.clock());
   }

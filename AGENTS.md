@@ -85,7 +85,7 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   ("calling at", or "from" for arrivals). RTT charges one call however wide the window, so each call fetches three
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
-  more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
+  more ahead. A "now" board (no time, and no day or today's) refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
   waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an

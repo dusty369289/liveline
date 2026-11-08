@@ -1,8 +1,14 @@
 // Test doubles and fixtures shared by the unit tests. One copy of each: a test needing a variant extends these.
 import { readFileSync } from "node:fs";
+import type { Rail } from "../src/core/rail";
 import type { KeyValueStore } from "../src/core/rtt";
 import { StationIndex } from "../src/core/stations";
 import type { Ms } from "../src/core/time";
+import type { AppContext } from "../src/ui/pages/page";
+import { Appearance } from "../src/ui/store/appearance";
+import { Journeys, RecentStations } from "../src/ui/store/lists";
+import { RecentTrains } from "../src/ui/store/recent-trains";
+import { TrainTab } from "../src/ui/store/train-tab";
 
 const here = new URL(".", import.meta.url).pathname;
 
@@ -36,6 +42,18 @@ export class MemStore implements KeyValueStore {
   async remove(k: string): Promise<void> {
     this.data.delete(k);
   }
+}
+
+/**
+ * What pages share (AppContext), for unit tests of pages: the real stored lists over a fresh in-memory localStorage,
+ * the given Rail, and no update checks. Call after MemStorage.install().
+ */
+export function pageContext(rail: Rail): AppContext {
+  return {
+    rail, updates: {} as AppContext["updates"], appearance: new Appearance(), trains: new RecentTrains(),
+    journeys: new Journeys(), stations: new RecentStations(), trainTab: new TrainTab(), flash: { message: null, error: null },
+    rerender: () => {},
+  };
 }
 
 /** localStorage, in memory, for the UI's stored lists. `install()` puts a fresh one on globalThis. */
