@@ -82,8 +82,8 @@ class LocalStore implements KeyValueStore {
 // ---- the shell around the page (Android) ----
 
 /**
- * Light status-bar icons. The top bar under the status bar is navy in both themes, so the system's default (dark
- * icons in light mode) would be unreadable. The gesture bar sits over the page's own colour: left on the default.
+ * Light status-bar icons. What's under the status bar is navy in both themes, whatever the page is scrolled to (a fixed
+ * strip, body::before in chrome.css), so the system's default (dark icons in light mode) would be unreadable. The gesture bar sits over the page's own colour: left on the default.
  */
 export async function styleStatusBar(): Promise<void> {
   if (!native) return;

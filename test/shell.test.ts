@@ -63,7 +63,7 @@ describe("the back button", () => {
 });
 
 describe("the status bar", () => {
-  it("has light icons on a phone, over the navy top bar in both themes", async () => {
+  it("has light icons on a phone, over the navy strip behind it in both themes", async () => {
     const { platform, bars } = await platformOn(true);
     await platform.styleStatusBar();
     expect(bars.setStyle).toHaveBeenCalledWith({ style: "DARK", bar: "StatusBar" });
