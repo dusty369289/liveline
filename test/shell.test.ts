@@ -1,4 +1,4 @@
-// The Android shell around the page: the back button and the status bar. Capacitor is mocked, so these run in Node and
+// The Android shell around the page: the back button and the system bars. Capacitor is mocked, so these run in Node and
 // check what the platform asks of it on a phone and in the browser build.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -73,6 +73,57 @@ describe("the status bar", () => {
     const { platform, bars } = await platformOn(false);
     await platform.styleStatusBar();
     expect(bars.setStyle).not.toHaveBeenCalled();
+  });
+});
+
+describe("the gesture bar", () => {
+  /** A matchMedia whose dark-mode query can be switched, as Android does when the system theme changes. */
+  function fakeDarkMode() {
+    const listeners: (() => void)[] = [];
+    const query = {
+      matches: false,
+      addEventListener: vi.fn((_ev: string, fn: () => void) => listeners.push(fn)),
+    };
+    vi.stubGlobal("matchMedia", vi.fn(() => query));
+    return { query, flip: () => listeners.forEach((fn) => fn()) };
+  }
+
+  it("follows a day/night switch made while the app is open, listening once", async () => {
+    const dark = fakeDarkMode();
+    const { platform, bars } = await platformOn(true);
+    await platform.styleStatusBar();
+    await platform.styleStatusBar();
+    expect(dark.query.addEventListener).toHaveBeenCalledTimes(1);
+    bars.setStyle.mockClear();
+    dark.flip();
+    await Promise.resolve();
+    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DEFAULT", bar: "NavigationBar" });
+    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DARK", bar: "StatusBar" });
+  });
+
+  it("shrugs off a style the system refuses", async () => {
+    const dark = fakeDarkMode();
+    const { platform, bars } = await platformOn(true);
+    await platform.styleStatusBar();
+    // A plain function, not a vi.fn: a spy watches the promise it returns, which would count as handling the rejection.
+    const refuse = () => Promise.reject(new Error("no window"));
+    bars.setStyle = refuse as unknown as typeof bars.setStyle;
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    try {
+      expect(() => dark.flip()).not.toThrow();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", unhandled);
+    }
+  });
+
+  it("is left to the browser in the browser build", async () => {
+    const dark = fakeDarkMode();
+    const { platform } = await platformOn(false);
+    await platform.styleStatusBar();
+    expect(dark.query.addEventListener).not.toHaveBeenCalled();
   });
 });
 

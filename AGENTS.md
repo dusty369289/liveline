@@ -232,7 +232,7 @@ one line of facts; class and units are in the Train view. Explanations (an outli
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
   page leaves the app (minimised, as other apps do), which also lets predictive back work. The status bar has light
   icons in both themes, over a fixed navy strip its height (`body::before`, in `--sign`) that stays whatever the page is
-  scrolled to; the gesture bar keeps the system default. The CSS reads the status bar's height once, as `--inset-top`
+  scrolled to; the gesture bar follows the system theme, including a day/night switch while the app is open. The CSS reads the status bar's height once, as `--inset-top`
   (`test/design.test.ts`), so the browser tests stand in for a phone by setting it.
 - **Tiers** come from entitlements and reported limits: `allowDetailed` = Hobbyist features, a full-allocation
   entitlement or over 100 an hour = Team or above, nothing = Free.
