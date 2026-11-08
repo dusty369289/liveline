@@ -50,8 +50,6 @@
 .sc-platform { fill: var(--sc-platform); } .sc-edge { fill: var(--sc-edge); }
 .sc-sign { fill: var(--sc-sign); stroke: var(--sc-sign-edge); stroke-width: 2; } .sc-rod { fill: var(--sc-rod); }
 .sc-sign-ink { fill: var(--sc-sign-ink); font: 700 15px var(--sign-font); }
-@keyframes graze { 50% { transform: translateY(1.2px); } }
-.sc-graze { animation: graze 2.6s ease-in-out infinite; }
 
 /* The coaches' names, under each coach: drawn right to left, as the train faces */
 .scene__coaches { padding-bottom: var(--s-2); } /* under the train's 300 px, from where it starts (the left padding) */
@@ -106,5 +104,3 @@
   border-radius: 50%; background: var(--train); border: 2px solid var(--train-edge);
 }
 .scene__headline { font-size: var(--t-base); }
-
-@media (prefers-reduced-motion: reduce) { .sc-graze { animation: none; } }

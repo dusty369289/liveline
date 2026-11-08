@@ -26,8 +26,8 @@ const TILES: Record<Layer, string> = {
     <g class="sc-trunk"><rect x="57" y="174" width="2.5" height="10"/><rect x="75" y="176" width="2" height="8"/><rect x="243" y="169" width="2.5" height="10"/><rect x="429" y="175" width="2.5" height="9"/></g>
     <g><rect class="sc-house" x="318" y="164" width="26" height="15"/><path class="sc-roof" d="M314 165 L331 153 L348 165 Z"/>
     <rect class="sc-house-window" x="323" y="168" width="5" height="5"/><rect class="sc-house-window" x="334" y="168" width="5" height="5"/></g>
-    <g class="sc-graze"><ellipse class="sc-sheep" cx="150" cy="181" rx="7" ry="4.5"/><circle class="sc-sheep-face" cx="157" cy="179" r="2.6"/>
-    <ellipse class="sc-sheep" cx="176" cy="183" rx="6" ry="4"/><circle class="sc-sheep-face" cx="170" cy="181" r="2.4"/></g>`,
+    <ellipse class="sc-sheep" cx="150" cy="181" rx="7" ry="4.5"/><circle class="sc-sheep-face" cx="157" cy="179" r="2.6"/>
+    <ellipse class="sc-sheep" cx="176" cy="183" rx="6" ry="4"/><circle class="sc-sheep-face" cx="170" cy="181" r="2.4"/>`,
   near: `<g class="sc-fence"><rect x="0" y="222" width="480" height="2"/><rect x="0" y="229" width="480" height="2"/>
     ${range(8, (i) => `<rect x="${10 + i * 60}" y="216" width="3" height="20"/>`)}</g>
     <g class="sc-hedge"><ellipse cx="40" cy="233" rx="20" ry="10"/><ellipse cx="226" cy="234" rx="26" ry="11"/><ellipse cx="390" cy="233" rx="18" ry="9"/></g>`,

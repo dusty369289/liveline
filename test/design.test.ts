@@ -107,6 +107,15 @@ function computed(classes: string[], prop: string): string | undefined {
   return hits.at(-1)?.decls[prop];
 }
 
+describe("the Train view sleeps when still", () => {
+  // train-scene.ts draws only while something moves; an endless CSS animation would keep the page drawing every frame
+  it("no rule in scene.css animates for ever", () => {
+    const scene = readFileSync(new URL("block/scene.css", cssDir), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const endless = [...scene.matchAll(/animation(?:-iteration-count)?\s*:[^;}]*infinite[^;}]*/g)].map((m) => m[0]);
+    expect(endless).toEqual([]);
+  });
+});
+
 describe.each(Object.entries(THEMES))("the board's platform plate, %s", (_name, t) => {
   const token = (v: string | undefined) => t[v?.match(/var\(--([\w-]+)\)/)?.[1] ?? ""];
   const ground = (classes: string[]) => {
