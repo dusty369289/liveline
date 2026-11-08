@@ -100,7 +100,7 @@ test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors
   await open(page, "/settings");
   await page.locator("#token").fill("x".repeat(40));
   await page.locator("[data-key-form] button[type=submit]").click();
-  await expect(page.locator(".settings .problem")).toContainText("refused the key");
+  await expect(page.locator("[data-flash]")).toContainText("refused the key");
   await expect(page.locator(".banner--demo")).toBeVisible();
   void errors;
 });

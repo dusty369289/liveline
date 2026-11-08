@@ -9,7 +9,7 @@ import type { RecentTrains } from "../store/recent-trains";
 import type { TrainTab } from "../store/train-tab";
 import type { Updates } from "../updates";
 
-/** A message to show once on the next page drawn (after saving a key, say). */
+/** A message to show once on the next page drawn (after saving a key, say), in the chrome's flash region (App). */
 export interface Flash { message: string | null; error: string | null }
 
 /** What pages share, owned by App. */

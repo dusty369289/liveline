@@ -3,7 +3,7 @@
 import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { chrome } from "./components/chrome";
 import { SearchForm } from "./components/search-form";
-import { html, render } from "./html";
+import { type Html, html, render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
 import { SettingsPage } from "./pages/settings";
@@ -20,6 +20,9 @@ import { StationSuggest } from "./widgets/station-suggest";
 
 type PageClass = new (ctx: AppContext, route: Route) => Page;
 
+const BROKEN = "LiveLine hit a problem of its own showing this page. Trying again may work; if it keeps happening, it's a bug.";
+const MOUNT_FAILED = "Part of this page didn't start properly, so some buttons may not work. Open the page again to retry.";
+
 const PAGES: Record<RouteName, PageClass> = {
   home: HomePage,
   board: BoardPage,
@@ -34,6 +37,7 @@ export class App {
   private readonly ctx: AppContext;
   private page: Page | null = null;
   private seq = 0; // a newer navigation wins over a slow answer
+  private flashRegion: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement, rail: Rail) {
     this.ctx = {
@@ -50,41 +54,101 @@ export class App {
   }
 
   async start(): Promise<void> {
+    window.addEventListener("hashchange", () => void this.render()); // before any wait: a tap meanwhile still counts
     this.ctx.appearance.apply();
     this.ctx.updates.restore(); // before the first draw, so a banner found earlier doesn't draw the page twice
-    await this.ctx.rail.start();
-    window.addEventListener("hashchange", () => void this.render());
+    try {
+      await this.ctx.rail.start();
+    } catch (e) {
+      console.error("Couldn't read the saved key, so showing demo trains", e); // Rail starts in demo mode
+    }
     await this.render();
     void this.ctx.updates.daily();
   }
 
+  /** Draw the route in the hash. Never throws: whatever goes wrong ends as a page saying so, not "Loading…" for good. */
   async render(): Promise<void> {
-    this.page?.dispose();
     const mine = ++this.seq;
     const stale = () => mine !== this.seq;
     const route = parseHash(location.hash);
-    let page: Page = new PAGES[route.name](this.ctx, route);
-    let view;
     try {
-      view = await page.load(stale);
+      const { page, view } = await this.load(route, stale);
+      if (stale() || !view) return;
+      this.draw(page, view);
     } catch (e) {
-      if (stale() || !(e instanceof RttError)) throw e;
-      page = this.problem(route, e);
-      view = await page.load(stale);
+      if (stale()) return;
+      try {
+        const page = this.problem(route, e);
+        const view = await page.load(stale);
+        if (view && !stale()) this.draw(page, view);
+      } catch (again) {
+        console.error("Couldn't even show the problem page", again);
+      }
     }
-    if (stale() || !view) return;
-    this.page = page;
-    render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
-    document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
-    this.wireShared();
-    page.mount(this.root);
   }
 
-  /** A page that couldn't load says why, plainly; "busy" tries again by itself. */
-  private problem(route: Route, e: RttError): Page {
+  /** The page's own data and markup, or a problem page when it can't be had. */
+  private async load(route: Route, stale: () => boolean): Promise<{ page: Page; view: Html | null }> {
+    const page = new PAGES[route.name](this.ctx, route);
+    try {
+      return { page, view: await page.load(stale) };
+    } catch (e) {
+      if (stale()) return { page, view: null };
+      const problem = this.problem(route, e);
+      return { page: problem, view: await problem.load(stale) };
+    }
+  }
+
+  /** Swap pages: the old one stops only now, so it keeps working while a slow answer for the next is awaited. */
+  private draw(page: Page, view: Html): void {
+    this.page?.dispose();
+    this.page = page;
+    render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
+    this.keepFlashRegion();
+    document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
+    this.wireShared();
+    try {
+      page.mount(this.root);
+    } catch (e) {
+      console.error("A page didn't start properly", e);
+      this.ctx.flash.error = MOUNT_FAILED;
+    }
+    this.showFlash();
+  }
+
+  /**
+   * A page that couldn't load says why, plainly; "busy" tries again by itself. Anything that isn't Realtime Trains'
+   * answer is a fault in the app: the details go to the console, and the page offers to try again.
+   */
+  private problem(route: Route, e: unknown): Page {
+    if (!(e instanceof RttError)) {
+      console.error("A page failed to load", e);
+      return new ProblemPage(this.ctx, route, problemView("Something went wrong", BROKEN, false, null, true), false);
+    }
     const busy = e instanceof BusyError;
     const title = e instanceof OfflineError ? "No connection" : busy ? "Realtime Trains is busy" : "Couldn't show that";
     return new ProblemPage(this.ctx, route, problemView(title, e.message, busy, route.name === "board" ? queryOf(route.params) : null), busy);
+  }
+
+  /**
+   * The message region is the same element on every page: a screen reader announces a change to a live region it
+   * already knows, and may miss one that arrived with a whole new page.
+   */
+  private keepFlashRegion(): void {
+    const fresh = this.root.querySelector<HTMLElement>("[data-flash]");
+    if (!fresh) return;
+    if (this.flashRegion) fresh.replaceWith(this.flashRegion);
+    else this.flashRegion = fresh;
+  }
+
+  /** The message waiting for the next page (after saving a key, say), shown once. */
+  private showFlash(): void {
+    const el = this.flashRegion;
+    const { message, error } = this.ctx.flash;
+    this.ctx.flash.message = this.ctx.flash.error = null;
+    if (!el) return;
+    el.classList.toggle("is-problem", !!error);
+    el.textContent = error ?? message ?? "";
   }
 
   /**

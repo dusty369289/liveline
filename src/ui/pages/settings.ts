@@ -14,11 +14,10 @@ export class SettingsPage extends Page {
     const tier = await rail.tier();
     const info = await rail.tokenInfo();
     if (stale()) return null;
-    const view = settingsView({ demo: rail.demo, tier, info, hint: rail.tokenHint, tokenError: rail.lastTokenError,
-      budget: rail.budget.state(), message: flash.message, error: flash.error, update: updates.info, native,
+    // The app shows the flash itself once the page is drawn (and then clears it); here it only opens the key section
+    return settingsView({ demo: rail.demo, tier, info, hint: rail.tokenHint, tokenError: rail.lastTokenError,
+      budget: rail.budget.state(), error: flash.error, update: updates.info, native,
       selfUpdate: canSelfUpdate, marker: appearance.marker() });
-    flash.message = flash.error = null; // shown once
-    return view;
   }
 
   mount(root: HTMLElement): void {

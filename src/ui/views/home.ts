@@ -29,12 +29,14 @@ export function homeView(d: HomeData): Html {
 </div>`;
 }
 
-export function problemView(title: string, message: string, busy: boolean, q: Query | null = null): Html {
+/** `retry` offers "Try again", for a failure nobody planned for (which might not happen twice). */
+export function problemView(title: string, message: string, busy: boolean, q: Query | null = null, retry = false): Html {
   return html`
 <div class="stack">
   <h1>${title}</h1>
   <p class="problem" role="alert">${message}</p>
   ${busy ? html`<p class="hint">This page tries again by itself in 30 seconds.</p>` : ""}
+  ${retry ? html`<p><button type="button" class="linkish" data-retry>Try again</button></p>` : ""}
   ${q ? searchForm(q) : html`<p><a href="#/">Search again</a></p>`}
 </div>`;
 }

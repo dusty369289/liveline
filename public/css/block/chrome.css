@@ -23,6 +23,9 @@
 
 .banner { padding: var(--s-2) var(--gutter); font-size: var(--t-sm); background: var(--surface-2); }
 .banner--demo { background: var(--demo); color: var(--demo-ink); }
+/* The flash is always there (a live region screen readers already know), and takes no room until it has something to say */
+.flash:empty { padding: 0; }
+.flash.is-problem { border-left: 3px solid var(--problem); }
 main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late); background: transparent; }
 
 .footer { color: var(--muted); font-size: var(--t-xs); padding-block: var(--s-5) max(var(--s-5), env(safe-area-inset-bottom)); }

@@ -67,8 +67,9 @@ export class ProblemPage extends Page {
     return this.view;
   }
 
-  mount(): void {
+  mount(root: HTMLElement): void {
     if (this.retry) this.after(30_000, () => this.ctx.rerender()); // busy: try again by itself
+    root.querySelector("[data-retry]")?.addEventListener("click", () => this.ctx.rerender());
   }
 }
 

@@ -14,8 +14,7 @@ export interface SettingsData {
   hint: string | null; // the key's last characters
   tokenError: string | null;
   budget: BudgetState;
-  message: string | null; // after saving or forgetting the key
-  error: string | null;
+  error: string | null; // the key was refused: the key section opens (the message itself is in the chrome's flash)
   update: UpdateInfo;
   native: boolean; // on the phone (key in private storage) or a browser
   selfUpdate: boolean; // can install its own updates (Android)
@@ -121,8 +120,6 @@ export function settingsView(d: SettingsData): Html {
   return html`
 <div class="stack settings">
   <h1>Settings</h1>
-  ${d.message ? html`<p class="banner" role="status">${d.message}</p>` : ""}
-  ${d.error ? html`<p class="problem" role="alert">${d.error}</p>` : ""}
   ${keySection(d)}
   ${appearanceSection(d)}
   ${group("update-h", "Updates", html`
