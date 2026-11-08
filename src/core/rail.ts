@@ -106,13 +106,16 @@ export class Rail {
   async tokenInfo(): Promise<TokenInfo | null> {
     if (this.demo) return null;
     // the saved access token and entitlements first: opening the app shouldn't cost 3 calls
+    if (this.client.info) this.tokenError = null; // a later call checked the key after all
     if (!this.client.info) await this.client.restore();
     if (!this.client.info && !this.tokenError) {
       try {
         await this.client.checkToken();
       } catch (e) {
-        if (e instanceof RttError) this.tokenError = e.message;
-        else throw e;
+        // Only a refusal is about the key. Busy or offline says nothing about it: the next call tries again, rather
+        // than show "needs attention" all session over a moment without signal.
+        if (e instanceof AuthError) this.tokenError = e.message;
+        else if (!(e instanceof RttError)) throw e;
       }
     }
     return this.client.info;

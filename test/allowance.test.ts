@@ -1,5 +1,7 @@
-// Calls nobody asked for: background work never spends the calls kept for searches.
+// Calls nobody asked for: background work never spends the calls kept for searches, and a passing failure to check
+// the key doesn't stick for the whole session.
 import { beforeEach, describe, expect, it } from "vitest";
+import { STORE } from "../src/core/keys";
 import { BusyError, Rail } from "../src/core/rail";
 import { fromLondon } from "../src/core/time";
 import { Clock, FakeRtt, GOOD, MemStore, stations } from "./support";
@@ -8,6 +10,40 @@ const UID = "X1:2026-11-07";
 let clock: Clock;
 beforeEach(() => {
   clock = new Clock(fromLondon(2026, 11, 7, 14, 20));
+});
+
+/** A Rail opened with a key already saved on the device (and no saved access token). */
+async function reopened(http: FakeRtt, key = GOOD): Promise<Rail> {
+  const store = new MemStore();
+  await store.set(STORE.key, key);
+  const rail = new Rail(http, store, stations, clock.now);
+  await rail.start();
+  return rail;
+}
+
+describe("checking the key", () => {
+  it("being offline once doesn't leave 'needs attention' up, and the next board asks in detail", async () => {
+    const http = new FakeRtt();
+    const rail = await reopened(http);
+    http.offline = true;
+    await expect(rail.board({ station: "RDG" })).rejects.toBeInstanceOf(BusyError);
+    http.offline = false;
+    await rail.board({ station: "RDG" });
+    expect(rail.lastTokenError).toBeNull();
+    const boards = http.params.filter((_, i) => http.calls[i] === "/gb-nr/location");
+    expect(boards.at(-1)?.detailed).toBe("true");
+  });
+
+  it("a refused key still sticks, and isn't asked about again and again", async () => {
+    const http = new FakeRtt();
+    const rail = await reopened(http, "plausible-but-wrong-key-000000");
+    await rail.tokenInfo();
+    expect(rail.lastTokenError).toMatch(/refused the key/);
+    const n = http.calls.length;
+    await rail.tokenInfo();
+    expect(http.calls.length).toBe(n);
+    expect(rail.lastTokenError).toMatch(/refused the key/);
+  });
 });
 
 describe("background calls never spend the search reserve", () => {
