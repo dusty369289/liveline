@@ -18,7 +18,7 @@ export class SettingsPage extends Page {
     // key is said under its field, by mount()
     return settingsView({ demo: rail.demo, tier, info, hint: rail.tokenHint, tokenError: rail.lastTokenError,
       budget: rail.budget.state(), update: updates.info, native,
-      selfUpdate: canSelfUpdate, marker: appearance.marker(), theme: appearance.theme() });
+      selfUpdate: canSelfUpdate, marker: appearance.marker(), theme: appearance.theme(), tabs: appearance.tabs() });
   }
 
   mount(root: HTMLElement): void {
@@ -53,6 +53,8 @@ export class SettingsPage extends Page {
     // The page itself changes at once (data-theme on <html>), so nothing is drawn again and focus stays on the radio
     root.querySelectorAll<HTMLInputElement>("[data-theme-choice]").forEach((input) =>
       input.addEventListener("change", () => appearance.setTheme(input.value)));
+    root.querySelectorAll<HTMLInputElement>("[data-tabs-choice]").forEach((input) =>
+      input.addEventListener("change", () => appearance.setTabs(input.value)));
   }
 }
 

@@ -36,3 +36,20 @@ describe("the theme", () => {
     expect(new Appearance().theme()).toBe("operator");
   });
 });
+
+describe("where the tabs sit", () => {
+  it("at the bottom until you choose the top (owner, 2026-11-08), on <html> for the CSS", () => {
+    const a = new Appearance();
+    expect(a.tabs()).toBe("bottom");
+    a.apply();
+    expect(document.documentElement.dataset.tabs).toBe("bottom");
+  });
+
+  it("a choice shows at once and is kept; an unknown one is ignored", () => {
+    const a = new Appearance();
+    a.setTabs("top");
+    expect(document.documentElement.dataset.tabs).toBe("top");
+    a.setTabs("left");
+    expect(new Appearance().tabs()).toBe("top");
+  });
+});

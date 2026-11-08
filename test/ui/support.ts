@@ -199,5 +199,18 @@ export async function snap(page: Page, info: TestInfo, name: string): Promise<vo
   // From the top: a full-page picture taken while scrolled draws sticky bars where the screen's top was, over the text
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(100);
+  // A full-page picture draws a bar fixed to the screen's foot (the bottom tabs) where the first screen ends, over the
+  // page: draw it at the page's end instead, as it looks scrolled to the bottom. Put back after, for the test's sake.
+  // (through the CSSOM: the app's CSP refuses style attributes)
+  const pin = (on: boolean) => {
+    const nav = document.querySelector<HTMLElement>(".topbar__nav");
+    if (!nav || (on && getComputedStyle(nav).position !== "fixed")) return;
+    for (const [el, prop, v] of [[document.body, "position", "relative"], [nav, "position", "absolute"]] as const) {
+      if (on) el.style.setProperty(prop, v, "important");
+      else el.style.removeProperty(prop);
+    }
+  };
+  await page.evaluate(pin, true);
   await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+  await page.evaluate(pin, false);
 }

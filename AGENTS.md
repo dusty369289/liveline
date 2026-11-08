@@ -254,8 +254,13 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   name, `data-*` or href). The skip link focuses `main` rather than following `#main`.
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
   the theme (a miniature of each, the choice applied at once without drawing the page again) and the train marker
-  (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
-  for Settings (named "Settings" for screen readers).
+  (Dot default, Bar, Arrow, Train front), and where the tabs sit. About is the last group.
+- **Tabs** (Search, Recent, Settings; `components/chrome.ts`, `block/tabs.css`): at the bottom by default (owner,
+  2026-11-08), a bar fixed along the screen's foot, each tab its icon over its word; the top bar then gives its room
+  to the page and only the strip under the status bar stays. Only on a screen at least 600 px tall: a short one
+  (landscape) keeps them at the top. Settings > Appearance > Tabs moves them to the top (`liveline.tabs`, on `<html>`
+  as `data-tabs`), where they're words beside the name, with a cog for Settings (named for screen readers).
+  `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`).
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
   page leaves the app (minimised, as other apps do), which also lets predictive back work. Both system bars
   follow the phone's theme, including a day/night switch while the app is open: under the status bar is a fixed strip
