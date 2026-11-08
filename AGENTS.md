@@ -85,8 +85,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   ("calling at", or "from" for arrivals). RTT charges one call however wide the window, so each call fetches three
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
-  more ahead. A "now" board (no time, and no day or today's) refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
+  more ahead. A "now" board (no time, and no day or today's) refreshes itself every 2 minutes while on screen for 15
+  minutes (`BOARD_REFRESH`), then waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or
@@ -104,9 +104,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   backtested: it's a reasoned guess.
 - **Polling** (`core/poll.ts`): never more than once a minute; 20 s after the next report is due while running; just
   after departure at a station; shortly before it's due when not started (at least every 3 minutes); every minute when
-  overdue; every 3 minutes for a bus or ship, or a train with nothing reported 10 minutes after it was due off (they
-  say "Buses aren't tracked live" rather than "No reports yet"); every 2 minutes while your stop is over 40 minutes off. Stops when the train arrives or is cancelled
-  (passing your stop doesn't stop it). The allowance's own floor, `3600 / (calls left this hour - 10)`, can only slow
+  overdue; every 3 minutes for a bus or ship, or a train with nothing reported 10 minutes after it was due off (a bus
+  or ship says "Buses aren't tracked live" rather than "No reports yet"); every 2 minutes while your stop is over 40
+  minutes off. Stops when the train arrives or is cancelled (passing your stop doesn't stop it). The allowance's own floor, `3600 / (calls left this hour - 10)`, can only slow
   it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
