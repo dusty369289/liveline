@@ -1,7 +1,7 @@
 // scripts/history-check.mjs: what CI, pre-push and the merge script use to check commits and PR text that no local
 // hook vouched for. Run as CI runs it, in a throwaway repository, with the PR text in the environment.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { script, TempRepo } from "./repo-support";
+import { OWNER, script, TempRepo } from "./repo-support";
 
 let repo: TempRepo;
 beforeEach(() => {
@@ -10,7 +10,8 @@ beforeEach(() => {
 });
 afterEach(() => repo.remove());
 
-function check(args: string[], pr: { title?: string; body?: string } = {}) {
+function check(args: string[], pr: { title?: string; body?: string; author?: string } = {}) {
+  repo.env.PR_AUTHOR = pr.author ?? "";
   repo.env.PR_TITLE = pr.title ?? "";
   repo.env.PR_BODY = pr.body ?? "";
   return repo.run("node", [script("history-check.mjs"), ...args]);
@@ -61,5 +62,47 @@ describe("commits", () => {
     const run = check(["HEAD~1..HEAD"]);
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain(`git rebase --exec "git commit --amend --no-edit --reset-author" liveline/main`);
+  });
+});
+
+// Dependabot's PRs carry its commits, not the owner's: CI says whose PR it is (PR_AUTHOR, from GitHub, which no human
+// login can match: logins can't hold brackets). Its body is the upstream changelog, mentions and all.
+describe("Dependabot's PRs", () => {
+  const BOT = "dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>";
+  const botCommit = (message: string) => {
+    repo.write(`f${Math.random()}.txt`, "x");
+    repo.git("add", "-A");
+    repo.git("-c", "user.name=GitHub", "-c", "user.email=noreply@github.com", "-c", "core.hooksPath=/dev/null",
+      "commit", "-q", "-m", message, "--author", BOT);
+  };
+  // An upstream changelog: a contributor's address and an AI co-author trailer, neither ours to fix
+  // (the address joined here, or the file's own leak check finds it)
+  const changelog = `Bumps vite. Thanks @someone (${["someone", "gmail.com"].join("@")}).\n\n`
+    + "Co-authored-by: Copilot <c@github.com>";
+  const bot = { author: "dependabot[bot]" };
+
+  it("passes Dependabot's own commits on its own PR, and skips only its changelog body", () => {
+    botCommit("Bump vite from 7.1.0 to 7.1.5");
+    const run = check(["HEAD~1..HEAD"], { ...bot, title: "Bump vite from 7.1.0 to 7.1.5", body: changelog });
+    expect(run.status, run.stderr).toBe(0);
+  });
+
+  it("refuses the same identity on anyone else's PR, and the changelog body there", () => {
+    botCommit("Bump vite from 7.1.0 to 7.1.5");
+    const run = check(["HEAD~1..HEAD"], { author: OWNER.name, body: changelog });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("the author is dependabot[bot]");
+    expect(run.stderr).toContain("the PR body");
+  });
+
+  it("still refuses the owner's commits, attribution and personal details on Dependabot's PR", () => {
+    commit("Second");
+    botCommit("Bump vite\n\nCo-Authored-By: Claude <noreply@anthropic.com>");
+    const home = ["", "home", "someone", "x"].join("/");
+    const run = check(["HEAD~2..HEAD"], { ...bot, title: `Bump ${home}` });
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(`the author is ${OWNER.name}`);
+    expect(run.stderr).toMatch(/message carries AI attribution/);
+    expect(run.stderr).toContain("the PR title");
   });
 });
