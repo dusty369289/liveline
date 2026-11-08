@@ -111,3 +111,14 @@ test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors
   await expect(page.locator(".banner--demo")).toBeVisible();
   void errors;
 });
+
+test("a new page starts at the top, its heading in view", async ({ page, errors }) => {
+  await open(page, "/settings");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await page.locator('a[href="#/about"]').last().click();
+  await expect(page.locator("main h1")).toHaveText(/About/);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator("main h1")).toBeInViewport();
+  void errors;
+});

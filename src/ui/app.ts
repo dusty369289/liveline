@@ -34,6 +34,7 @@ export class App {
   private readonly ctx: AppContext;
   private page: Page | null = null;
   private seq = 0; // a newer navigation wins over a slow answer
+  private drawn: string | null = null; // the hash last drawn: the same one again is a refresh, not a new page
 
   constructor(private readonly root: HTMLElement, rail: Rail) {
     this.ctx = {
@@ -76,6 +77,11 @@ export class App {
     render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
     document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
     this.wireShared();
+    // A new page starts at the top, its heading in view; a redraw keeps its place. Before mount, so a page that
+    // scrolls itself (the train page's jump to the train) still wins.
+    const again = this.drawn === location.hash;
+    this.drawn = location.hash;
+    if (!again) window.scrollTo(0, 0);
     page.mount(this.root);
   }
 
