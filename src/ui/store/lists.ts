@@ -24,6 +24,11 @@ export class Journeys {
     this.pref.set(saved ? this.all().filter((x) => !(x.from === j.from && x.to === j.to)) : [j, ...this.all()].slice(0, Journeys.MAX));
     return !saved;
   }
+
+  /** Remove the journey from `from` to `to` (its return, if saved, stays). */
+  remove(from: string, to: string): void {
+    this.pref.set(this.all().filter((x) => !(x.from === from && x.to === to)));
+  }
 }
 
 export class RecentStations {

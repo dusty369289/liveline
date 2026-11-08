@@ -8,7 +8,7 @@ import { type Html, html, render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
 import { SettingsPage } from "./pages/settings";
-import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage, retryDelay } from "./pages/simple";
+import { AboutPage, HomePage, JourneysPage, NotFoundPage, ProblemPage, RecentPage, retryDelay } from "./pages/simple";
 import { TrainPage } from "./pages/train";
 import { parseHash, queryOf, type Route, type RouteName } from "./routes";
 import { Appearance } from "./store/appearance";
@@ -29,6 +29,7 @@ const PAGES: Record<RouteName, PageClass> = {
   board: BoardPage,
   train: TrainPage,
   recent: RecentPage,
+  journeys: JourneysPage,
   settings: SettingsPage,
   about: AboutPage,
   unknown: NotFoundPage,

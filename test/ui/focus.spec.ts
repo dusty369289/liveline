@@ -12,7 +12,7 @@ test("the skip link moves focus to the page, without changing the route", async 
   void errors;
 });
 
-test("going to Search focuses its heading, which a screen reader meets before the saved journeys", async ({ page, errors }) => {
+test("going to Search focuses its heading, which a screen reader meets before the line to saved journeys", async ({ page, errors }) => {
   await open(page, "/board?station=PAD&to=OXF&time=09:00");
   await page.locator("[data-save-journey]").click();
   await open(page, "/recent");
@@ -20,9 +20,9 @@ test("going to Search focuses its heading, which a screen reader meets before th
   const h1 = page.locator("main h1");
   await expect(h1).toBeFocused();
   await expect(h1).toHaveText("Find your train");
-  await expect(page.locator(".journeys__go")).toHaveCount(1);
-  // DOCUMENT_POSITION_FOLLOWING: the journey comes after the heading in reading order
-  expect(await h1.evaluate((el) => !!(el.compareDocumentPosition(document.querySelector(".journeys__go")!) & 4))).toBe(true);
+  await expect(page.locator(".carry--saved")).toHaveCount(1);
+  // DOCUMENT_POSITION_FOLLOWING: the line comes after the heading in reading order
+  expect(await h1.evaluate((el) => !!(el.compareDocumentPosition(document.querySelector(".carry--saved")!) & 4))).toBe(true);
   void errors;
 });
 

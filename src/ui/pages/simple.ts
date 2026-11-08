@@ -1,9 +1,10 @@
-// The pages with little behaviour: search, Recent, About, and a page that isn't there.
+// The pages with little behaviour: search, Recent, Saved journeys, About, and a page that isn't there.
 import { APP_VERSION } from "../../platform";
 import type { Html } from "../html";
 import { queryOf, type RouteName } from "../routes";
 import { aboutView } from "../views/about";
 import { homeView, problemView, type Retry } from "../views/home";
+import { journeysView } from "../views/journeys";
 import { recentView } from "../views/recent";
 import { Page } from "./page";
 
@@ -29,6 +30,25 @@ export class RecentPage extends Page {
       this.ctx.trains.clear();
       this.ctx.rerender();
     });
+  }
+}
+
+export class JourneysPage extends Page {
+  readonly tab: RouteName = "journeys";
+  title = "Saved journeys";
+
+  async load(): Promise<Html> {
+    return journeysView(this.ctx.journeys.all());
+  }
+
+  mount(root: HTMLElement): void {
+    for (const b of root.querySelectorAll<HTMLElement>("[data-remove-journey]")) {
+      b.addEventListener("click", () => {
+        const [from, to] = (b.dataset.removeJourney ?? "").split(" ");
+        this.ctx.journeys.remove(from, to);
+        this.ctx.rerender();
+      });
+    }
   }
 }
 
