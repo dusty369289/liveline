@@ -10,9 +10,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.IntentCompat;
+import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwner;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -45,9 +48,22 @@ public class UpdaterPlugin extends Plugin {
     private BroadcastReceiver receiver;
     // Android's "Update this app?" dialog, kept until the install ends. Android blocks starting it while LiveLine is in
     // the background, and it would then never appear, leaving "installing" up until a restart: so it's started only
-    // while LiveLine is on screen, or when the user comes back (handleOnResume), and can be reopened.
+    // while LiveLine is on screen, or when the user comes back (onScreen), and can be reopened.
     private volatile Intent pendingConfirm; // set on the main thread, read by install() on the plugin's thread
     private boolean confirmShown; // main thread only
+    // Not handleOnResume: Capacitor calls that from inside Activity.onResume, before AndroidX moves the lifecycle to
+    // RESUMED, so showConfirm would still see STARTED and do nothing. ON_RESUME is dispatched once it is RESUMED.
+    private final DefaultLifecycleObserver onScreen = new DefaultLifecycleObserver() {
+        @Override
+        public void onResume(@NonNull LifecycleOwner owner) {
+            showConfirm(); // a confirm dialog Android wouldn't let us show while in the background
+        }
+    };
+
+    @Override
+    public void load() {
+        getActivity().runOnUiThread(() -> getActivity().getLifecycle().addObserver(onScreen)); // observers: main thread only
+    }
 
     @PluginMethod
     public void install(PluginCall call) {
@@ -93,7 +109,6 @@ public class UpdaterPlugin extends Plugin {
     @Override
     protected void handleOnResume() {
         super.handleOnResume();
-        showConfirm(); // a confirm dialog Android wouldn't let us show while in the background
         PluginCall call = waitingForPermission;
         if (call == null) return;
         waitingForPermission = null;
@@ -295,6 +310,7 @@ public class UpdaterPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        getActivity().getLifecycle().removeObserver(onScreen); // a destroyed activity's lifecycle drops it anyway
         if (receiver != null) {
             try {
                 getContext().unregisterReceiver(receiver);

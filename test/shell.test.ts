@@ -106,3 +106,30 @@ describe("the launch screen", () => {
     expect(color(read("values-night/colors.xml"), "window_background")).toBe(token(dark, "page"));
   });
 });
+
+// No Java test harness here (and the emulator crashes on the dev machine), so this reads UpdaterPlugin.java for the
+// shape of the fix. Capacitor calls handleOnResume from inside Activity.onResume, before AndroidX moves the lifecycle
+// to RESUMED, so showConfirm (which needs RESUMED) must run from an ON_RESUME observer instead.
+describe("the updater's confirm dialog", () => {
+  const java = readFileSync(new URL("../android/app/src/main/java/dev/liveline/app/UpdaterPlugin.java", import.meta.url), "utf8");
+  const body = (signature: RegExp) => {
+    const at = java.search(signature);
+    if (at < 0) return "";
+    let depth = 0;
+    for (let i = java.indexOf("{", at); i < java.length; i++) {
+      if (java[i] === "{") depth++;
+      else if (java[i] === "}" && --depth === 0) return java.slice(at, i + 1);
+    }
+    return "";
+  };
+
+  it("is not started from handleOnResume, where the activity isn't resumed yet", () => {
+    expect(body(/void handleOnResume\(\)/)).not.toContain("showConfirm");
+  });
+
+  it("is started once the activity really is resumed, by a lifecycle observer added on load and removed on destroy", () => {
+    expect(body(/public void onResume\(@NonNull LifecycleOwner owner\)/)).toContain("showConfirm()");
+    expect(body(/public void load\(\)/)).toMatch(/getLifecycle\(\)\.addObserver\(/);
+    expect(body(/void handleOnDestroy\(\)/)).toMatch(/getLifecycle\(\)\.removeObserver\(/);
+  });
+});
