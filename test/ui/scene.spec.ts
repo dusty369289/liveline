@@ -2,7 +2,7 @@
 // These run with reduced motion (the scene stands still: nothing to wait for, and that path is tested too), except
 // the ones about movement, which say so.
 import type { Page, TestInfo } from "@playwright/test";
-import { audit, expect, open, openTrain, snap, test } from "./support";
+import { audit, expect, largeText, open, openTrain, snap, test } from "./support";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -79,9 +79,7 @@ test("pulls away from the platform once it's reported gone", async ({ page, erro
 });
 
 test("at large system text (200%), the coaches' names and icons and the bar's age all show", async ({ page, errors }, info) => {
-  await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
-    document.documentElement.style.fontSize = "200%";
-  }));
+  await largeText(page);
   await openTrain(page);
   await trainView(page);
   expect(await audit(page)).toEqual([]);
