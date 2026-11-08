@@ -60,6 +60,21 @@ test("the train page has one announcer, kept through polls, and the redrawn part
   void errors;
 });
 
+test("a poll with news says the new headline in the announcer, and the train page says nothing on opening", async ({ page, errors }) => {
+  await openTrain(page);
+  const note = page.locator("[data-refresh-note]");
+  await expect(note).toHaveText(""); // what's on screen when the page opens counts as heard
+  const before = await page.locator(".live__headline").textContent();
+  await page.clock.fastForward("05:00"); // past the next poll, by which time the train has moved on
+  await expect(page.locator(".live__headline")).not.toHaveText(before ?? "");
+  const headline = (await page.locator(".live__headline").textContent())?.replace(/\s+/g, " ").trim().replace(/\.$/, "") ?? "";
+  expect(headline).not.toBe("");
+  const said = (await note.textContent()) ?? "";
+  expect(said.startsWith(`${headline}. `) || said === headline, `announced "${said}"`).toBe(true);
+  expect(said).not.toContain("..");
+  void errors;
+});
+
 test("while Realtime Trains is slow, the app says it's busy, and stops once the page is drawn", async ({ page, errors }) => {
   // A made-up key (never a real one), so the board asks the faked RTT, which holds its answer until told
   await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-key-for-tests-only-0123456789"));
