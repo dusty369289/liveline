@@ -47,12 +47,20 @@
 
 /* The route: a thick line diagram with ringed stops, like a line map on a carriage wall */
 .route-wrap { position: relative; }
+/* A stop reads across on one line: its name's first line, the booked time and the live time share a baseline, and
+   its ring sits on that line too. What goes under (the platform under the name, "+7" under the live time) hangs below
+   and pushes nothing up (owner, 2026-11-08; test/ui/align.spec.ts). --line-mid is the middle of that first line,
+   from the row's content top: the ring, the line's ends and the train marker (live-marker.ts reads the ring) use it. */
 .route__pt {
   position: relative;
   display: grid; grid-template-columns: 2.25rem 1fr 3.75rem 5rem; gap: 0 var(--s-2);
-  align-items: center; min-height: 3.5rem; padding-block: var(--s-2);
+  align-items: baseline; min-height: 3.5rem; padding-block: var(--s-2);
+  --line-mid: calc(var(--t-md) * 1.15 / 2); /* a call's name: var(--t-md), line-height 1.15 */
 }
-.route__pt.is-pass { min-height: 2rem; padding-block: .15rem; font-size: var(--t-sm); color: var(--muted); }
+.route__pt.is-pass {
+  min-height: 2rem; padding-block: .15rem; font-size: var(--t-sm); color: var(--muted);
+  --line-mid: calc(var(--t-sm) * 1.45 / 2); /* a passing point's name: the row's text, the body's line-height */
+}
 .route__mark { align-self: stretch; position: relative; }
 .route__mark::before { /* the line */
   content: ""; position: absolute; left: calc(50% - 3px); top: 0; bottom: -1px; width: 6px; background: var(--rail);
@@ -61,9 +69,9 @@
    the next row: rows end at fractions of a device pixel, where two edges that only touch show a hairline seam */
 .route__pt .route__mark::before { top: calc(-1 * var(--s-2)); bottom: calc(-1 * var(--s-2) - 1px); }
 .route__pt.is-pass .route__mark::before { top: -.15rem; bottom: calc(-.15rem - 1px); }
-.route__pt:first-child .route__mark::before { top: 50%; }
-.route__pt:last-child .route__mark::before { bottom: 50%; }
-.route__mark::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; }
+.route__pt:first-child .route__mark::before { top: var(--line-mid); }
+.route__pt:last-child .route__mark::before { bottom: calc(100% - var(--line-mid)); }
+.route__mark::after { content: ""; position: absolute; left: 50%; top: var(--line-mid); transform: translate(-50%, -50%); z-index: 2; }
 .is-call .route__mark::after { width: 1.05rem; height: 1.05rem; border-radius: 50%; background: var(--page); border: 3px solid var(--ink); }
 .is-pass .route__mark::after { width: .5rem; height: 3px; background: var(--rail); transform: translate(3px, -50%); }
 .is-pass.is-reported .route__mark::after { background: var(--ink); }
