@@ -91,6 +91,8 @@
 .route__fold-btn {
   display: inline-flex; align-items: center; gap: .4rem; justify-self: start; min-height: var(--tap); padding: 0;
   border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--t-sm); cursor: pointer;
+  /* tabbed to while scrolled, it stops below the sticky bar (its height, the status bar, a little air), not under it */
+  scroll-margin-top: calc(var(--tap) + env(safe-area-inset-top, 0px) + var(--s-2));
 }
 .route__fold-btn:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }
 .route__fold-icon { flex: none; transition: transform .15s ease; }

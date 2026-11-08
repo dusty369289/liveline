@@ -74,6 +74,21 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
+test("tabbing back to a passing-point fold brings it out from under the bar", async ({ page, errors }) => {
+  await openTrain(page);
+  const folds = page.locator("[data-fold-toggle]");
+  expect(await folds.count()).toBeGreaterThan(1);
+  // focus is on the second fold; the first sits just under the screen's top edge, behind the sticky bar
+  await folds.nth(1).evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
+  await folds.first().evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 10));
+  await page.keyboard.press("Shift+Tab");
+  await expect(folds.first()).toBeFocused();
+  const bar = (await page.locator("[data-trainbar]").boundingBox())!;
+  const fold = (await folds.first().boundingBox())!;
+  expect(fold.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+  void errors;
+});
+
 test("a message in the train page bar wraps rather than being cut off", async ({ page, errors }) => {
   await openTrain(page);
   await page.locator("[data-refresh-now]").click();
