@@ -2,7 +2,7 @@
 // when the train reaches a timing point, so polling on a fixed beat mostly re-fetches the same answer. Instead: wait
 // until the next report could exist, and stop once nothing more can change for the train. The marker keeps moving
 // between polls on its own (live.ts), so a slower poll doesn't freeze the picture.
-import { type State, stopSummary, type Timeline } from "./engine";
+import { type State, type Timeline, yourStops } from "./engine";
 import type { Ms } from "./time";
 
 export const POLL = {
@@ -61,7 +61,7 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
     const due = secsTo(p.expected);
     s = due == null ? 90 : clamp(due + POLL.afterDue, POLL.running, POLL.max);
   }
-  const mine = at ? stopSummary(tl, at) : null;
+  const mine = at ? yourStops(tl, at, "")[0] : null;
   if (mine && mine.status === "ahead" && mine.minutes != null && mine.minutes > POLL.farMinutes) s = Math.max(s, POLL.farAway);
   return Math.round(Math.max(s, budgetSecs, POLL.min));
 }

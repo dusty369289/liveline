@@ -1,7 +1,7 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { DEFAULT_ENGINE, sectionFraction, stopSummary } from "../core/engine";
+import { DEFAULT_ENGINE, sectionFraction, yourStops } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
@@ -228,7 +228,7 @@ export class LiveTrain {
       const res = await this.rail.service(this.uid, { background: !force, force, at: this.at, to: this.to });
       if (this.stopped) return;
       const tl = res.timeline;
-      const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
+      const node = fragment(liveRegion(res, ...yourStops(tl, this.at, this.to))).querySelector(".live");
       if (node) this.region.replaceChildren(node);
       this.folds.apply();
       for (const fn of this.listeners) fn(res);

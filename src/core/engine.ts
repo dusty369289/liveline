@@ -404,12 +404,45 @@ export interface StopSummary {
   callsBetween: number; // stops between the train and this one
 }
 
-/** How things stand at one station on this train: where you get on (or off). */
-export function stopSummary(tl: Timeline, code: string, boarding = true): StopSummary | null {
-  const c = code.trim().toUpperCase();
-  if (!c) return null;
-  const v = tl.points.find((w) => w.point.kind === "call" && (w.point.crs === c || w.point.tiploc === c));
-  if (!v) return null;
+export interface YourStops {
+  at: number | null; // the point index where you get on
+  to: number | null; // and where you get off
+}
+
+/**
+ * Which calls are yours when a station comes up more than once (a loop, or a train that reverses): you get on at the
+ * first call there with a departure, and off at the first call there with an arrival after that. Judged on the
+ * timetable as RTT sent it, so a cancelled departure is still where you meant to board (and shows as cancelled).
+ */
+export function resolveStops(tl: Timeline, at: string, to: string): YourStops {
+  const sent = tl.service.points;
+  const callsAt = (code: string): number[] => {
+    const c = code.trim().toUpperCase();
+    return c ? sent.flatMap((p, i) => (p.kind === "call" && (p.crs === c || p.tiploc === c) ? [i] : [])) : [];
+  };
+  const ons = callsAt(at);
+  const on = ons.find((i) => !isEmpty(sent[i].departure)) ?? ons[0] ?? null;
+  const offs = callsAt(to);
+  const after = offs.filter((i) => on == null || i > on);
+  const pool = after.length ? after : offs; // a stop before where you get on: show it rather than nothing
+  const off = pool.find((i) => !isEmpty(sent[i].arrival)) ?? pool[0] ?? null;
+  return { at: on, to: off };
+}
+
+/** Where you get on and off, summarised: the train page and the polling ask this once, so they agree. */
+export function yourStops(tl: Timeline, at: string, to: string): [StopSummary | null, StopSummary | null] {
+  const r = resolveStops(tl, at, to);
+  return [stopSummary(tl, at, true, r.at), stopSummary(tl, to, false, r.to)];
+}
+
+/**
+ * How things stand at one station on this train: where you get on (or off). `index` is the call (resolveStops);
+ * left out, it's the first call there that suits.
+ */
+export function stopSummary(tl: Timeline, code: string, boarding = true, index?: number | null): StopSummary | null {
+  const i = index !== undefined ? index : boarding ? resolveStops(tl, code, "").at : resolveStops(tl, "", code).to;
+  if (i == null) return null;
+  const v = tl.points[i];
   const p = v.point;
   const sh = boarding ? (v.departure ?? v.arrival) : (v.arrival ?? v.departure);
   const pos = tl.position;

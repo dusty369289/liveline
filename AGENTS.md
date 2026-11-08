@@ -133,7 +133,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   dusk or night by the sun where the train is (`core/daylight.ts`), each tuned for the light and dark themes.
   Reduced motion: the scene stands still. Layers move by CSS transforms (composited), and it sleeps while standing.
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
-  (solid plate confirmed, outlined expected).
+  (solid plate confirmed, outlined expected). Where a station comes up twice (a loop, a train that reverses), you get
+  on at its first call with a departure and off at the first call with an arrival after that (`resolveStops`,
+  `yourStops` in `core/engine.ts`); the page, its Board and Alight tags and the polling all use those calls.
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds

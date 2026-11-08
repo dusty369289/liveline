@@ -1,6 +1,6 @@
 // A train page: fetch the train, remember it for Recent, and hand the live part to LiveTrain. Two tabs show the same
 // answers: Route (every point, with the marker) and Train view (the train in its scenery, TrainScene).
-import { stopSummary } from "../../core/engine";
+import { yourStops } from "../../core/engine";
 import type { ServiceResult } from "../../core/rail";
 import { sceneOf } from "../../core/scene";
 import type { Html } from "../html";
@@ -30,7 +30,7 @@ export class TrainPage extends Page {
     const tab = this.ctx.trainTab.get();
     const sc = sceneOf(tl);
     const scene = scenePanel(sc, res.formation, tl.position.headline, skyFor(sc, this.ctx.rail.stations, Date.now()), tab === "scene");
-    return trainView(res, this.uid, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false), { tab, scene });
+    return trainView(res, this.uid, this.at, this.to, ...yourStops(tl, this.at, this.to), { tab, scene });
   }
 
   mount(root: HTMLElement): void {

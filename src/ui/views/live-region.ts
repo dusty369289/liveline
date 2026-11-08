@@ -100,10 +100,11 @@ export function pointTimes(v: PointView): Html {
   return html`<span class="route__booked tnum">${pt.kind === "pass" ? hmh(main.booked) : hm(main.booked)}</span><span class="route__live tnum ${delayClass(main)} src-${main.source === "booked" ? "booked" : markOf(main.source)}">${shown}</span>`;
 }
 
-function pointRow(v: PointView, at: string, to: string, group: number | undefined): Html {
+/** `at` and `to` are the indices of your calls (engine.resolveStops), so a station called at twice is tagged once. */
+function pointRow(v: PointView, at: number | null, to: number | null, group: number | undefined): Html {
   const pt = v.point;
-  const isAt = !!at && (pt.crs === at || pt.tiploc === at);
-  const isTo = !!to && (pt.crs === to || pt.tiploc === to);
+  const isAt = v.index === at;
+  const isTo = !isAt && v.index === to;
   const tin = v.passing ?? v.arrival ?? v.departure;
   const tout = v.passing ?? v.departure ?? v.arrival;
   const cls = [pt.kind === "pass" ? "is-pass is-folded" : "is-call", v.reported ? "is-reported" : "", isCancelled(pt) ? "is-cancelled" : "",
@@ -117,7 +118,8 @@ function pointRow(v: PointView, at: string, to: string, group: number | undefine
     </li>`;
 }
 
-export function liveRegion(res: ServiceResult, at: string, to: string, stop: StopSummary | null, off: StopSummary | null): Html {
+/** `stop` and `off` are where you get on and off (engine.yourStops), which also tag their rows. */
+export function liveRegion(res: ServiceResult, stop: StopSummary | null, off: StopSummary | null): Html {
   const tl = res.timeline;
   const p = tl.position;
   const [heroHtml, hs] = hero(stop, off);
@@ -128,7 +130,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const { groupOf, size } = passGroups(tl);
   const route = tl.points.map((v) => {
     const g = groupOf.get(v.index);
-    return html`${g === v.index ? foldRow(g, size.get(g) ?? 0) : ""}${pointRow(v, at, to, g)}`;
+    return html`${g === v.index ? foldRow(g, size.get(g) ?? 0) : ""}${pointRow(v, stop?.index ?? null, off?.index ?? null, g)}`;
   });
   return html`
 <section class="live" aria-labelledby="live-h" data-state="${p.state}" data-from="${p.fromIndex ?? ""}" data-to="${p.toIndex ?? ""}"

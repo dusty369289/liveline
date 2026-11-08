@@ -1,7 +1,7 @@
 // The train page is plain about what it doesn't know: RTT's feed down, a train never reported, a train altered or
 // cancelled. AGENTS.md, "Be plain about limits".
 import { describe, expect, it } from "vitest";
-import { build, stopSummary } from "../src/core/engine";
+import { build, resolveStops, stopSummary, yourStops } from "../src/core/engine";
 import { feedOf, rowCancelled } from "../src/core/models";
 import { parseBoard, parseService, parseSystemStatus } from "../src/core/parse";
 import { pollAfter } from "../src/core/poll";
@@ -42,15 +42,44 @@ describe("when Realtime Trains has no live data", () => {
     const status = parseSystemStatus(body);
     const res = { timeline: build(parseService(body, () => now), now, undefined, feedOf(status)), status,
       fetched: { body, fetchedAt: now, stale: false, note: null }, refreshAfter: null } as unknown as ServiceResult;
-    expect(liveRegion(res, "", "", null, null).value).toContain("times are the timetable only");
+    expect(liveRegion(res, null, null).value).toContain("times are the timetable only");
     const ok = { ...res, status: parseSystemStatus(fixture("real_service_C42388_20261107-1526.json")) };
-    expect(liveRegion(ok, "", "", null, null).value).not.toContain("data-feed-note");
+    expect(liveRegion(ok, null, null).value).not.toContain("data-feed-note");
   });
 });
 
 const region = (tl: ReturnType<typeof build>, at = "", to = "") =>
   liveRegion({ timeline: tl, status: { networkRail: "OK", core: "OK" }, fetched: { body: null, fetchedAt: tl.now, stale: false, note: null },
-    refreshAfter: null } as unknown as ServiceResult, at, to, stopSummary(tl, at), stopSummary(tl, to, false)).value;
+    refreshAfter: null } as unknown as ServiceResult, ...yourStops(tl, at, to)).value;
+const count = (h: string, s: string) => h.split(s).length - 1;
+
+describe("a station called at twice (spec_service_loop.json, Mount Florida out and back)", () => {
+  const now = fromLondon(2026, 11, 7, 10, 3);
+  const tl = build(parseService(fixture("spec_service_loop.json"), () => now), now);
+
+  it("you get off at the first call after where you got on", () => {
+    expect(resolveStops(tl, "CCT", "MFL")).toEqual({ at: 2, to: 3 });
+    expect(resolveStops(tl, "GLC", "GLC")).toEqual({ at: 0, to: 4 });
+    expect(resolveStops(tl, "MFL", "")).toEqual({ at: 1, to: null });
+    expect(resolveStops(tl, "", "MFL")).toEqual({ at: null, to: 1 });
+    expect(resolveStops(tl, "XYZ", "MFL")).toEqual({ at: null, to: 1 });
+    expect(yourStops(tl, "CCT", "MFL")[1]!.index).toBe(3);
+  });
+
+  it("exactly one row is your stop, one Board and one Alight", () => {
+    for (const [at, to] of [["CCT", "MFL"], ["GLC", "GLC"], ["MFL", "GLC"]]) {
+      const h = region(tl, at, to);
+      expect(count(h, 'id="your-stop"'), `${at} to ${to}`).toBe(1);
+      expect(count(h, 'route__tag">Board<'), `${at} to ${to}`).toBe(1);
+      expect(count(h, 'route__tag">Alight<'), `${at} to ${to}`).toBe(1);
+    }
+    expect(region(tl, "CCT", "MFL")).toMatch(/data-index="3"[^>]*>\s*<span class="route__mark"[^]*?Alight/);
+  });
+
+  it("polling looks at where you get on", () => {
+    expect(pollAfter(tl, now, 30, "CCT")).not.toBeNull();
+  });
+});
 const rowOf = (h: string, name: string) => h.split('<li class="route__pt').find((r) => r.includes(`>${name}<`)) ?? "";
 
 describe("a train terminated short (spec_service_terminates_short.json, at Slough)", () => {

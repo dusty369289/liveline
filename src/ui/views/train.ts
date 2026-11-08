@@ -60,7 +60,7 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   </div>
   ${tabs(opts.tab)}
   <div class="stack" id="panel-route" role="tabpanel" aria-labelledby="tab-route" ${opts.tab === "route" ? "" : html`hidden`}>
-    <div data-live-region>${liveRegion(res, at, to, stop, off)}</div>
+    <div data-live-region>${liveRegion(res, stop, off)}</div>
     ${legend}
   </div>
   ${opts.scene}

@@ -1,0 +1,64 @@
+{
+ "_note": "Spec-derived, not a recording. A made-up out-and-back working that calls at Mount Florida twice and starts and ends at Glasgow Central, to test which call is your stop when a station appears more than once. Shape follows docs/rtt-openapi.yml and spec_service_reading_paddington.json. Replace with a real recording of a loop or reversing service when one is caught.",
+ "systemStatus": {"realtimeNetworkRail": "OK", "rttCore": "OK"},
+ "query": {"uniqueIdentity": "gb-nr:G11111:2026-11-07"},
+ "service": {
+  "scheduleMetadata": {
+   "uniqueIdentity": "gb-nr:G11111:2026-11-07",
+   "namespace": "gb-nr",
+   "identity": "G11111",
+   "departureDate": "2026-11-07",
+   "operator": {"code": "SR", "name": "ScotRail"},
+   "modeType": "TRAIN",
+   "inPassengerService": true,
+   "trainReportingIdentity": "2C10"
+  },
+  "locations": [
+   {
+    "location": {"namespace": "gb-nr", "description": "Glasgow Central", "shortCodes": ["GLC"], "longCodes": ["GLGC"]},
+    "temporalData": {
+     "departure": {"scheduleInternal": "2026-11-07T10:00:00", "scheduleAdvertised": "2026-11-07T10:00:00", "realtimeActual": "2026-11-07T10:01:00", "isCancelled": false},
+     "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+    },
+    "locationMetadata": {"platform": {"planned": "6", "actual": "6"}}
+   },
+   {
+    "location": {"namespace": "gb-nr", "description": "Mount Florida", "shortCodes": ["MFL"], "longCodes": ["MTFLRDA"]},
+    "temporalData": {
+     "arrival": {"scheduleInternal": "2026-11-07T10:08:00", "scheduleAdvertised": "2026-11-07T10:08:00", "isCancelled": false},
+     "departure": {"scheduleInternal": "2026-11-07T10:09:00", "scheduleAdvertised": "2026-11-07T10:09:00", "isCancelled": false},
+     "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+    },
+    "locationMetadata": {"platform": {"planned": "1"}}
+   },
+   {
+    "location": {"namespace": "gb-nr", "description": "Cathcart", "shortCodes": ["CCT"], "longCodes": ["CATHCRT"]},
+    "temporalData": {
+     "arrival": {"scheduleInternal": "2026-11-07T10:12:00", "scheduleAdvertised": "2026-11-07T10:12:00", "isCancelled": false},
+     "departure": {"scheduleInternal": "2026-11-07T10:13:00", "scheduleAdvertised": "2026-11-07T10:13:00", "isCancelled": false},
+     "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+    },
+    "locationMetadata": {"platform": {"planned": "2"}}
+   },
+   {
+    "location": {"namespace": "gb-nr", "description": "Mount Florida", "shortCodes": ["MFL"], "longCodes": ["MTFLRDA"]},
+    "temporalData": {
+     "arrival": {"scheduleInternal": "2026-11-07T10:16:00", "scheduleAdvertised": "2026-11-07T10:16:00", "isCancelled": false},
+     "departure": {"scheduleInternal": "2026-11-07T10:17:00", "scheduleAdvertised": "2026-11-07T10:17:00", "isCancelled": false},
+     "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+    },
+    "locationMetadata": {"platform": {"planned": "2"}}
+   },
+   {
+    "location": {"namespace": "gb-nr", "description": "Glasgow Central", "shortCodes": ["GLC"], "longCodes": ["GLGC"]},
+    "temporalData": {
+     "arrival": {"scheduleInternal": "2026-11-07T10:26:00", "scheduleAdvertised": "2026-11-07T10:26:00", "isCancelled": false},
+     "scheduledCallType": "ADVERTISED_SET_DOWN", "realtimeCallType": "ADVERTISED_SET_DOWN", "displayAs": "CALL", "isInterpolated": false
+    },
+    "locationMetadata": {"platform": {"planned": "7"}}
+   }
+  ],
+  "origin": [{"location": {"description": "Glasgow Central", "longCodes": ["GLGC"]}, "temporalData": {"scheduleInternal": "2026-11-07T10:00:00", "scheduleAdvertised": "2026-11-07T10:00:00"}}],
+  "destination": [{"location": {"description": "Glasgow Central", "longCodes": ["GLGC"]}, "temporalData": {"scheduleInternal": "2026-11-07T10:26:00", "scheduleAdvertised": "2026-11-07T10:26:00"}}]
+ }
+}
