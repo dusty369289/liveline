@@ -4,7 +4,7 @@ import { isCancelled } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import { hm } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
-import { delayClass, hmh, plural } from "../format";
+import { delayClass, hmh, plural, statusNote } from "../format";
 import { type Html, html, raw } from "../html";
 
 const CHEVRON = raw('<svg class="route__fold-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
@@ -68,13 +68,12 @@ function pointMeta(v: PointView): unknown {
   const pt = v.point;
   if (isCancelled(pt)) return html`<span class="problem">${pt.display === "DIVERTED" ? "Diverted away" : "Cancelled here"}</span>`;
   const longDwell = pt.kind === "call" && v.arrival?.booked != null && v.departure?.booked != null && v.departure.booked - v.arrival.booked >= 120_000;
-  const status = { APPROACHING: " · Approaching", AT_PLATFORM: " · At platform", DEPART_READY: " · Ready to leave", DEPARTING: " · Leaving" } as Record<string, string>;
   return [
     pt.kind === "call" && pt.platform ? html`Plat ${pt.platform}${pt.platformChanged ? html` <span class="is-changed">changed</span>` : ""}` : "",
     longDwell ? ` · arr ${hm(v.arrival!.time)}` : "",
     pt.requestStop ? " · Request stop" : "",
     !pt.public && pt.kind === "call" ? " · Not for passengers" : "",
-    status[pt.status ?? ""] ?? "",
+    statusNote(pt.status),
   ];
 }
 

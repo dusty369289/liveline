@@ -15,6 +15,8 @@ import {
   type SystemStatus,
   type Times,
   emptyTimes,
+  TRAIN_STATUSES,
+  type TrainStatus,
 } from "./models";
 import { isoDate, type Ms, parseTime } from "./time";
 
@@ -26,6 +28,8 @@ export const obj = (v: unknown): Json => (v && typeof v === "object" && !Array.i
 export const isObj = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
 export const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
 const truthy = (v: unknown) => !!v && v !== 0;
+/** A status word we know, or null: one RTT adds later is left out rather than shown in capitals. */
+const trainStatus = (v: unknown): TrainStatus | null => (TRAIN_STATUSES as readonly unknown[]).includes(v) ? (v as TrainStatus) : null;
 
 function times(raw: unknown): Times {
   if (!isObj(raw)) return emptyTimes();
@@ -143,7 +147,7 @@ export function parsePoint(raw: Json): Point {
     platform: plat,
     platformConfirmed: confirmed,
     platformChanged: changed,
-    status: str(t.status),
+    status: trainStatus(t.status),
     public: callType ? ADVERTISED.has(callType) : !isPass,
     requestStop: truthy(meta.isRequestStop),
     interpolated: truthy(t.isInterpolated),
@@ -255,7 +259,7 @@ export function parseBoard(
       platformConfirmed: confirmed,
       platformChanged: changed,
       display: t.displayAs ? display(t.displayAs) : "CALL",
-      status: str(t.status),
+      status: trainStatus(t.status),
       vehicles: veh == null ? null : toInt(veh),
       passenger: meta.inPassengerService !== false,
       callType: str(t.realtimeCallType) ?? str(t.scheduledCallType),

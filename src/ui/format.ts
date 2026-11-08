@@ -1,6 +1,18 @@
 // Small text formatting shared by the views. Pure: no DOM, no state.
 import type { Shown } from "../core/engine";
+import type { TrainStatus } from "../core/models";
 import { hm, isoDate, type Ms } from "../core/time";
+
+/** RTT's status, in the same words on a board and on the train page. A Record, so a new status is a compile error. */
+export const STATUS_WORDS: Record<TrainStatus, string> = {
+  APPROACHING: "Approaching",
+  ARRIVING: "Arriving",
+  AT_PLATFORM: "At platform",
+  DEPART_PREPARING: "Getting ready to leave",
+  DEPART_READY: "Ready to leave",
+  DEPARTING: "Leaving",
+};
+export const statusNote = (s: TrainStatus | null): string => (s ? ` · ${STATUS_WORDS[s]}` : "");
 
 export function ago(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));

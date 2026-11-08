@@ -3,7 +3,7 @@ import { booked, type BoardRow, forPassengers, isBus, rowCancelled, statusMessag
 import type { BoardResult } from "../../core/rail";
 import { hm, isoDate, type Ms } from "../../core/time";
 import { timeMark } from "../components/marks";
-import { ago, dayLabel } from "../format";
+import { ago, dayLabel, statusNote } from "../format";
 import { type Html, html } from "../html";
 import { type Query, qs } from "../routes";
 
@@ -31,7 +31,7 @@ function meta(r: BoardRow): unknown[] {
     r.headcode && r.headcode !== "0B00" ? ` · ${r.headcode}` : "",
     r.branding ? ` · ${r.branding}` : "",
     r.vehicles ? ` · ${r.vehicles} coaches` : "",
-    r.status === "APPROACHING" ? " · Approaching" : ["AT_PLATFORM", "DEPART_PREPARING", "DEPART_READY"].includes(r.status ?? "") ? " · At platform" : "",
+    statusNote(r.status),
   ];
 }
 

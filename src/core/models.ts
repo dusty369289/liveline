@@ -47,6 +47,10 @@ export interface Reason {
   text: string;
 }
 
+/** RTT's word for where a train is at a location. Anything else it sends is dropped (parse.ts) rather than shown raw. */
+export const TRAIN_STATUSES = ["APPROACHING", "ARRIVING", "AT_PLATFORM", "DEPART_PREPARING", "DEPART_READY", "DEPARTING"] as const;
+export type TrainStatus = (typeof TRAIN_STATUSES)[number];
+
 export interface Point {
   name: string;
   crs: string | null;
@@ -59,7 +63,7 @@ export interface Point {
   platform: string | null;
   platformConfirmed: boolean;
   platformChanged: boolean;
-  status: string | null;
+  status: TrainStatus | null;
   public: boolean;
   requestStop: boolean;
   interpolated: boolean;
@@ -119,7 +123,7 @@ export interface BoardRow {
   platformConfirmed: boolean;
   platformChanged: boolean;
   display: Display;
-  status: string | null;
+  status: TrainStatus | null;
   vehicles: number | null;
   passenger: boolean;
   callType: string | null;
