@@ -77,4 +77,47 @@ describe("a refreshing board", () => {
     expect(touched(arr)).toBe(false);
     expect(touched(dep)).toBe(false); // gone from the page: nothing to update
   });
+
+  /** Open a "now" board, let one refresh answer, and return what replaced each slot. */
+  async function refreshOnce(app: Awaited<ReturnType<typeof setup>>, edit: (r: BoardResult) => BoardResult) {
+    const el = await app.open("#/board?station=PAD");
+    app.state.edit = edit;
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.every);
+    await app.release();
+    const body = el.parts["[data-board-body]"].replacedWith;
+    const top = el.parts["[data-board-top]"].replacedWith;
+    expect(body.length).toBe(1);
+    expect(top.length).toBe(1);
+    return { body: body[0].markup, top: top[0].markup };
+  }
+
+  it("rows going to none shows the empty line, not the old rows", async () => {
+    const { body } = await refreshOnce(await setup(), (r) => ({ ...r, rows: [] }));
+    expect(body).toContain('class="empty"');
+    expect(body).not.toContain('class="trains"');
+  });
+
+  it("none going to rows shows the rows", async () => {
+    const app = await setup();
+    app.state.edit = (r) => ({ ...r, rows: [] });
+    const el = await app.open("#/board?station=PAD");
+    app.state.edit = (r) => r;
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.every);
+    await app.release();
+    const body = el.parts["[data-board-body]"].replacedWith[0].markup;
+    expect(body).toContain('class="trains"');
+    expect(body).not.toContain('class="empty"');
+  });
+
+  it("an answer served from the cache says it's older", async () => {
+    const stale = (r: BoardResult) => ({ ...r, fetched: { ...r.fetched, stale: true, note: "Realtime Trains is busy" } });
+    const { body } = await refreshOnce(await setup(), stale);
+    expect(body).toContain("Showing the answer from");
+  });
+
+  it("the window line and Earlier/Later follow the fresh answer", async () => {
+    const { top } = await refreshOnce(await setup(), (r) => r);
+    expect(top).toContain("09:02 to 10:02"); // a "now" board moved on two minutes
+    expect(top).toContain("time=10%3A02"); // Later is an hour after the new start
+  });
 });

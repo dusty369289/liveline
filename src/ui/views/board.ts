@@ -68,6 +68,7 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
      data-to-name="${res.to?.name ?? null}" data-to-crs="${res.to?.crs ?? null}">
   <header class="board__head">
     <h1>${b.stationName}</h1>
+    <div class="board__slot" data-board-top>
     <p class="board__sub">${arr ? "Arrivals" : "Departures"}${other}, ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}</p>
     <p class="cluster board__nav">
       <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
@@ -76,9 +77,11 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
       <a href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
       <a href="#/${qs({ station: q.station })}">Change</a>
     </p>
+    </div>
     ${res.to && res.station ? html`<p class="board__save"><button type="button" class="linkish" data-save-journey>Save this journey</button>
       <span class="hint" data-save-note role="status" aria-live="polite"></span></p>` : ""}
   </header>
+  <div class="board__slot" data-board-body>
   ${sm ? html`<p class="banner" role="note">${sm}</p>` : ""}
   ${res.fetched.stale ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${res.fetched.note}.</p>` : ""}
   ${res.rows.length === 0
@@ -87,5 +90,6 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
   <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", updates every 2 minutes while open" : ""}. An outlined platform isn't confirmed yet.${
     res.hidden ? html` ${res.hidden} empty or staff-only train${res.hidden !== 1 ? "s" : ""} hidden: <a href="${nav.all}">show all</a>.`
       : res.showAll ? html` <a href="${nav.all}">Passenger trains only</a>.` : ""}</p>
+  </div>
 </div>`;
 }

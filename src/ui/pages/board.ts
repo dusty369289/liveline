@@ -85,8 +85,9 @@ export class BoardPage extends Page {
   }
 
   /**
-   * Swap in the fresh rows and footer, without jumping to the top. Only into this board: an answer that arrives after
-   * you've moved on to another board (the page root is shared) is dropped.
+   * Swap in the fresh answer without jumping to the top: the window line and its links, and everything below the
+   * header (status, the older-answer note, rows or the empty line, footer), each slot whole. Only into this board: an
+   * answer that arrives after you've moved on to another board (the page root is shared) is dropped.
    */
   private keepFresh(board: HTMLElement): void {
     const opened = Date.now();
@@ -100,8 +101,9 @@ export class BoardPage extends Page {
       try {
         const res = await this.request({ background: true });
         if (!board.isConnected) return;
-        const fresh = fragment(boardView(res, this.query, this.nav!, true, this.ctx.rail.clock()));
-        for (const sel of [".trains", ".board__foot", ".empty"]) {
+        this.nav = this.links(res); // a "now" board's window moves on, and Earlier/Later with it
+        const fresh = fragment(boardView(res, this.query, this.nav, true, this.ctx.rail.clock()));
+        for (const sel of ["[data-board-top]", "[data-board-body]"]) {
           const now = board.querySelector(sel);
           const next = fresh.querySelector(sel);
           if (now && next) now.replaceWith(next);
