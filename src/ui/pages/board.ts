@@ -78,7 +78,12 @@ export class BoardPage extends Page {
   private wireSaveJourney(root: HTMLElement, d: DOMStringMap): void {
     const save = root.querySelector<HTMLButtonElement>("[data-save-journey]");
     if (!save) return;
-    const j = { from: d.crs!, fromName: d.station!, to: d.toCrs!, toName: d.toName! };
+    // The journey you'd make: on arrivals the other station is where you come from ("Arrivals at PAD from OXF" is
+    // Oxford to Paddington, the same trip as "Departures from OXF calling at PAD")
+    const here = { crs: d.crs!, name: d.station! };
+    const other = { crs: d.toCrs!, name: d.toName! };
+    const [a, b] = this.query.mode === "arr" ? [other, here] : [here, other];
+    const j = { from: a.crs, fromName: a.name, to: b.crs, toName: b.name };
     const note = root.querySelector("[data-save-note]")!;
     // A star on the nameboard: filled once saved. Its name says what a tap does; the note says what happened.
     const show = (saved: boolean) => {
