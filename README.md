@@ -79,8 +79,7 @@ your own free key. No server, no account, and without a key it runs a clearly ma
 
 ## How it works
 
-<details>
-<summary><b>Where it places the train</b></summary>
+### Where it places the train
 
 Realtime Trains reports a train as it passes each timing point. Between two reports LiveLine moves the marker by the
 time elapsed against the booked time for that section. It stops at 95% of the way until the next point is reported,
@@ -90,10 +89,7 @@ Where Realtime Trains has no forecast, LiveLine makes its own: it carries the de
 back 75% of the recovery time and long waits in the timetable, but never leave an advertised stop early. It's a
 reasoned guess, not a tested model, and it's always drawn as a dashed ring.
 
-</details>
-
-<details>
-<summary><b>How it spends your allowance</b></summary>
+### How it spends your allowance
 
 Your key's allowance is 10 calls a minute, 100 an hour and 1000 a day (Free and Hobbyist). Each window rolls: a call
 counts against it until it's that old. Every call goes through one budget, which also obeys the limits Realtime
@@ -112,6 +108,9 @@ As the hour's calls run down, the app slows itself, so they last the hour:
 </picture>
 
 <sub>Drawn like the app's route line by <code>npm run readme-pictures</code>, from the rules in <code>src/core/budget.ts</code> and <code>src/core/poll.ts</code>.</sub>
+
+<details>
+<summary><b>How often it asks, and what Refresh costs</b></summary>
 
 - A train page asks just after the next report is due, at most once a minute, and every 2 to 3 minutes while
   nothing is due, or every half hour for a train over 2 hours off. Following one train for an hour costs about 45
