@@ -147,8 +147,6 @@ export class BoardPage extends Page {
       }
     };
     const stop = this.every(BOARD_REFRESH.every, refresh);
-    const back = () => void refresh();
-    document.addEventListener("visibilitychange", back);
-    this.onDispose(() => document.removeEventListener("visibilitychange", back));
+    this.whenBack(() => void refresh());
   }
 }
