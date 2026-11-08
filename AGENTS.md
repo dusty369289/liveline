@@ -130,7 +130,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   for Settings (named "Settings" for screen readers).
 - **Tiers** come from entitlements and reported limits: `allowDetailed` = Hobbyist features, a full-allocation
   entitlement or over 100 an hour = Team or above, nothing = Free.
-- **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
+- **Rounding:** lateness is whole minutes toward zero (railway practice), shown against the public time where there is
+  one, so the headline and the row agree; the estimate works on the working timetable. Only the simulator rounds,
+  halves up.
 - **Updates** (`ui/updates.ts`): Settings, or once a day quietly, asks GitHub for the latest release. If newer, one tap
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
   version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key.

@@ -304,7 +304,11 @@ function position(
   const [act, ev] = actualOf(lp) as [Ms, Times];
   const pl = ev ? planned(ev) : null;
   const delay = pl != null ? roundMin((act - pl) / 1000) : null;
-  const late = lateText(delay);
+  // The words say what the row says: lateness against the public time (working time where there's none). `delay`
+  // stays on the working timetable, which is what the estimate runs on.
+  const lv = views[last];
+  const reportedShown = ev === lp.arrival ? lv.arrival : ev === lp.departure ? lv.departure : lv.passing;
+  const late = lateText(reportedShown?.delayMin ?? delay);
 
   const nxtK = usable.indexOf(last) + 1;
   if (nxtK >= usable.length) {

@@ -12,6 +12,49 @@ export const readJson = <T = unknown>(path: string): T => JSON.parse(readTestFil
 /** A real RTT recording or a spec-derived fixture from test/fixtures/rtt/. */
 export const fixture = (name: string): unknown => readJson(`fixtures/rtt/${name}`);
 
+/** One event in a made-up RTT answer: times as UK local "HH:MM[:SS]" on 2026-11-07. */
+export interface FakeEvent {
+  gbtt?: string;
+  wtt?: string;
+  actual?: string;
+  forecast?: string;
+  noReport?: boolean;
+  cancelled?: boolean;
+}
+export interface FakeLocation {
+  name: string;
+  crs?: string;
+  arr?: FakeEvent;
+  dep?: FakeEvent;
+  pass?: FakeEvent;
+  display?: string;
+}
+
+const at = (hms?: string) => (hms ? `2026-11-07T${hms.length === 5 ? `${hms}:00` : hms}` : undefined);
+const event = (e?: FakeEvent) => e && {
+  scheduleAdvertised: at(e.gbtt), scheduleInternal: at(e.wtt), realtimeActual: at(e.actual), realtimeForecast: at(e.forecast),
+  realtimeNoReport: e.noReport, isCancelled: e.cancelled ?? false,
+};
+
+/** A small RTT service answer in the shape parse.ts reads, for rule tests that don't need a whole recording. */
+export function fakeService(locs: FakeLocation[], systemStatus = { realtimeNetworkRail: "OK", rttCore: "OK" }): unknown {
+  return {
+    systemStatus,
+    service: {
+      scheduleMetadata: { identity: "X12345", departureDate: "2026-11-07", operator: { code: "XX", name: "Test" }, trainReportingIdentity: "1X99" },
+      locations: locs.map((l) => ({
+        location: { description: l.name, shortCodes: l.crs ? [l.crs] : [], longCodes: [l.name.toUpperCase().replace(/\W/g, "")] },
+        temporalData: {
+          arrival: event(l.arr), departure: event(l.dep), pass: event(l.pass),
+          displayAs: l.display ?? (l.pass ? "PASS" : "CALL"),
+          scheduledCallType: l.pass ? null : "ADVERTISED_OPEN",
+        },
+        locationMetadata: {},
+      })),
+    },
+  };
+}
+
 /** The bundled station list, loaded once. */
 export const stations = StationIndex.fromRaw(JSON.parse(readFileSync(`${here}../src/data/stations.json`, "utf8")));
 
