@@ -2,7 +2,7 @@
 import type { BoardResult } from "../core/rail";
 import { fromLondon, isoDate, londonParts, type Ms } from "../core/time";
 
-export type RouteName = "home" | "board" | "train" | "recent" | "settings" | "about" | "unknown";
+export type RouteName = "home" | "board" | "train" | "recent" | "journeys" | "settings" | "about" | "unknown";
 
 export interface Route {
   name: RouteName;
@@ -10,7 +10,7 @@ export interface Route {
   params: URLSearchParams;
 }
 
-const NAMED: Record<string, RouteName> = { "/": "home", "/board": "board", "/recent": "recent", "/settings": "settings", "/about": "about" };
+const NAMED: Record<string, RouteName> = { "/": "home", "/board": "board", "/recent": "recent", "/journeys": "journeys", "/settings": "settings", "/about": "about" };
 
 export function parseHash(hash: string): Route {
   const h = hash.replace(/^#/, "") || "/";

@@ -72,7 +72,17 @@
   border-radius: 50%; background: var(--train); border: 2px solid var(--train-edge); box-sizing: border-box;
 }
 
-.journeys__list { display: grid; border-top: 1px solid var(--line); }
+/* The search page's line to Saved journeys: Carry on's shape, with a saved star (as a starred board's) for its dot */
+.carry--saved::before { content: none; }
+.carry--saved > .icon--star { grid-row: span 2; width: 22px; height: 22px; fill: var(--train); stroke: var(--train-edge); }
+
+/* Saved journeys: the journey opens its board; a red bin on the right removes it */
+.journeys__list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--line); }
 .journeys__item { display: flex; align-items: center; gap: var(--s-3); border-bottom: 1px solid var(--line); }
-.journeys__go { flex: 1; display: flex; align-items: center; min-height: 3.25rem; text-decoration: none; font: 600 var(--t-md)/1.2 var(--sign-font); }
-.journeys__back { display: inline-flex; align-items: center; min-height: var(--tap); padding-left: var(--s-3); color: var(--muted); font-size: var(--t-sm); }
+.journeys__go { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 3.25rem; padding-block: var(--s-2); text-decoration: none; font: 600 var(--t-md)/1.2 var(--sign-font); }
+.journeys__remove {
+  flex: none; display: inline-grid; place-items: center; min-width: var(--tap); min-height: var(--tap); margin-right: calc(-1 * var(--s-2));
+  background: none; border: 0; padding: 0; color: var(--problem); cursor: pointer;
+}
+.journeys__remove:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
+.journeys__search { display: inline-flex; align-items: center; min-height: var(--tap); } /* a line of its own: a control */

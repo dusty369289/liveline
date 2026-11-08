@@ -18,9 +18,31 @@ test("search, returning: a saved journey, a train to carry on with, recent stati
   await page.locator("[data-save-journey]").click();
   await firstTrain(page, "/board?station=PAD&to=OXF&time=09:00");
   await open(page, "/");
-  await expect(page.locator(".carry")).toBeVisible();
-  await expect(page.locator(".journeys__item")).toHaveCount(1);
+  await expect(page.locator(".carry:not(.carry--saved)")).toBeVisible();
+  await expect(page.locator(".carry--saved")).toContainText("1 journey");
   await shot(page, info, "10-search-returning");
+  void errors;
+});
+
+// Saved journeys have a page of their own; the search page keeps one line to it, however many are saved
+test("saved journeys: their own page, reached from the search page's one line, and one removed", async ({ page, errors }, info) => {
+  const saved = [
+    { from: "PAD", fromName: "London Paddington", to: "OXF", toName: "Oxford" },
+    { from: "WAT", fromName: "London Waterloo", to: "WOK", toName: "Woking" },
+    { from: "RDG", fromName: "Reading", to: "DID", toName: "Didcot Parkway" },
+  ];
+  await page.addInitScript(([name, v]) => localStorage.setItem(name, v), [KEYS.journeys, JSON.stringify(saved)] as const);
+  await open(page, "/");
+  await expect(page.locator(".journeys__item")).toHaveCount(0);
+  await page.locator(".carry--saved", { hasText: "3 journeys" }).click();
+  await expect(page.locator("main h1")).toHaveText("Saved journeys");
+  await expect(page.locator(".journeys__item")).toHaveCount(3);
+  await shot(page, info, "14-saved-journeys");
+  await page.getByRole("button", { name: "Remove London Waterloo to Woking" }).click();
+  await expect(page.locator(".journeys__item")).toHaveCount(2);
+  await expect(page.locator(".journeys__go").first()).toHaveText("London Paddington → Oxford");
+  await page.locator(".journeys__go", { hasText: "London Paddington → Oxford" }).click();
+  await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
   void errors;
 });
 
@@ -190,9 +212,9 @@ test("waiting for Realtime Trains: the old page stays, with a thin line along th
 });
 
 test("something nobody planned for: a sentence and Try again, not Loading… for good", async ({ page, errors }, info) => {
-  // A saved-journeys list no version of the app would write: drawing the search page throws, standing for any bug
+  // A saved-journeys list no version of the app would write: drawing their page throws, standing for any bug
   await page.addInitScript((name) => localStorage.setItem(name, "[null]"), KEYS.journeys);
-  await open(page, "/");
+  await open(page, "/journeys");
   await expect(page.locator("main h1")).toHaveText("Something went wrong");
   await expect(page.locator("[data-retry]")).toHaveText("Try again");
   await shot(page, info, "19-something-went-wrong");

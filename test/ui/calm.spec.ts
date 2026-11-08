@@ -35,7 +35,7 @@ test("saving a journey from the star still works, and says so", async ({ page, e
   await open(page, "/board?station=PAD&to=OXF&time=09:00");
   await page.getByRole("button", { name: "Save this journey" }).click();
   await expect(page.locator("[data-save-note]")).toContainText(/Saved/i);
-  await open(page, "/");
+  await open(page, "/journeys");
   await expect(page.locator(".journeys__item")).toHaveCount(1);
   void errors;
 });

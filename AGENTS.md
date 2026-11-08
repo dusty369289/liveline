@@ -233,9 +233,13 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   reserve. A key refusal is kept and shown in Settings; a busy or offline key check isn't, and the next call tries again.
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
-  it's due in), under its heading and above My journeys, so a screen reader starting at the focused heading meets
-  both. Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05" for another
-  day), never "Running now", even in that first half hour.
+  it's due in), under its heading and above the Saved journeys line, so a screen reader starting at the focused
+  heading meets both. Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05"
+  for another day), never "Running now", even in that first half hour.
+- **Saved journeys** (`store/lists.ts`, `#/journeys`): a board with a "Calling at" station has a star that saves it
+  (up to 8). They have a page of their own, each journey opening its board, with a red bin to remove it (owner: no
+  Return, which was redundant); the search page has one line to it ("Saved journeys · 3 journeys", with a star),
+  the same height however many are saved (owner, 2026-11-08: the list there was squished and would fill the screen).
 - **Page changes** (`ui/app.ts`): the old page keeps running until the new one is drawn; meanwhile the root has
   `aria-busy` and `is-navigating` (a thin still line along the top after 300 ms). `render` never throws: a
   Realtime Trains error gets its problem page; anything else is logged to the console and shown as "Something went

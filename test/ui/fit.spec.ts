@@ -19,8 +19,8 @@ test.describe("on a small phone's app screen", () => {
     await page.locator("[data-save-journey]").click();
     await openTrain(page);
     await open(page, "/");
-    await expect(page.locator(".carry")).toBeVisible();
-    await expect(page.locator(".journeys__item")).toHaveCount(1);
+    await expect(page.locator(".carry:not(.carry--saved)")).toBeVisible();
+    await expect(page.locator(".carry--saved")).toBeVisible();
     expect(await fits(page)).toBeLessThanOrEqual(0);
     void errors;
   });
