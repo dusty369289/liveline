@@ -29,11 +29,12 @@
 .board__sub { color: var(--muted); margin-top: var(--s-2); }
 /* The whole line is a link (it changes the search), so it keeps a full tap target */
 .board__sub a { display: inline-flex; align-items: center; min-height: var(--tap); padding-block: var(--s-1); }
-/* Few controls, in plain words rather than a row of underlines; refresh is an icon at the end */
+/* Few controls, in plain words rather than a row of underlines; flip and refresh are icons at the end */
 .board__nav { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-4); font-size: var(--t-sm); } /* wraps at large text */
 .board__nav a { min-height: var(--tap); display: inline-flex; align-items: center; }
 .board__nav .board__step { font-weight: 600; text-decoration: none; color: var(--ink); }
-.board__nav .board__refresh { margin-left: auto; min-width: var(--tap); justify-content: center; color: var(--ink); }
+.board__nav .board__refresh, .board__nav .board__flip { margin-left: auto; min-width: var(--tap); justify-content: center; color: var(--ink); }
+.board__nav .board__flip + .board__refresh { margin-left: 0; } /* flip and refresh sit together at the end */
 
 /* Rows read like a departure board: time, where it's going, and a platform plate. */
 .trains__row + .trains__row { border-top: 1px solid var(--line); }

@@ -161,6 +161,14 @@ describe("a board's links", () => {
     expect(arr).toContain('href="#/board?station=PAD&amp;mode=arr&amp;refresh=1"');
     expect(arr).toContain('href="#/board?station=PAD">Departures'); // the switch back has no mode=dep either
   });
+
+  it("Flip swaps the two stations, keeping the time and the mode (owner, 2026-11-08: in place of Return)", async () => {
+    const app = await setup();
+    const view = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD&to=OXF&time=09:00&mode=arr")).load(() => false));
+    expect(view).toMatch(/<a class="board__flip" href="#\/board\?station=OXF&amp;to=PAD&amp;time=09%3A00&amp;mode=arr"[^>]*aria-label="Flip: London Paddington to Oxford"/); // arrivals at Oxford from Paddington
+    const one = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD")).load(() => false));
+    expect(one).not.toContain("board__flip"); // nothing to flip with one station
+  });
 });
 
 describe("coming back to a board", () => {

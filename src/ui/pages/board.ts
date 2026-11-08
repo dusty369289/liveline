@@ -72,6 +72,7 @@ export class BoardPage extends Page {
       switch: boardHash({ ...q, mode: q.mode === "arr" ? "dep" : "arr" }),
       all: boardHash({ ...q, all: q.all ? "" : "1" }),
       change: boardHash({ ...q, all: "" }).replace("#/board", "#/"), // the form, filled in
+      flip: q.to ? boardHash({ ...q, station: q.to, to: q.station }) : null, // the way back, at the same time
     };
   }
 

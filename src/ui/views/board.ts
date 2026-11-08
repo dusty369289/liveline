@@ -3,7 +3,7 @@ import { booked, type BoardRow, forPassengers, isBus, rowCancelled, statusMessag
 import type { BoardResult } from "../../core/rail";
 import { shownOf } from "../../core/engine";
 import { hm, isoDate, type Ms } from "../../core/time";
-import { REFRESH_ICON, STAR_ICON } from "../components/icons";
+import { FLIP_ICON, REFRESH_ICON, STAR_ICON } from "../components/icons";
 import { timeMark } from "../components/marks";
 import { operatorBadge } from "../components/operators";
 import { ago, dayLabel, delayClass, statusNote } from "../format";
@@ -11,7 +11,8 @@ import { type Html, html } from "../html";
 import { qs } from "../routes";
 
 /** The board's own links: an hour either side, refresh, the other direction, show all, and the search filled in. */
-export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string; change: string }
+/** `flip`: the board with its two stations swapped, or null with only one. */
+export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string; change: string; flip: string | null }
 
 /**
  * A row with no live time is the timetable until this long after its booked time; only then is the missing report
@@ -109,6 +110,7 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
       <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
       <a class="board__step" href="${nav.later}">Later<span aria-hidden="true">\u00a0›</span></a>
       <a class="board__step" href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
+      ${nav.flip && res.to ? html`<a class="board__flip" href="${nav.flip}" aria-label="Flip: ${arr ? `${b.stationName} to ${res.to.name}` : `${res.to.name} to ${b.stationName}`}" title="Flip">${FLIP_ICON}</a>` : ""}
       <a class="board__refresh" href="${nav.refresh}" data-board-refresh aria-label="Refresh" title="Refresh">${REFRESH_ICON}</a>
     </nav>
     </div>

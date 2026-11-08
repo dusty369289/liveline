@@ -27,6 +27,17 @@ describe.each(["station", "to"])("the %s box", (id) => {
   });
 });
 
+describe("Flip", () => {
+  it("is a button between the two station boxes, named for screen readers", () => {
+    const flip = tag(/<button[^>]*data-flip-stations[^>]*>/);
+    expect(flip).toContain('type="button"');
+    expect(flip).toContain('aria-label="Swap the two stations"');
+    const at = (s: string) => form.indexOf(s);
+    expect(at('id="station"')).toBeLessThan(at("data-flip-stations"));
+    expect(at("data-flip-stations")).toBeLessThan(at('id="to"'));
+  });
+});
+
 describe("Another time or day", () => {
   it("is open, with a space before the open attribute, when a time is set", () => {
     const details = searchForm({ time: "09:00" }).value.match(/<details[^>]*>/)?.[0];
