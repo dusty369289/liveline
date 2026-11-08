@@ -39,15 +39,17 @@ export interface Retry { secs: number; at: Ms | null }
 
 /**
  * `retry`: when the page tries again by itself, or null when it won't. `tryAgain` offers "Try again", for a failure
- * nobody planned for (which might not happen twice).
+ * nobody planned for (which might not happen twice). `announce`: the message is an alert; off when the page redraws
+ * itself (a busy page's retry), so a screen reader isn't interrupted again with what it already heard.
  */
-export function problemView(title: string, message: string, retry: Retry | null, q: Query | null = null, tryAgain = false): Html {
+export function problemView(title: string, message: string, retry: Retry | null, q: Query | null = null, tryAgain = false,
+  announce = true): Html {
   const wait = retry == null ? "" : retry.at != null ? `at ${hm(retry.at)}`
     : `in ${retry.secs < 60 ? `${retry.secs} seconds` : plural(Math.round(retry.secs / 60), "minute")}`;
   return html`
 <div class="stack">
   <h1>${title}</h1>
-  <p class="problem" role="alert">${message}</p>
+  ${announce ? html`<p class="problem" role="alert">${message}</p>` : html`<p class="problem">${message}</p>`}
   ${wait ? html`<p class="hint">This page tries again by itself ${wait}.</p>` : ""}
   ${tryAgain ? html`<p><button type="button" class="linkish" data-retry>Try again</button></p>` : ""}
   ${q ? searchForm(q) : html`<p><a class="problem__search" href="#/">Search again</a></p>`}
