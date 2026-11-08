@@ -91,6 +91,25 @@ describe("pre-commit", () => {
     }
     expect(repo.git("ls-files", "--others").stdout).not.toContain("ran.txt");
   });
+
+  it("checks the commit itself: a staged file that needs an untracked one fails", () => {
+    repo.write("main.mjs", `import "./helper.mjs";\n`);
+    repo.write("helper.mjs", "export {};\n"); // here in the working tree, but not in the commit
+    repo.git("add", "main.mjs");
+    stubNpm("node main.mjs");
+    expect(repo.run("node", ["main.mjs"]).status).toBe(0); // passes where it stands
+    const run = preCommit();
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/check failed/);
+    expect(repo.git("worktree", "list").stdout.trim().split("\n")).toHaveLength(1); // the snapshot is cleaned away
+  });
+
+  it("checks a clean tree where it stands (the fast path), and leaves no log behind", () => {
+    stubNpm(`pwd > "${repo.dir}/.git/where"`);
+    expect(preCommit().status).toBe(0);
+    expect(repo.run("cat", [".git/where"]).stdout.trim()).toBe(repo.run("pwd", []).stdout.trim());
+    expect(repo.git("status", "--short", "--untracked-files=all").stdout).not.toContain(".git-check.log");
+  });
 });
 
 describe("commit-msg", () => {

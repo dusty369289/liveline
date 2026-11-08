@@ -3,6 +3,9 @@
 # 1. Show what is staged, so a commit can't quietly carry deletions or renames from earlier `git rm`/`git mv`.
 # 2. Every commit passes the full check on its own (typecheck, tests, architecture, the leak check, build), so
 #    history can be bisected. This is the only per-commit pass: nothing re-runs it over a branch later.
+#    It checks the commit itself, not the working tree: with unstaged or untracked files about, the staged snapshot
+#    is checked out in a throwaway worktree and checked there, so a file the commit leaves out can't make it pass.
+#    A clean tree is the snapshot, so it's checked where it stands (faster: no checkout).
 # 3. Before both, the commit carries the owner's identity (scripts/owner.sh), so no real name or personal email
 #    reaches public history. `git var` sees what the commit will really use: config, environment or --author.
 # Never skip this with --no-verify: fix what it finds instead.
@@ -34,9 +37,29 @@ renamed=$(printf '%s\n' "$staged" | grep -c '^R' || true)
 echo "pre-commit: committing $added added, $modified modified, $deleted deleted, $renamed renamed." >&2
 printf '%s\n' "$staged" | grep -E '^(D|R)' | sed 's/^/  /' >&2 || true
 
-npm run --silent check > .git-check.log 2>&1 || {
-  echo "pre-commit: npm run check failed; the output is in .git-check.log. Fix it before committing." >&2
-  tail -20 .git-check.log >&2
+top=$(pwd)
+log="$top/.git-check.log"
+here="$top"
+if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+  # The index git hands this hook (GIT_INDEX_FILE) is exactly what the commit will hold: snapshot it, then let go of
+  # it, so the worktree commands below keep their own index and never touch this one.
+  tree=$(git write-tree)
+  parent=$(git rev-parse -q --verify HEAD || true)
+  snap=$(git commit-tree "$tree" ${parent:+-p "$parent"} -m "pre-commit snapshot")
+  unset GIT_INDEX_FILE GIT_DIR GIT_WORK_TREE
+  here=$(mktemp -d "${TMPDIR:-/tmp}/liveline-pre-commit.XXXXXX")
+  # Remove only this worktree (a prune would touch every worktree of the repository, other sessions' included)
+  trap 'git -C "$top" worktree remove --force "$here" 2>/dev/null; rm -rf "$here"' EXIT
+  git worktree add -q --detach "$here" "$snap"
+  # Installed packages and the local leak words aren't in git: share this checkout's
+  [ -e "$top/node_modules" ] && ln -s "$top/node_modules" "$here/node_modules"
+  [ -e "$top/notes" ] && ln -s "$top/notes" "$here/notes"
+  echo "pre-commit: checking the staged snapshot (unstaged or untracked files are about)." >&2
+fi
+
+(cd "$here" && npm run --silent check) > "$log" 2>&1 || {
+  echo "pre-commit: npm run check failed on what's staged; the output is in .git-check.log. Fix it before committing." >&2
+  tail -20 "$log" >&2
   exit 1
 }
-rm -f .git-check.log
+rm -f "$log"
