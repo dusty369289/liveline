@@ -22,7 +22,8 @@ src/
   core/        no DOM, no Capacitor. Pure logic and the RTT client:
                time (UK DST), models, parse, engine (position + estimate), poll (when to ask again), budget,
                http (Http interface), rtt (client: auth, cache, budget), simulator (demo mode) and sim-stock (its
-               trains' units), stations, rail (what the UI calls), update (release check), keys (core storage names),
+               trains' units), stations, rail (what the UI calls), update (release check), sha256 (synchronous: the
+               simulator's delay profiles, the key's fingerprint), keys (core storage names, and the `StoreKey` type),
                and for the Train view: formation (coaches, units, letters, facilities), scene (stopped, running,
                the two ends), motion (how the drawn train moves), daylight (dawn, day, dusk or night)
   platform/    the only Capacitor code: native HTTP, the private key store, app version, the updater plugin bridge
@@ -46,7 +47,9 @@ test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt
                answers), harness/ (the test review), ui/ (Playwright: *.spec.ts)
                readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
 docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`
-scripts/       leak-check.mjs, review.mjs, android-build.sh
+scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run commit), merge-pr.sh (npm run merge),
+               history-check.mjs (commits and PR text), leak-check.mjs, owner.sh (the one commit identity),
+               attribution.re (the AI attribution pattern), review.mjs, android-build.sh
 ```
 
 ## Architecture rules (checked by `test/architecture.test.ts`)
@@ -54,9 +57,11 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Layers point inward:** `core` imports only `core`, never touches `document`, `window` or `localStorage`. Only
   `platform` imports Capacitor. The UI reaches the platform through `src/platform/index.ts`.
 - **One home for each thing:** network requests only in `platform/` and `core/http.ts`. Storage names only in
-  `core/keys.ts` and `ui/store/keys.ts`. `localStorage` only through `Pref` (and the platform's browser key store).
-  Markup reaches the page only through `html.ts` (`render`, `fragment`), so everything is escaped. Raw colours only in
-  the theme.
+  `core/keys.ts` and `ui/store/keys.ts` (any quoted `liveline.`/`rtt.` name, in any case; the key store and `Pref`
+  also take only registered names, by type). `localStorage` only through `Pref` (and the platform's browser key
+  store). Markup reaches the page only through `html.ts` (`render`, `fragment`), so everything is escaped: no other
+  `innerHTML`/`outerHTML` (`=` or `+=`), `insertAdjacentHTML`, `setHTMLUnsafe`, `createContextualFragment` or
+  `document.write` (the escaping itself is tested in `test/html.test.ts`). Raw colours only in the theme.
 - **Small files:** none over 300 lines. Three core files are exempt, each with its reason in the test; a new exemption
   needs a reason a reviewer would accept, not "it grew".
 - Clock and transport are injected (`Rail`, `RttClient`, `SimTransport`, `TestReview`), so tests control time and
@@ -77,7 +82,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Updates keep users' data** (`test/persistence.test.ts`): never change `appId`, `server.androidScheme`,
   `server.hostname`, the signing key, or a storage name without a migration in the same PR.
 - **Nothing personal in tracked files** (`npm run leak-check`, in CI): no owner names, machines, servers, other
-  projects, home paths or emails beyond the repo URL.
+  projects, home paths or emails beyond the repo URL (and GitHub's noreply commit address in `scripts/owner.sh`).
+  The same check covers commit messages and PR text (`--text` mode, via commit-msg and `history-check.mjs`).
 
 ## Product behaviour
 
@@ -166,18 +172,31 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
 ## How to work on it
 
 ### Branches
-- One branch per piece of work, from an up-to-date `main`, named `<type>/<topic>`: `feat/`, `fix/`, `refactor/`,
-  `test/`, `docs/`, `ci/` or `chore/`, e.g. `fix/board-late-trains`. Follow-ups to the same piece of work are more
-  commits on the same branch, never a new one.
+- One branch per piece of work, from the GitHub repository's `main` as just fetched (`git fetch`, then branch from
+  the remote-tracking `main`, never a local `main`, which in an old checkout can be another history), named
+  `<type>/<topic>`: `feat/`, `fix/`, `refactor/`, `test/`, `docs/`, `ci/` or `chore/`, e.g. `fix/board-late-trains`.
+  Follow-ups to the same piece of work are more commits on the same branch, never a new one. Rebasing onto `main`
+  means onto that freshly fetched remote-tracking `main` too.
 
 ### Commits
 - Small and logical, each one passing `npm run check` on its own (so history can be bisected). Stage explicit paths,
   never `git add -A`. A short subject saying what changed; a body only when the why isn't obvious.
-- Never an AI co-author trailer or a "Generated with" line. All work is attributed to the owner.
-- **Git hooks enforce this** (`scripts/git-hooks/`, switched on by `npm install`). pre-commit lists what's staged
-  (deletions and renames by name) and runs `npm run check` (the leak check is part of it); commit-msg refuses AI
-  attribution and subjects over 72 characters; pre-push refuses while anything is staged (a commit just before it
-  failed) and any remote but this repository (a checkout may also carry the old one). Tested in `test/git-hooks.test.ts`. Never `--no-verify`: fix what the hook found.
+- Commit with **`npm run commit -- "<subject>" [-m "<body>"] <path>...`** (`scripts/commit.sh`): it refuses if
+  anything is already staged, checks the message with the commit-msg hook before anything else, stages exactly those
+  paths and commits; if the commit fails, it unstages them again, so nothing is left staged for a push to strand.
+- Never an AI co-author trailer or a "Generated with" line. All work is attributed to the owner, under one identity:
+  `scripts/owner.sh` (the GitHub login and its noreply address, so no real name reaches public history).
+- **Git hooks enforce this** (`scripts/git-hooks/`, switched on by `npm install`). pre-commit refuses any author or
+  committer but the owner, lists what's staged (deletions and renames by name) and runs `npm run check` (the leak
+  check is part of it) on **the commit itself**: with unstaged or untracked files about, on the staged snapshot in a
+  throwaway worktree, so a file the commit leaves out can't make it pass. commit-msg refuses AI attribution
+  (`scripts/attribution.re`), personal details (the leak check's `--text` mode) and subjects over 72 characters.
+  pre-push refuses while anything is staged (a commit just before it failed), any remote but this repository (a
+  checkout may also carry the old one), and any pushed commit that isn't the owner's or whose message fails those
+  checks (`scripts/history-check.mjs`). Tested in `test/git-hooks.test.ts` and `test/history-check.test.ts`. Never
+  `--no-verify`: fix what the hook found.
+- CI's Checks job runs `history-check.mjs` over the PR's own commits and its title and body (re-run when they're
+  edited): hooks can be skipped, and PR text is public the moment it's saved.
 - The hook is what makes every commit pass on its own, so there's no second pass over a branch's commits. After a
   rebase onto a `main` that moved, only the branch's head is checked again (CI does it): the commits under it passed
   on the base they were made on, and the PR is the unit that reaches `main`.
@@ -218,8 +237,9 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
 - CI doesn't run again on `main` after a merge: a rebase merge of an up-to-date branch puts exactly the tested commits
   there, and a release runs everything again itself.
 - **Agents open PRs; they merge only when the owner says so**, and only with `npm run merge -- <number>`
-  (`scripts/merge-pr.sh`): it refuses unless every required check ran and passed on the PR's current head (skipped
-  doesn't count), then rebase-merges pinned to that commit and deletes the branch. Never `gh pr merge` directly, and
+  (`scripts/merge-pr.sh`, tested with a stand-in `gh` in `test/merge-pr.test.ts`): it refuses unless Checks and
+  Browser each ran and passed on the PR's current head (skipped or never reported doesn't count) and the PR's title
+  and body pass `history-check.mjs`, then rebase-merges pinned to that commit and deletes the branch. Never `gh pr merge` directly, and
   never in the same step as a push or a check: push, wait for CI, look, then merge. Merging never releases.
 
 ### Releases
@@ -266,9 +286,13 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 npm ci
 npm run dev                     # browser dev server, with the /rtt relay (RTT sends no CORS headers)
 npm run check                   # typecheck, unit tests, architecture, leak check, build: before every commit
+npm run commit -- "<subject>" <path>...   # commit exactly those paths (scripts/commit.sh); -m "<body>" adds a body
 npm run test:ui                 # browser suite, then open .ui-report/index.html
 npm run review                  # what's slow or flaky, and how to clear it
 npm run readme-pictures         # remake docs/img from the demo after a visible change, then look at them
+npm run merge -- <PR number>    # only when the owner says "merge" (scripts/merge-pr.sh)
+npm run typecheck; npm test; npm run leak-check; npm run build   # the parts of check, one at a time
+npm run android:sync            # build, then copy it into android/ (android:debug, android:release build APKs)
 scripts/android-build.sh debug  # an APK locally (JDK 21 and the Android SDK; see the script)
 ```
 
