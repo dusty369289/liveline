@@ -2,18 +2,18 @@
 // on the simulator (demo); with one, it talks to RTT itself.
 import { Budget } from "./budget";
 import { STORE } from "./keys";
-import { build, type Timeline } from "./engine";
+import { build, DEFAULT_ENGINE, type Timeline } from "./engine";
 import type { Http } from "./http";
-import { type Board, type BoardRow, booked, forPassengers, isEmpty, type Times } from "./models";
+import { type Board, type BoardRow, booked, feedOf, forPassengers, isEmpty, type SystemStatus, type Times } from "./models";
 import { type Formation, formationFor, parseFormations } from "./formation";
-import { parseBoard, parseService } from "./parse";
+import { parseBoard, parseService, parseSystemStatus } from "./parse";
 import { pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
 import { SimTransport } from "./simulator";
 import type { Station, StationIndex } from "./stations";
 import { type Ms, parseDate } from "./time";
 
-export { AuthError, BusyError, OfflineError, RttError } from "./rtt";
+export { AllowanceError, AuthError, BusyError, OfflineError, RttError } from "./rtt";
 
 const KEY = STORE.key;
 
@@ -31,6 +31,7 @@ export interface BoardResult {
 export interface ServiceResult {
   timeline: Timeline;
   formation: Formation; // how it's made up where it is now (formation.ts); kept off Service, which the goldens pin
+  status: SystemStatus; // RTT's feed when it answered; beside Service for the same reason
   fetched: Fetched;
   refreshAfter: number | null; // seconds before asking again (poll.ts), or null: nothing more will change
 }
@@ -106,13 +107,16 @@ export class Rail {
   async tokenInfo(): Promise<TokenInfo | null> {
     if (this.demo) return null;
     // the saved access token and entitlements first: opening the app shouldn't cost 3 calls
+    if (this.client.info) this.tokenError = null; // a later call checked the key after all
     if (!this.client.info) await this.client.restore();
     if (!this.client.info && !this.tokenError) {
       try {
         await this.client.checkToken();
       } catch (e) {
-        if (e instanceof RttError) this.tokenError = e.message;
-        else throw e;
+        // Only a refusal is about the key. Busy or offline says nothing about it: the next call tries again, rather
+        // than show "needs attention" all session over a moment without signal.
+        if (e instanceof AuthError) this.tokenError = e.message;
+        else if (!(e instanceof RttError)) throw e;
       }
     }
     return this.client.info;
@@ -218,8 +222,9 @@ export class Rail {
     const f = await this.client.service(uid, !background || force, ttl, force);
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
     const now = this.clock();
-    const tl = build(parseService(f.body, this.clock), now);
+    const status = parseSystemStatus(f.body);
+    const tl = build(parseService(f.body, this.clock), now, DEFAULT_ENGINE, feedOf(status));
     const formation = formationFor(parseFormations(f.body, tl.service.vehicles), tl.position.fromIndex);
-    return { timeline: tl, formation, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
+    return { timeline: tl, formation, status, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
   }
 }

@@ -1,0 +1,52 @@
+{
+ "_note": "Spec-derived, not a recording. Four departures from Reading, one for each platform state: changed and confirmed (planned 9, actual 10), changed and only expected (planned 4, forecast 7), unchanged and confirmed, unchanged and only planned. Same quirks as spec_location_reading.json: naive times, namespaced query longCodes, no shortCodes on origin/destination.",
+ "systemStatus": {"realtimeNetworkRail": "OK", "rttCore": "OK"},
+ "query": {
+  "location": {"namespace": "gb-nr", "description": "Reading", "shortCodes": ["RDG"], "longCodes": ["gb-nr:RDNGSTN", "gb-nr:RDNG4AB"]},
+  "timeFrom": "2026-11-07T09:15:00+00:00",
+  "timeTo": "2026-11-07T12:15:00+00:00",
+  "detailed": false
+ },
+ "services": [
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T09:25:00", "scheduleAdvertised": "2026-11-07T09:25:00", "realtimeForecast": "2026-11-07T09:25:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false, "status": "AT_PLATFORM"
+   },
+   "locationMetadata": {"platform": {"planned": "9", "actual": "10"}, "numberOfVehicles": 9, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C31111:2026-11-07", "namespace": "gb-nr", "identity": "C31111", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:58:00", "scheduleAdvertised": "2026-11-07T08:58:00"}}],
+   "destination": [{"location": {"description": "Bristol Temple Meads", "longCodes": ["BRSTLTM"]}, "temporalData": {"scheduleInternal": "2026-11-07T10:30:00", "scheduleAdvertised": "2026-11-07T10:30:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T09:32:00", "scheduleAdvertised": "2026-11-07T09:32:00", "realtimeForecast": "2026-11-07T09:35:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "4", "forecast": "7"}, "numberOfVehicles": 4, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C32222:2026-11-07", "namespace": "gb-nr", "identity": "C32222", "departureDate": "2026-11-07", "operator": {"code": "XC", "name": "CrossCountry"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Reading", "longCodes": ["RDNGSTN"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:32:00", "scheduleAdvertised": "2026-11-07T09:32:00"}}],
+   "destination": [{"location": {"description": "Manchester Piccadilly", "longCodes": ["MNCRPIC"]}, "temporalData": {"scheduleInternal": "2026-11-07T12:20:00", "scheduleAdvertised": "2026-11-07T12:20:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T09:40:00", "scheduleAdvertised": "2026-11-07T09:40:00", "realtimeForecast": "2026-11-07T09:40:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "11", "actual": "11"}, "numberOfVehicles": 8, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C33333:2026-11-07", "namespace": "gb-nr", "identity": "C33333", "departureDate": "2026-11-07", "operator": {"code": "XR", "name": "Elizabeth Line"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Reading", "longCodes": ["RDNGSTN"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:40:00", "scheduleAdvertised": "2026-11-07T09:40:00"}}],
+   "destination": [{"location": {"description": "Abbey Wood", "longCodes": ["ABWDXR"]}, "temporalData": {"scheduleInternal": "2026-11-07T11:05:00", "scheduleAdvertised": "2026-11-07T11:05:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T09:48:00", "scheduleAdvertised": "2026-11-07T09:48:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "14"}, "numberOfVehicles": 4, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C34444:2026-11-07", "namespace": "gb-nr", "identity": "C34444", "departureDate": "2026-11-07", "operator": {"code": "SW", "name": "South Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Reading", "longCodes": ["RDNGSTN"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:48:00", "scheduleAdvertised": "2026-11-07T09:48:00"}}],
+   "destination": [{"location": {"description": "London Waterloo", "longCodes": ["WATRLMN"]}, "temporalData": {"scheduleInternal": "2026-11-07T11:16:00", "scheduleAdvertised": "2026-11-07T11:16:00"}}]
+  }
+ ]
+}

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { build, type Timeline } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
-import { manualMinAge, POLL, pollAfter } from "../src/core/poll";
+import { manualMinAge, nextWait, POLL, pollAfter } from "../src/core/poll";
 import { SimTransport, Timetable } from "../src/core/simulator";
 import { fromLondon, isoLocal, type Ms } from "../src/core/time";
 
@@ -29,6 +29,15 @@ const arr = (() => {
   const tl = at(t0);
   return tl.points.find((v) => v.point.crs === "OXF")!.arrival!.booked!;
 })();
+
+/** The same train as RTT knew it a minute before it was due off (nothing reported), seen at `now`, as `mode`. */
+const unreported = (now: Ms, mode = "TRAIN"): Timeline => {
+  simNow = dep - 60_000;
+  const body = structuredClone(sim.getSync("/gb-nr/service", { uniqueIdentity: pick }).body) as
+    { service: { scheduleMetadata: { modeType: string } } };
+  body.service.scheduleMetadata.modeType = mode;
+  return build(parseService(body, () => now), now);
+};
 
 describe("manual refresh", () => {
   it("is 4x faster than the automatic polls while the hour has plenty left", () => {
@@ -67,15 +76,58 @@ describe("polling a train", () => {
     expect(s).toBeLessThanOrEqual(130); // about a minute before it's due
   });
 
+  it("a train days away waits half an hour; within two hours it's back to every 3 minutes at most", () => {
+    const tl = at(dep - 40 * 60_000);
+    expect(tl.position.state).toBe("not-started");
+    expect(pollAfter(tl, dep - 48 * 3_600_000, 30)).toBeGreaterThanOrEqual(30 * 60);
+    expect(pollAfter(tl, dep - 48 * 3_600_000, 30)).toBe(POLL.notStartedFar);
+    expect(pollAfter(tl, dep - 60 * 60_000, 30)).toBeLessThanOrEqual(180);
+    // between the two it wakes in time to be on the 3-minute beat two hours before
+    expect(pollAfter(tl, dep - (POLL.wakeBefore + 10 * 60) * 1000, 30)).toBe(10 * 60);
+    expect(pollAfter(tl, dep - (POLL.wakeBefore + 60) * 1000, 30)).toBe(POLL.notStartedMax);
+  });
+
   it("while it runs, waits for the next report rather than polling on a beat", () => {
+    const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
     for (let m = 5; m < (arr - dep) / 60_000 - 5; m += 7) {
       const now = dep + m * 60_000;
       const tl = at(now);
-      const s = pollAfter(tl, now, 30);
-      expect(s, `${m} min in (${tl.position.state})`).not.toBeNull();
-      expect(s!).toBeGreaterThanOrEqual(POLL.min);
-      expect(s!).toBeLessThanOrEqual(Math.max(POLL.max, POLL.farAway));
+      const p = tl.position;
+      const due = p.state === "at-station" ? tl.points[p.fromIndex!].departure!.time! : p.expected;
+      const want = p.state === "overdue" || p.state === "at-origin" ? POLL.overdue
+        : Math.round(clamp((due! - now) / 1000 + POLL.afterDue, POLL.running, POLL.max));
+      expect(pollAfter(tl, now, 30), `${m} min in (${p.state})`).toBe(want);
     }
+  });
+
+  it("asks just after the next report is due: 30 s off waits a minute, 90 s off waits 110 s", () => {
+    let now = dep + 2 * 60_000;
+    while (at(now).position.state !== "running" && now < arr) now += 60_000;
+    const tl = at(now);
+    expect(tl.position.state).toBe("running");
+    const due = tl.position.expected!;
+    expect(pollAfter(tl, due - 30_000, 30)).toBe(POLL.running);
+    expect(pollAfter(tl, due - 90_000, 30)).toBe(90 + POLL.afterDue);
+  });
+
+  it("the train page keeps a half-hour wait: a train 3 hours off costs one call in 25 minutes", () => {
+    // live-train.ts schedules nextWait(refreshAfter, failures) after every answer
+    const start = dep - 3 * 3_600_000;
+    let now = start;
+    let calls = 0;
+    while (now < start + 25 * 60_000) {
+      calls += 1;
+      now += nextWait(pollAfter(at(now), now, 30, "PAD")!, 0) * 1000;
+    }
+    expect(calls).toBe(1);
+  });
+
+  it("after failures the wait grows to at most 5 minutes, and never shrinks", () => {
+    expect(nextWait(60, 0)).toBe(60);
+    expect(nextWait(60, 2)).toBe(180);
+    expect(nextWait(200, 1)).toBe(POLL.retryMax);
+    expect(nextWait(POLL.notStartedFar, 0)).toBe(POLL.notStartedFar);
+    expect(nextWait(POLL.notStartedFar, 3)).toBe(POLL.notStartedFar);
   });
 
   it("never polls faster than the allowance allows", () => {
@@ -96,6 +148,22 @@ describe("polling a train", () => {
     const tl = at(now);
     expect(tl.points.find((v) => v.point.crs === "RDG")!.reported).toBe(true);
     expect(pollAfter(tl, now, 30, "PAD")).not.toBeNull();
+  });
+
+  it("a train with nothing reported 10 minutes after it was due off is checked every 3 minutes, not every minute", () => {
+    const soon = dep + 5 * 60_000;
+    expect(unreported(soon).position.state).toBe("at-origin");
+    expect(pollAfter(unreported(soon), soon, 30)).toBe(POLL.overdue); // just late: worth watching closely
+    const now = dep + 15 * 60_000;
+    expect(pollAfter(unreported(now), now, 30)).toBeGreaterThanOrEqual(POLL.notStartedMax);
+  });
+
+  it("a replacement bus isn't reported, so it's checked every 3 minutes and says the times are the timetable", () => {
+    const now = dep + 5 * 60_000;
+    const bus = unreported(now, "REPLACEMENT_BUS");
+    expect(pollAfter(bus, now, 30)).toBeGreaterThanOrEqual(POLL.notStartedMax);
+    expect(bus.position.headline).toBe("Buses aren't tracked live: the times shown are the timetable.");
+    expect(unreported(now, "SHIP").position.headline).toBe("Ships aren't tracked live: the times shown are the timetable.");
   });
 
   it("following one train end to end fits the hour, with the search reserve left over", () => {

@@ -2,15 +2,16 @@
 // ("Calling at" or "Coming from", following the mode), and only then, folded away, another time or day: most
 // searches are "this station, now". Its station boxes are wired by StationSuggest; SearchForm handles the rest.
 import { type Html, html, render } from "../html";
-import { type Query, qs } from "../routes";
+import { boardHash, type Query } from "../routes";
 
 const stationBox = (id: string, label: Html, placeholder: string, value: string, extra: Html | "") => html`
   <div class="field">
-    <label for="${id}" data-label-for="${id}">${label}</label>
+    <label for="${id}" id="${id}-label" data-label-for="${id}">${label}</label>
     <div class="suggest" data-suggest>
       <input id="${id}" name="${id}" type="text" inputmode="search" placeholder="${placeholder}" value="${value}"
-             aria-autocomplete="list" aria-controls="${id}-list" aria-expanded="false" ${extra}>
-      <ul class="suggest__list" id="${id}-list" role="listbox" hidden></ul>
+             role="combobox" aria-autocomplete="list" aria-controls="${id}-list" aria-expanded="false" ${extra}>
+      <ul class="suggest__list" id="${id}-list" role="listbox" aria-labelledby="${id}-label" hidden></ul>
+      <p class="visually-hidden" data-suggest-status="${id}" role="status" aria-live="polite"></p>
     </div>
   </div>`;
 
@@ -30,7 +31,7 @@ export function searchForm(q: Query = {}): Html {
   </fieldset>
   ${stationBox("to", otherLabel(arr), "Any station", q.to ?? "", "")}
   <div class="search__go">
-  <details class="search__when" ${later ? html`open` : ""}>
+  <details class="search__when disclosure"${later ? html` open` : ""}>
     <summary>Another time or day</summary>
     <div class="cluster search__row">
       <div class="field field--time">
@@ -57,7 +58,9 @@ export class SearchForm {
       ev.preventDefault();
       const f = new FormData(form);
       const get = (k: string) => String(f.get(k) ?? "");
-      location.hash = `#/board${qs({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "" })}`;
+      const hash = boardHash({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "dep" });
+      history.replaceState(null, "", hash.replace("#/board", "#/")); // so Back comes to this form as it was filled in
+      location.hash = hash;
     });
     const label = form.querySelector('[data-label-for="to"]');
     form.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach((r) => r.addEventListener("change", () => {

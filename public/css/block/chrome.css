@@ -1,11 +1,18 @@
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--train); color: var(--train-edge); padding: var(--s-2) var(--s-3); z-index: 10; }
 .skip-link:focus { left: var(--s-2); }
 
+/* Behind the status bar on an edge-to-edge phone, always navy: its icons are light (platform/index.ts), and the top bar
+   scrolls away, so without this they would sit on paper. Above everything, and never in the way of a tap. */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--inset-top);
+  background: var(--sign); z-index: 20; pointer-events: none;
+}
+
 /* The top bar is a band of ink, like the name strip along a station sign. */
 .topbar {
   display: flex; align-items: center; gap: var(--s-4);
   padding: var(--s-1) var(--gutter);
-  padding-top: max(var(--s-1), env(safe-area-inset-top));
+  padding-top: max(var(--s-1), var(--inset-top));
   background: var(--sign); color: var(--on-sign);
 }
 .topbar__logo {
@@ -23,6 +30,16 @@
 
 .banner { padding: var(--s-2) var(--gutter); font-size: var(--t-sm); background: var(--surface-2); }
 .banner--demo { background: var(--demo); color: var(--demo-ink); }
+/* The flash is always there (a live region screen readers already know), and takes no room until it has something to say */
+.flash:empty { padding: 0; }
+
+/* Waiting for the next page: a thin still line along the top. Only after 300 ms, so a quick answer doesn't flicker. */
+.is-navigating::before {
+  content: ""; position: fixed; z-index: 20; top: var(--inset-top); left: 0; right: 0; height: 3px;
+  background: var(--train); opacity: 0; animation: navigating-shown 0s 300ms forwards;
+}
+@keyframes navigating-shown { to { opacity: 1; } }
+.flash.is-problem { border-left: 3px solid var(--problem); }
 main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late); background: transparent; }
 
 .footer { color: var(--muted); font-size: var(--t-xs); padding-block: var(--s-5) max(var(--s-5), env(safe-area-inset-bottom)); }
@@ -31,6 +48,7 @@ main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late
 .hint { color: var(--muted); font-size: var(--t-sm); overflow-wrap: anywhere; } /* a long link never runs over what follows */
 .muted { color: var(--muted); }
 .problem { color: var(--problem); }
+.problem__search { display: inline-flex; align-items: center; min-height: var(--tap); } /* a line of its own: a control */
 .empty { color: var(--muted); padding-block: var(--s-5); }
 
 .prose { max-width: 38rem; }

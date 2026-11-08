@@ -43,6 +43,20 @@ describe("timing review", () => {
     expect(review.record([...steady(), passed("tiny", 120)], "fp").newlySlow).toEqual([]); // 3.4x, but only 85 ms
   });
 
+  it("a fast test that suddenly takes far longer is queued, not taken as its new normal", () => {
+    for (let i = 0; i < 3; i++) review.record([...steady(), passed("tiny", 5)], "fp");
+    expect(review.record([...steady(), passed("tiny", 900)], "fp").newlySlow).toEqual(["tiny"]);
+  });
+
+  it("tests under the timing floor don't vote on how slow the machine is", () => {
+    const tiny = ["p", "q", "r", "s", "u", "v", "w"].map((x) => passed(`tiny ${x}`, 1));
+    for (let i = 0; i < 3; i++) review.record([...steady(), ...tiny, passed("t", 100)], "fp");
+    // the whole machine is 3x slower; seven 1 ms tests still at 1 ms would otherwise outvote that and blame "t"
+    const r = review.record([...steady(3), ...tiny, passed("t", 300)], "fp");
+    expect(r.machine).toBeCloseTo(3);
+    expect(r.newlySlow).toEqual([]);
+  });
+
   it("accepting a new time needs a reason and is logged", () => {
     for (let i = 0; i < 3; i++) review.record([...steady(), passed("t", 100)], "fp");
     review.record([...steady(), passed("t", 500)], "fp");
@@ -66,8 +80,12 @@ describe("flaky review", () => {
     expect(review.pending().flaky).toEqual([]);
   });
 
-  it("the fingerprint covers what the tests read beyond src/: CSS, the Android files and the scripts", () => {
-    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts"]) expect(FINGERPRINT_ROOTS).toContain(r);
+  it("the fingerprint covers what the tests read beyond src/: CSS, the Android files, the scripts and workflows", () => {
+    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts", ".github",
+      "android/gradle/wrapper/gradle-wrapper.properties", "android/app/src/test", "android/app/src/androidTest",
+      "android/app/src/main/java"]) {
+      expect(FINGERPRINT_ROOTS).toContain(r);
+    }
   });
 
   it("the fingerprint sees a change to any file, a hook with no extension included", () => {
@@ -87,6 +105,18 @@ describe("flaky review", () => {
   it("keeps every failure's message", () => {
     review.record([{ id: "f", state: "failed", ms: 10, error: "expected 3 to be 4" }], "fp");
     expect(readFileSync(join(dir, "failures.log"), "utf8")).toContain("f\nexpected 3 to be 4");
+  });
+
+  it("keeps its state where TEST_REVIEW_DIR says (pre-commit's snapshot points it back at the real checkout)", () => {
+    const was = process.env.TEST_REVIEW_DIR; // set for real while pre-commit checks a snapshot
+    process.env.TEST_REVIEW_DIR = dir;
+    try {
+      new TestReview().record([{ id: "f", state: "failed", ms: 10, error: "boom" }], "fp");
+    } finally {
+      if (was === undefined) delete process.env.TEST_REVIEW_DIR;
+      else process.env.TEST_REVIEW_DIR = was;
+    }
+    expect(readFileSync(join(dir, "failures.log"), "utf8")).toContain("f\nboom");
   });
 });
 

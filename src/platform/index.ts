@@ -2,9 +2,11 @@
 //   Android (Capacitor): native HTTP straight to data.rtt.io (no CORS), key in the app's private Preferences.
 //   Browser (dev, tests, a future desktop build): fetch through the host's /rtt relay, localStorage.
 // An iOS build would reuse the Capacitor branch as it stands.
-import { Capacitor, CapacitorHttp, registerPlugin } from "@capacitor/core";
+import { App } from "@capacitor/app";
+import { Capacitor, CapacitorHttp, registerPlugin, SystemBars, SystemBarsStyle, SystemBarType } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { API_VERSION, FetchHttp, type Http, type HttpResponse, NetworkError, RTT_BASE } from "../core/http";
+import type { StoreKey } from "../core/keys";
 import type { KeyValueStore } from "../core/rtt";
 
 declare const __APP_VERSION__: string;
@@ -43,39 +45,66 @@ class NativeHttp implements Http {
 }
 
 class PreferencesStore implements KeyValueStore {
-  async get(key: string) {
+  async get(key: StoreKey) {
     return (await Preferences.get({ key })).value;
   }
-  async set(key: string, value: string) {
+  async set(key: StoreKey, value: string) {
     await Preferences.set({ key, value });
   }
-  async remove(key: string) {
+  async remove(key: StoreKey) {
     await Preferences.remove({ key });
   }
 }
 
 class LocalStore implements KeyValueStore {
-  async get(key: string) {
+  async get(key: StoreKey) {
     try {
       return localStorage.getItem(key);
     } catch {
       return null;
     }
   }
-  async set(key: string, value: string) {
+  async set(key: StoreKey, value: string) {
     try {
       localStorage.setItem(key, value);
     } catch {
       /* private mode: the key lasts this session only */
     }
   }
-  async remove(key: string) {
+  async remove(key: StoreKey) {
     try {
       localStorage.removeItem(key);
     } catch {
       /* nothing to remove */
     }
   }
+}
+
+// ---- the shell around the page (Android) ----
+
+/**
+ * Light status-bar icons. What's under the status bar is navy in both themes, whatever the page is scrolled to (a fixed
+ * strip, body::before in chrome.css), so the system's default (dark icons in light mode) would be unreadable. The gesture bar sits over the page's own colour: left on the default.
+ */
+export async function styleStatusBar(): Promise<void> {
+  if (!native) return;
+  await SystemBars.setStyle({ style: SystemBarsStyle.Dark, bar: SystemBarType.StatusBar });
+}
+
+let backHandled = false;
+
+/**
+ * The back button walks back through the pages, and from the first page leaves the app (to the background, as other
+ * apps do). Without a listener Capacitor does nothing at the first page, and that also keeps Android's predictive
+ * back from working. Registered once, however often it's called; a browser has its own back button.
+ */
+export async function handleBack(): Promise<void> {
+  if (!native || backHandled) return;
+  backHandled = true;
+  await App.addListener("backButton", ({ canGoBack }) => {
+    if (canGoBack) history.back();
+    else void App.minimizeApp();
+  });
 }
 
 export const rttHttp: Http = native ? new NativeHttp() : new FetchHttp("/rtt");

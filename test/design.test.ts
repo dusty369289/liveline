@@ -1,6 +1,6 @@
 // What a screenshot can't check: every text colour in the theme is readable on what it sits on (WCAG 4.5:1), in
 // both light and dark, and the train marker stands out from the page (3:1 for graphics).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("../public/css/themes/platform.css", import.meta.url), "utf8");
@@ -41,9 +41,94 @@ describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {
     expect(contrast(t[fg], t[bg]), `${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5);
   });
 
+  it("the edge of a text box, radio or checkbox stands out from the page and its own fill (3:1)", () => {
+    // base/elements.css draws radios and checkboxes with this line; the browser's own were too faint at night
+    expect(contrast(t["control-line"], t.page)).toBeGreaterThanOrEqual(3);
+    expect(contrast(t["control-line"], t.control)).toBeGreaterThanOrEqual(3);
+  });
+
   it("the train marker stands out from the page (3:1), by its edge if not its yellow", () => {
     // yellow on paper alone is about 1.4:1, so the marker always carries its dark edge
     expect(Math.max(contrast(t["train-edge"], t.page), contrast(t.train, t.page))).toBeGreaterThanOrEqual(3);
     expect(contrast(t["train-edge"], t.train)).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(["page", "surface"])("the focus ring (yellow outline, dark ring) stands out on %s (3:1)", (bg) => {
+    // base/elements.css: every focused control, a checked radio included, carries both; one of them must show
+    expect(Math.max(contrast(t["train-edge"], t[bg]), contrast(t.train, t[bg])), `focus ring on ${bg}`).toBeGreaterThanOrEqual(3);
+    expect(contrast(t["train-edge"], t.train), "dark ring against the yellow").toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("the status bar's height", () => {
+  // Read once into --inset-top, so the browser tests can stand in for a phone's status bar by setting that variable
+  // (a browser's own inset is always 0). A direct env(safe-area-inset-top) elsewhere would escape those tests.
+  const dir = new URL("../public/css/", import.meta.url);
+  const files = readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".css"));
+  const uses = files.flatMap((f) =>
+    readFileSync(new URL(f, dir), "utf8").split("\n").filter((l) => l.includes("safe-area-inset-top")).map((l) => `${f}: ${l.trim()}`),
+  );
+
+  it("is read from env() in one place only, --inset-top", () => {
+    expect(uses).toEqual([expect.stringMatching(/^base\/elements\.css: --inset-top: env\(safe-area-inset-top, 0px\);/)]);
+  });
+});
+
+// The token pairs above can all pass while the cascade picks another pair: a bare .is-changed elsewhere once turned a
+// changed plate's number amber on navy. So work out what the stylesheets give the board's platform plate, in the
+// order app.css loads them (layer, then specificity, then source order). Only class-only selectors are weighed,
+// which is all that styles the plate today.
+const cssDir = new URL("../public/css/", import.meta.url);
+const app = readFileSync(new URL("app.css", cssDir), "utf8");
+const layerOrder = app.match(/@layer ([^;]+);/)![1].split(",").map((s) => s.trim());
+const sheets = [...app.matchAll(/@import url\("\.\/([^"]+)"\) layer\((\w+)\)/g)].map(([, file, layer]) => ({ file, layer }));
+
+interface Rule { selector: string; decls: Record<string, string>; layer: number; order: number }
+function rules(): Rule[] {
+  const out: Rule[] = [];
+  for (const { file, layer } of sheets) {
+    const text = readFileSync(new URL(file, cssDir), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    // Flatten @media blocks: at phone width the max-width ones apply, and none of them colours the plate
+    for (const m of text.replace(/@media[^{]+\{/g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const decls = Object.fromEntries(m[2].split(";").map((d) => d.split(/:(.*)/s).map((s) => s.trim())).filter((d) => d[1]));
+      for (const selector of m[1].split(",")) out.push({ selector: selector.trim(), decls, layer: layerOrder.indexOf(layer), order: out.length });
+    }
+  }
+  return out;
+}
+const RULES = rules();
+
+/** The value the cascade gives `prop` on an element with these classes. */
+function computed(classes: string[], prop: string): string | undefined {
+  const hits = RULES.filter((r) => prop in r.decls && /^(\.[\w-]+)+$/.test(r.selector)
+    && r.selector.slice(1).split(".").every((c) => classes.includes(c)));
+  const weight = (r: Rule) => [r.layer, r.selector.split(".").length, r.order];
+  hits.sort((a, b) => weight(a).reduce((d, w, i) => d || w - weight(b)[i], 0));
+  return hits.at(-1)?.decls[prop];
+}
+
+describe.each(Object.entries(THEMES))("the board's platform plate, %s", (_name, t) => {
+  const token = (v: string | undefined) => t[v?.match(/var\(--([\w-]+)\)/)?.[1] ?? ""];
+  const ground = (classes: string[]) => {
+    const bg = computed(classes, "background");
+    return bg === "transparent" ? t.page : token(bg);
+  };
+
+  it.each([
+    ["confirmed", ["trains__plat"]],
+    ["not confirmed", ["trains__plat", "is-unconfirmed"]],
+    ["changed", ["trains__plat", "is-changed"]],
+    ["changed, not confirmed", ["trains__plat", "is-unconfirmed", "is-changed"]],
+  ])("%s: the number is readable (4.5:1)", (_state, classes) => {
+    const fg = token(computed(classes, "color"));
+    expect(fg, `colour of .${classes.join(".")}`).toBeDefined();
+    expect(contrast(fg, ground(classes))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it.each([
+    ["changed", ["trains__plat", "is-changed"]],
+    ["changed, not confirmed", ["trains__plat", "is-unconfirmed", "is-changed"]],
+  ])("%s: keeps the yellow change bar", (_state, classes) => {
+    expect(computed(classes, "box-shadow")).toContain("var(--train)");
   });
 });

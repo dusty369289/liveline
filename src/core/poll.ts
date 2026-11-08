@@ -2,7 +2,8 @@
 // when the train reaches a timing point, so polling on a fixed beat mostly re-fetches the same answer. Instead: wait
 // until the next report could exist, and stop once nothing more can change for the train. The marker keeps moving
 // between polls on its own (live.ts), so a slower poll doesn't freeze the picture.
-import { stopSummary, type Timeline } from "./engine";
+import type { State, Timeline } from "./engine";
+import { yourStops } from "./stops";
 import type { Ms } from "./time";
 
 export const POLL = {
@@ -10,13 +11,22 @@ export const POLL = {
   running: 60, // between points: just after the next report is due, but not more than once a minute
   max: 120, // never later while it's moving, so a surprise (cancellation, platform change) shows within 2 minutes
   notStartedMax: 180, // before it sets off: platform changes and cancellations still show within 3 minutes
+  wakeBefore: 2 * 3600, // ...but only from 2 hours before: earlier, nothing you'd act on changes minute to minute
+  notStartedFar: 30 * 60, // further off (a train tomorrow): every half hour, two an hour instead of twenty
   afterDue: 20, // a report lands in RTT a little after the event
   overdue: 60, // no report where one was expected: check every minute
+  // Nothing reported this long after booked departure: it's probably not reporting at all (a bus, a train that lost its
+  // reporting), so check as rarely as before it set off. A cancellation still shows within 3 minutes.
+  unreportedAfter: 10 * 60, // seconds
   farAway: 120, // your stop is over 40 minutes off: no need to be quicker than this
   farMinutes: 40,
+  retryMax: 300, // after failed fetches the wait grows, but a short one never past 5 minutes, so it recovers soon
 };
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
+
+/** Nothing more will be reported: it arrived, is cancelled, or is long past its arrival with no report (engine.ts). */
+const FINISHED: State[] = ["arrived", "cancelled", "no-data", "unreported"];
 
 /** Manual refresh may go faster than the automatic polls, but never into the calls kept for searches. */
 export const MANUAL = {
@@ -35,20 +45,28 @@ export function manualMinAge(hourLeft: number, reserve: number): number | null {
 }
 
 /**
- * Seconds until the next poll, or null to stop (it arrived, is cancelled, or there's no data). Passing your own stop
+ * Seconds until the next poll, or null to stop (FINISHED). Passing your own stop
  * doesn't stop it: you may want to watch it carry on, and nothing polls unless the train page is on screen.
  * `budgetSecs` is the allowance's own floor (Budget.refreshInterval); the answer is never sooner than that.
  */
 export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): number | null {
   const p = tl.position;
-  if (p.state === "arrived" || p.state === "cancelled" || p.state === "no-data") return null;
+  if (FINISHED.includes(p.state)) return null;
 
   const secsTo = (t: Ms | null) => (t == null ? null : (t - now) / 1000);
   let s: number;
   if (p.state === "not-started") {
     const due = secsTo(p.expected);
-    s = due == null ? POLL.notStartedMax : clamp(due - 60, 60, POLL.notStartedMax);
-  } else if (p.state === "overdue" || p.state === "at-origin") {
+    if (due == null) s = POLL.notStartedMax;
+    else if (due > POLL.wakeBefore) s = Math.max(POLL.notStartedMax, Math.min(due - POLL.wakeBefore, POLL.notStartedFar));
+    else s = clamp(due - 60, 60, POLL.notStartedMax);
+  } else if (p.state === "at-origin") {
+    // Nothing reported yet. Buses and ships never are; a train just late off is worth watching closely, for a while
+    const booked = p.fromIndex != null ? tl.points[p.fromIndex].departure?.booked ?? null : null;
+    const since = booked == null ? null : -secsTo(booked)!;
+    const silent = tl.service.mode !== "TRAIN" || (since != null && since >= POLL.unreportedAfter);
+    s = silent ? POLL.notStartedMax : POLL.overdue;
+  } else if (p.state === "overdue") {
     s = POLL.overdue;
   } else if (p.state === "at-station") {
     const dep = p.fromIndex != null ? tl.points[p.fromIndex].departure?.time ?? null : null;
@@ -58,7 +76,15 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
     const due = secsTo(p.expected);
     s = due == null ? 90 : clamp(due + POLL.afterDue, POLL.running, POLL.max);
   }
-  const mine = at ? stopSummary(tl, at) : null;
+  const mine = at ? yourStops(tl, at, "")[0] : null;
   if (mine && mine.status === "ahead" && mine.minutes != null && mine.minutes > POLL.farMinutes) s = Math.max(s, POLL.farAway);
   return Math.round(Math.max(s, budgetSecs, POLL.min));
+}
+
+/**
+ * The wait the train page actually schedules: the planned poll, stretched after failed fetches (each failure adds
+ * another planned wait) up to `POLL.retryMax`. The cap only limits the stretch: it never shortens a planned wait.
+ */
+export function nextWait(secs: number, failures: number): number {
+  return Math.max(secs, Math.min(secs * (1 + failures), POLL.retryMax));
 }

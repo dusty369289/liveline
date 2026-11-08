@@ -10,8 +10,10 @@ def parts = (pkg.version =~ /^(\d+)\.(\d+)\.(\d+)/)[0]
 def appVersionName = pkg.version
 def appVersionCode = Math.max(1, parts[1].toInteger() * 10000 + parts[2].toInteger() * 100 + parts[3].toInteger())
 
-// Release signing: from environment variables in CI (GitHub secrets), or android/keystore.properties locally.
-// Neither is ever committed. Without them, release builds come out unsigned and can't be installed.
+// Release signing, optional: from LIVELINE_* environment variables, or android/keystore.properties locally. Neither
+// is ever committed. Without them, release builds come out unsigned (app-release-unsigned.apk) and can't be installed.
+// The Release workflow builds that way on purpose, with no secrets near npm or Gradle, and signs the APK in a separate
+// job with apksigner.
 def keystoreProps = new Properties()
 def keystoreFile = rootProject.file("keystore.properties")
 if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }

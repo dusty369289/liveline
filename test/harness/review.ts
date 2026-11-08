@@ -14,7 +14,7 @@ import { join } from "node:path";
 export const LIMITS = {
   slowFactor: 2, // slower than twice its baseline...
   slowMs: 100, // ...and by at least this much (tiny tests jitter by more than 2x)
-  minMs: 30, // tests faster than this are never timed
+  minMs: 30, // the lowest baseline (faster tests count as this fast), and the floor for the machine-speed vote
   recoverRuns: 3, // back within limits this many runs in a row: off the queue
   history: 7, // passing runs kept for the median
   machineSlow: 1.3, // the whole run this much slower: say so, and scale for it
@@ -47,11 +47,15 @@ const median = (xs: number[]) => {
 
 /**
  * Everything the tests read, so "failed then passed" only counts as flaky when none of it changed. It must cover the
- * CSS, the Android files and the scripts (the git hooks are tested) too: a test that reads them fails when they break
- * and passes when they're fixed, which is a fix, not a flake. Every file under a root counts, whatever its extension.
+ * CSS, the Android files, the scripts (the git hooks are tested) and .github (the workflows are tested) too: a test
+ * that reads them fails when they break and passes when they're fixed, which is a fix, not a flake. Every file under a
+ * root counts, whatever its extension. Not all of android/: its build output changes on every build. The shell's own
+ * Java is in: the small-files rule (test/architecture.test.ts) reads it.
  */
-export const FINGERPRINT_ROOTS = ["src", "test", "public/css", "scripts", "android/app/build.gradle",
-  "android/app/src/main/AndroidManifest.xml", "capacitor.config.ts", "vite.config.ts", "package.json"];
+export const FINGERPRINT_ROOTS = ["src", "test", "public/css", "scripts", ".github", "android/app/build.gradle",
+  "android/app/src/main/AndroidManifest.xml", "android/app/src/main/java", "android/app/src/test",
+  "android/app/src/androidTest", "android/gradle/wrapper/gradle-wrapper.properties", "capacitor.config.ts",
+  "vite.config.ts", "package.json"];
 
 export function fingerprint(roots = FINGERPRINT_ROOTS): string {
   const h = createHash("sha256");
@@ -68,7 +72,9 @@ export class TestReview {
   private readonly dir: string;
   private readonly clock: () => Date;
 
-  constructor(dir = ".test-review", clock: () => Date = () => new Date()) {
+  // TEST_REVIEW_DIR: pre-commit checks a snapshot in a throwaway worktree, and points this back at the real checkout's
+  // folder so the baselines, the flaky record and failures.log outlive it
+  constructor(dir = process.env.TEST_REVIEW_DIR || ".test-review", clock: () => Date = () => new Date()) {
     this.dir = dir;
     this.clock = clock;
   }
@@ -113,14 +119,16 @@ export class TestReview {
 
     const timings = this.read<Record<string, Timing>>("timings.json", {});
     const queue = this.read<Record<string, Queued>>("timing-queue.json", {});
-    const timed = runs.filter((r) => r.state === "passed" && r.ms >= LIMITS.minMs);
-    const ratios = timed.filter((r) => timings[r.id]?.baseline).map((r) => r.ms / timings[r.id].baseline);
+    // Every passing run is timed, so a fast test has a baseline before it ever turns slow (otherwise its first slow run
+    // would become its baseline). Only tests over the floor vote on the machine's speed: tiny ones jitter too much.
+    const passing = runs.filter((r) => r.state === "passed");
+    const ratios = passing.filter((r) => r.ms >= LIMITS.minMs && timings[r.id]).map((r) => r.ms / timings[r.id].baseline);
     const machine = ratios.length >= 5 ? Math.max(1, median(ratios)) : 1;
     const newlySlow: string[] = [];
-    for (const r of timed) {
+    for (const r of passing) {
       const t = timings[r.id];
       if (!t) {
-        timings[r.id] = { history: [r.ms], baseline: r.ms };
+        timings[r.id] = { history: [r.ms], baseline: Math.max(r.ms, LIMITS.minMs) };
         continue;
       }
       const adjusted = r.ms / machine;
@@ -131,7 +139,7 @@ export class TestReview {
       }
       if (queue[r.id] && ++queue[r.id].good >= LIMITS.recoverRuns) delete queue[r.id];
       t.history = [...t.history, r.ms].slice(-LIMITS.history);
-      t.baseline = median(t.history);
+      t.baseline = Math.max(median(t.history), LIMITS.minMs); // a floor, so a 2 ms test isn't "slow" at 5 ms
     }
     this.write("outcomes.json", outcomes);
     this.write("flaky.json", flaky);

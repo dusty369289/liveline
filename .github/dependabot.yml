@@ -1,0 +1,34 @@
+# Dependabot proposes dependency updates as PRs. They go through the same process as any PR: CI's Checks and
+# Browser must pass, and they merge only when the owner says so (npm run merge -- <n>). Pinned by test/workflows.test.ts.
+# Monthly keeps the PR count (and the CI minutes) low. The cooldown waits a week after a version is published before
+# proposing it, so a hijacked or broken release has time to be noticed and pulled first. Security fixes aren't held
+# back by either: Dependabot's security updates (a repository setting) are separate from these version updates.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      # The Capacitor packages move together: mixed versions of core, android and cli don't build.
+      capacitor:
+        patterns: ["@capacitor/*"]
+      dev:
+        dependency-type: development
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+
+  # Actions are pinned to commits with the version beside them; Dependabot moves both together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7

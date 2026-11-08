@@ -1,11 +1,12 @@
 // Boards fetch FETCH_WINDOW minutes in one call and serve every narrower board inside it, so Later, Earlier and the
-// minute ticking over cost nothing. The simulator stands in for RTT and counts the calls.
+// minute ticking over cost nothing. The simulator stands in for RTT and counts the calls. Which rows a board shows is
+// checked over a real recording and a spec-derived fixture.
 import { describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
 import { FETCH_WINDOW, FUTURE_BOARD_TTL } from "../src/core/rtt";
 import { SimTransport } from "../src/core/simulator";
 import { fromLondon, type Ms } from "../src/core/time";
-import { MemStore, stations } from "./support";
+import { FakeRtt, fixture, GOOD, MemStore, stations } from "./support";
 
 const KEY = "k".repeat(40);
 
@@ -85,5 +86,52 @@ describe("wide board fetches", () => {
     advance(20);
     await rail.board({ station: "PAD", force: true });
     expect(boards().length).toBe(2);
+  });
+});
+
+/** A Rail with a working key whose every board is `answer` (an RTT recording or a spec-derived fixture). */
+async function railAnswering(answer: string, now: Ms) {
+  const rail = new Rail(new FakeRtt(undefined, undefined, null, fixture(answer)), new MemStore(), stations, () => now);
+  await rail.setKey(GOOD);
+  return rail;
+}
+
+describe("which rows a board shows", () => {
+  const RDG = "real_location_RDG_20261107-1526.json";
+  const at1526 = fromLondon(2026, 11, 7, 15, 26);
+
+  it("departures leave out set-down-only calls, arrivals pick-up-only ones", async () => {
+    const rail = await railAnswering(RDG, at1526);
+    const dep = await rail.board({ station: "RDG", showAll: true });
+    expect(dep.rows.length).toBeGreaterThan(0);
+    expect(dep.rows.filter((r) => r.callType === "ADVERTISED_SET_DOWN")).toEqual([]);
+    const arr = await rail.board({ station: "RDG", mode: "arr", showAll: true });
+    expect(arr.rows.length).toBeGreaterThan(0);
+    expect(arr.rows.filter((r) => r.callType === "ADVERTISED_PICK_UP")).toEqual([]);
+  });
+
+  it("a set-down-only call with a departure time is an arrival, not a departure", async () => {
+    const rail = await railAnswering("spec_location_late_before_window.json", fromLondon(2026, 11, 7, 9, 0));
+    expect((await rail.board({ station: "RDG" })).rows.map((r) => r.identity)).not.toContain("C70006");
+    expect((await rail.board({ station: "RDG", mode: "arr" })).rows.map((r) => r.identity)).toContain("C70006");
+  });
+
+  it("hides empty stock and staff-only calls, and counts them, unless show all", async () => {
+    const rail = await railAnswering(RDG, at1526);
+    const shown = await rail.board({ station: "RDG" });
+    expect(shown.hidden).toBe(2); // the recording's two OPERATIONAL_ONLY departures in the hour
+    expect(shown.rows.filter((r) => r.callType === "OPERATIONAL_ONLY" || !r.passenger)).toEqual([]);
+    const all = await rail.board({ station: "RDG", showAll: true });
+    expect(all.hidden).toBe(0);
+    expect(all.rows.filter((r) => r.callType === "OPERATIONAL_ONLY").length).toBe(2);
+    expect(all.rows.length).toBe(shown.rows.length + 2);
+  });
+
+  it("keeps a train booked before the window only while it's still to leave, late, into it", async () => {
+    const rail = await railAnswering("spec_location_late_before_window.json", fromLondon(2026, 11, 7, 9, 0));
+    const { rows } = await rail.board({ station: "RDG" });
+    // C70001 forecast 09:03: shown. C70002 left 08:58 and C70003 forecast 08:59: gone before 09:00. C70004 left
+    // 09:02: late into the window, but gone.
+    expect(rows.map((r) => r.identity)).toEqual(["C70001", "C70005"]);
   });
 });

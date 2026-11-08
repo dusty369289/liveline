@@ -13,13 +13,19 @@ test("station suggestions", async ({ page, errors }, info) => {
   await open(page, "/");
   await page.locator("#station").fill("padd");
   await expect(page.locator("#station-list [role=option]").first()).toContainText("London Paddington");
+  // The list ends with a firm ink rule, so it doesn't run into the field below it
+  const end = await page.locator("#station-list").evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { width: cs.borderBottomWidth, ink: cs.borderBottomColor === getComputedStyle(document.body).color };
+  });
+  expect(end).toEqual({ width: "2px", ink: true });
   await snap(page, info, "02-suggestions");
   void errors;
 });
 
 test("board", async ({ page, errors }, info) => {
   await open(page, "/board?station=PAD&to=OXF&time=09:00");
-  await expect(page.locator(".board__sub")).toContainText("Departures calling at Oxford, 09:00 to 10:00");
+  await expect(page.locator(".board__sub")).toContainText("Departures calling at Oxford · 09:00 to 10:00");
   await expect(page.locator(".trains__row").first()).toBeVisible();
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "03-board");

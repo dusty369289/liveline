@@ -1,4 +1,5 @@
 // Hash routes (they work from a file or inside the APK) and the board query they carry.
+import type { BoardResult } from "../core/rail";
 import { fromLondon, isoDate, londonParts, type Ms } from "../core/time";
 
 export type RouteName = "home" | "board" | "train" | "recent" | "settings" | "about" | "unknown";
@@ -18,20 +19,27 @@ export function parseHash(hash: string): Route {
   return { name, path, params: new URLSearchParams(query) };
 }
 
-/** What a board was asked for. Every field is a string straight from the hash. */
+/** What a board was asked for. Strings straight from the hash, except the mode, which queryOf settles. */
 export interface Query {
   station?: string;
   to?: string;
   time?: string;
   day?: string;
-  mode?: string;
+  mode?: BoardResult["mode"];
   all?: string;
 }
 
 export const queryOf = (p: URLSearchParams): Query => ({
   station: p.get("station") ?? "", to: p.get("to") ?? "", time: p.get("time") ?? "", day: p.get("day") ?? "",
-  mode: p.get("mode") ?? "dep", all: p.get("all") ?? "",
+  mode: p.get("mode") === "arr" ? "arr" : "dep", all: p.get("all") ?? "",
 });
+
+/**
+ * The one URL of a board, wherever it's built (the search form, a board's own links, a saved journey), so the same
+ * board is always the same URL. Departures, the default, leave the mode out. `extra` (refresh=1) goes last.
+ */
+export const boardHash = (q: Query, extra: { refresh?: 1 } = {}): string =>
+  `#/board${qs({ station: q.station, to: q.to, time: q.time, day: q.day, mode: q.mode === "arr" ? "arr" : "", all: q.all, ...extra })}`;
 
 /** Query string for a hash route ("?a=1&b=2"), dropping empty values. */
 export function qs(params: Record<string, string | number | boolean | null | undefined>): string {
@@ -56,8 +64,10 @@ export function when(time: string, day: string, now: Ms): Ms | null {
   }
   const tm = /^(\d{1,2})[:.](\d{2})$/.exec(t);
   if (!tm || Number(tm[1]) > 23 || Number(tm[2]) > 59) throw new RangeError("bad time");
-  let at = fromLondon(y, mo, dd, Number(tm[1]), Number(tm[2]));
-  if (!d && at < now - 6 * 3_600_000) at += 86_400_000;
+  const at = fromLondon(y, mo, dd, Number(tm[1]), Number(tm[2]));
+  // The next calendar day (fromLondon rolls 32 March over to 1 April), not 24 hours on: across a clock change those
+  // differ by an hour
+  if (!d && at < now - 6 * 3_600_000) return fromLondon(y, mo, dd + 1, Number(tm[1]), Number(tm[2]));
   return at;
 }
 

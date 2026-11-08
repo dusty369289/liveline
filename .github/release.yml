@@ -1,0 +1,9 @@
+# How GitHub writes a release's notes (release.yml's `gh release create --generate-notes`). The app shows them in
+# Settings, so they're for users: process work (labelled "process" by `npm run merge`: chore/, ci/, test/, docs/ and
+# refactor/ branches) and Dependabot's bumps are left out. Fixes and features stay in.
+changelog:
+  exclude:
+    labels:
+      - process
+    authors:
+      - "dependabot[bot]"

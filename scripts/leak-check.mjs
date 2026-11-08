@@ -5,11 +5,13 @@
 // notes/private/leak-words.txt (gitignored, one per line), which only exists in a dev checkout.
 //
 // Run: npm run leak-check. Exit 1 lists file:line for each hit.
+// Text mode: `node scripts/leak-check.mjs --text < message` checks stdin instead (commit messages, PR text).
+// history-check.mjs imports linesWithLeaks() for the same check.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -40,24 +42,46 @@ if (existsSync(extra)) {
   for (const w of readFileSync(extra, "utf8").split("\n")) if (w.trim()) banned.add(digest(w.trim().toLowerCase()));
 }
 
-const hits = [];
-const all = files();
-for (const name of all) {
-  let text;
-  try {
-    text = readFileSync(join(ROOT, name), "utf8");
-  } catch {
-    continue;
-  }
-  if (text.includes("\u0000")) continue; // binary
+/** The 1-based numbers of the lines in `text` that mention something personal. */
+export function linesWithLeaks(text) {
+  const hits = [];
   text.split("\n").forEach((line, i) => {
     const words = line.toLowerCase().match(/[a-z0-9]+/g) ?? [];
     const grams = [...words, ...words.slice(1).map((w, j) => `${words[j]} ${w}`)];
-    if (grams.some((g) => banned.has(digest(g))) || PATTERNS.some((p) => p.test(line))) hits.push(`${name}:${i + 1}`);
+    if (grams.some((g) => banned.has(digest(g))) || PATTERNS.some((p) => p.test(line))) hits.push(i + 1);
   });
+  return hits;
 }
-if (hits.length) {
-  console.log(["Personal details found in tracked files:", ...hits.map((h) => `  ${h}`)].join("\n"));
-  process.exit(1);
+
+function checkFiles() {
+  const hits = [];
+  const all = files();
+  for (const name of all) {
+    let text;
+    try {
+      text = readFileSync(join(ROOT, name), "utf8");
+    } catch {
+      continue;
+    }
+    if (text.includes("\u0000")) continue; // binary
+    for (const n of linesWithLeaks(text)) hits.push(`${name}:${n}`);
+  }
+  if (hits.length) {
+    console.log(["Personal details found in tracked files:", ...hits.map((h) => `  ${h}`)].join("\n"));
+    process.exit(1);
+  }
+  console.log(`leak check: ${all.length} files clean`);
 }
-console.log(`leak check: ${all.length} files clean`);
+
+function checkText() {
+  const hits = linesWithLeaks(readFileSync(0, "utf8"));
+  if (hits.length) {
+    console.error(`Personal details found in the text, line${hits.length > 1 ? "s" : ""} ${hits.join(", ")}.`);
+    process.exit(1);
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (process.argv.includes("--text")) checkText();
+  else checkFiles();
+}

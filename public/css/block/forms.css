@@ -9,23 +9,11 @@
 .field input::placeholder { color: var(--faint); }
 #station { font: 600 1.375rem/1.2 var(--sign-font); }
 /* Another time or day: folded, since most searches are for now */
-.search__when summary {
-  min-height: var(--tap); display: flex; align-items: baseline; gap: var(--s-2); padding-top: .7rem;
-  cursor: pointer; color: var(--ink); list-style: none;
-}
-.search__when summary::-webkit-details-marker { display: none; }
-.search__when summary::before { /* the same chevron as the passing-point folds, turning when open */
-  content: ""; align-self: center; width: .45rem; height: .45rem; margin: 0 .2rem 0 .1rem;
-  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-25%); transition: transform .15s ease;
-}
-.search__when[open] summary::before { transform: rotate(-135deg) translate(-25%, 0); }
 .search__when summary .hint { font-size: var(--t-xs); }
 .search__when[open] summary { margin-bottom: var(--s-2); }
 /* "Another time or day" and the button share a row, so the page fits one screen; open, the time fields need the width */
 .search__go { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
 .search__go:has(.search__when[open]) { flex-direction: column; align-items: stretch; }
-.search__go .search__when summary { padding-top: 0; align-items: center; } /* level with the button beside it */
-@media (prefers-reduced-motion: reduce) { .search__when summary::before { transition: none; } }
 .search__row { flex-wrap: nowrap; gap: var(--s-3); }
 .search__row .field { flex: 1 1 0; min-width: 0; }
 .search .hint { margin-top: calc(-1 * var(--s-2)); }
@@ -42,7 +30,9 @@
 .suggest { position: relative; }
 .suggest__list {
   position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 2px);
-  background: var(--surface); border: 1px solid var(--line); border-top: 0;
+  /* The page's own paper (surface-2 is the selected row), the field's edge down the sides, and a firm ink rule at
+     the foot so the list visibly ends before the next field */
+  background: var(--page); border: 1px solid var(--control-line); border-top: 0; border-bottom: 2px solid var(--ink);
   max-height: 18rem; overflow-y: auto;
 }
 .suggest__list li { padding: var(--s-3); display: flex; justify-content: space-between; gap: var(--s-3); cursor: pointer; min-height: var(--tap); align-items: center; }
@@ -75,6 +65,7 @@
 .recents__link { display: grid; gap: .15rem; min-height: 3.5rem; align-content: center; padding-block: var(--s-2); text-decoration: none; }
 .recents__title { font: 600 var(--t-md)/1.2 var(--sign-font); }
 .recents__when { font-size: var(--t-sm); color: var(--muted); }
+.recents__search { display: inline-flex; align-items: center; min-height: var(--tap); } /* a line of its own: a control */
 .recents__item.is-running .recents__when { color: var(--ink); }
 .recents__item.is-running .recents__when::before {
   content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .4em; vertical-align: .02em;
@@ -85,4 +76,3 @@
 .journeys__item { display: flex; align-items: center; gap: var(--s-3); border-bottom: 1px solid var(--line); }
 .journeys__go { flex: 1; display: flex; align-items: center; min-height: 3.25rem; text-decoration: none; font: 600 var(--t-md)/1.2 var(--sign-font); }
 .journeys__back { display: inline-flex; align-items: center; min-height: var(--tap); padding-left: var(--s-3); color: var(--muted); font-size: var(--t-sm); }
-.board__save { display: flex; gap: var(--s-3); align-items: center; flex-wrap: wrap; }

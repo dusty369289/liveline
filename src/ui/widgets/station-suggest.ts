@@ -1,7 +1,9 @@
 // Type-ahead for a station box: the bundled station list, no network. An empty box offers your recent stations as
 // soon as it's tapped (the search page doesn't list them separately, so it fits one screen). Arrow keys, Enter and
-// Escape work, and the list is a proper listbox for screen readers.
+// Escape work. For screen readers it's the ARIA combobox pattern: the box is a combobox controlling a listbox named
+// by the box's label, the highlighted station is its aria-activedescendant, and a status line says how many match.
 import type { StationIndex } from "../../core/stations";
+import { plural } from "../format";
 
 interface Item { name: string; crs: string }
 
@@ -10,6 +12,7 @@ export class StationSuggest {
   private active = -1;
   private readonly input: HTMLInputElement;
   private readonly list: HTMLElement;
+  private readonly status: HTMLElement | null;
   private readonly stations: StationIndex;
   private readonly recent: () => Item[];
 
@@ -18,6 +21,7 @@ export class StationSuggest {
     this.recent = recent;
     this.input = box.querySelector("input")!;
     this.list = box.querySelector<HTMLElement>(".suggest__list")!;
+    this.status = box.querySelector<HTMLElement>("[data-suggest-status]");
     this.input.addEventListener("input", () => this.search());
     this.input.addEventListener("focus", () => this.search());
     this.input.addEventListener("keydown", (e) => this.key(e));
@@ -35,6 +39,12 @@ export class StationSuggest {
       : text.length < 2 ? [] : this.stations.search(text).map((s) => ({ name: s.name, crs: s.crs }));
     this.active = -1;
     this.draw();
+    // Said once per search, not on every arrow key (the highlighted option is read out by itself)
+    if (this.status) {
+      const n = this.items.length;
+      this.status.textContent = text === "" ? (n ? plural(n, "recent station") : "")
+        : text.length < 2 ? "" : n === 1 ? "1 station matches" : n ? `${n} stations match` : "No stations match";
+    }
   }
 
   private key(e: KeyboardEvent): void {
@@ -60,6 +70,7 @@ export class StationSuggest {
   private close(): void {
     this.list.hidden = true;
     this.input.setAttribute("aria-expanded", "false");
+    this.input.removeAttribute("aria-activedescendant");
     this.active = -1;
   }
 

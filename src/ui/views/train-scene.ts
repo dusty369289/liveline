@@ -21,11 +21,14 @@ export function coachList(f: Formation): Html {
 
 /** What we know about the coaches, and plainly what we don't; a key to the icons used. */
 export function formationNote(f: Formation): Html {
-  const all = f.facilities.length ? `Throughout: ${f.facilities.map(facilityName).join(", ")}. ` : "";
+  const all = f.facilities.length ? ` Throughout: ${f.facilities.map(facilityName).join(", ")}.` : "";
   const used = [...new Set(f.coaches.flatMap((c) => c.facilities))];
-  if (f.detailed) return html`${facilityKey(used)}${all}Coach letters and facilities from Realtime Trains.`;
-  const count = f.countKnown ? "" : " Realtime Trains doesn't say how many coaches, so four are drawn.";
-  return html`${all}Coaches are numbered from the front. Realtime Trains doesn't send coach letters or facilities for this train.${count}`;
+  const stock = [f.leadingClass ? `Class ${f.leadingClass}` : "", f.units.length ? `${f.units.length === 1 ? "unit" : "units"} ${f.units.join(", ")}` : ""]
+    .filter(Boolean).join(", ");
+  const what = html`${stock ? html`<span>${stock.charAt(0).toUpperCase() + stock.slice(1)}.</span>` : ""}${all}`;
+  if (f.detailed) return html`${facilityKey(used)}<p>${what}</p>`;
+  const count = f.countKnown ? "" : " Realtime Trains doesn't say how many, so four are drawn.";
+  return html`<p>${what} Coaches are numbered from the front: Realtime Trains doesn't send their letters for this train.${count}</p>`;
 }
 
 function end(e: SceneEnd | null, cls: string): Html {
@@ -99,7 +102,7 @@ export function scenePanel(sc: Scene, f: Formation, headline: string, sky: strin
   </div>
   <div class="scene__map" aria-hidden="true"><span class="scene__map-bar" data-map></span><span class="scene__map-text" data-map-text></span></div>
   <div data-ends>${sceneEnds(sc)}</div>
-  <p class="scene__headline" data-headline role="status">${headline}</p>
+  <p class="scene__headline" data-headline>${headline}</p>
   <div class="hint stack scene__note" data-formation-note>${formationNote(f)}</div>
 </section>`;
 }

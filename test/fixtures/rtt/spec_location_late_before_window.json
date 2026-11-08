@@ -1,0 +1,73 @@
+{
+ "_note": "Spec-derived, not a recording. A Reading departures answer fetched from 08:30 (as a wide fetch made earlier holds it), read for a board from 09:00. Four trains are booked 08:55, before that window: C70001 forecast 09:03 (still to leave, late into the window), C70002 left at 08:58, C70003 forecast 08:59 (gone before the window opens), C70004 left at 09:02 (late into the window, but gone). C70005 is booked 09:10, inside it. C70006 sets down only (it has a departure time, as a train going on does, but takes no one on).",
+ "systemStatus": {"realtimeNetworkRail": "OK", "rttCore": "OK"},
+ "query": {
+  "location": {"namespace": "gb-nr", "description": "Reading", "shortCodes": ["RDG"], "longCodes": ["gb-nr:RDNGSTN"]},
+  "timeFrom": "2026-11-07T08:30:00+00:00",
+  "timeTo": "2026-11-07T11:30:00+00:00",
+  "detailed": false
+ },
+ "services": [
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T08:55:00", "scheduleAdvertised": "2026-11-07T08:55:00", "realtimeForecast": "2026-11-07T09:03:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "9"}, "numberOfVehicles": 5, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70001:2026-11-07", "namespace": "gb-nr", "identity": "C70001", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Oxford", "longCodes": ["OXFD"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:20:00", "scheduleAdvertised": "2026-11-07T08:20:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:30:00", "scheduleAdvertised": "2026-11-07T09:30:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T08:55:00", "scheduleAdvertised": "2026-11-07T08:55:00", "realtimeActual": "2026-11-07T08:58:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "8"}, "numberOfVehicles": 5, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70002:2026-11-07", "namespace": "gb-nr", "identity": "C70002", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Oxford", "longCodes": ["OXFD"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:20:00", "scheduleAdvertised": "2026-11-07T08:20:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:30:00", "scheduleAdvertised": "2026-11-07T09:30:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T08:55:00", "scheduleAdvertised": "2026-11-07T08:55:00", "realtimeForecast": "2026-11-07T08:59:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "10"}, "numberOfVehicles": 5, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70003:2026-11-07", "namespace": "gb-nr", "identity": "C70003", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Oxford", "longCodes": ["OXFD"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:20:00", "scheduleAdvertised": "2026-11-07T08:20:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:30:00", "scheduleAdvertised": "2026-11-07T09:30:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T08:55:00", "scheduleAdvertised": "2026-11-07T08:55:00", "realtimeActual": "2026-11-07T09:02:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "11"}, "numberOfVehicles": 5, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70004:2026-11-07", "namespace": "gb-nr", "identity": "C70004", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Oxford", "longCodes": ["OXFD"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:20:00", "scheduleAdvertised": "2026-11-07T08:20:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:30:00", "scheduleAdvertised": "2026-11-07T09:30:00"}}]
+  },
+  {
+   "temporalData": {
+    "departure": {"scheduleInternal": "2026-11-07T09:10:00", "scheduleAdvertised": "2026-11-07T09:10:00", "realtimeForecast": "2026-11-07T09:10:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "9"}, "numberOfVehicles": 5, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70005:2026-11-07", "namespace": "gb-nr", "identity": "C70005", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Oxford", "longCodes": ["OXFD"]}, "temporalData": {"scheduleInternal": "2026-11-07T08:40:00", "scheduleAdvertised": "2026-11-07T08:40:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:35:00", "scheduleAdvertised": "2026-11-07T09:35:00"}}]
+  },
+  {
+   "temporalData": {
+    "arrival": {"scheduleInternal": "2026-11-07T09:18:00", "scheduleAdvertised": "2026-11-07T09:18:00", "realtimeForecast": "2026-11-07T09:18:00", "isCancelled": false},
+    "departure": {"scheduleInternal": "2026-11-07T09:20:00", "scheduleAdvertised": "2026-11-07T09:20:00", "realtimeForecast": "2026-11-07T09:20:00", "isCancelled": false},
+    "scheduledCallType": "ADVERTISED_SET_DOWN", "realtimeCallType": "ADVERTISED_SET_DOWN", "displayAs": "CALL", "isInterpolated": false
+   },
+   "locationMetadata": {"platform": {"planned": "7"}, "numberOfVehicles": 8, "allocationIndex": 0},
+   "scheduleMetadata": {"uniqueIdentity": "gb-nr:C70006:2026-11-07", "namespace": "gb-nr", "identity": "C70006", "departureDate": "2026-11-07", "operator": {"code": "GW", "name": "Great Western Railway"}, "modeType": "TRAIN", "inPassengerService": true},
+   "origin": [{"location": {"description": "Penzance", "longCodes": ["PENZNCE"]}, "temporalData": {"scheduleInternal": "2026-11-07T04:45:00", "scheduleAdvertised": "2026-11-07T04:45:00"}}],
+   "destination": [{"location": {"description": "London Paddington", "longCodes": ["PADTON"]}, "temporalData": {"scheduleInternal": "2026-11-07T09:45:00", "scheduleAdvertised": "2026-11-07T09:45:00"}}]
+  }
+ ]
+}

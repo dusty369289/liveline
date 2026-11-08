@@ -1,0 +1,40 @@
+{
+  "_note": "Spec-derived, not a recording. Two arrivals at Reading: one from Oxford moved from its planned platform 4 to platform 5 (actual), one from Basingstoke with only a planned platform 7 (not confirmed). For the board view's platform and origin wording.",
+  "systemStatus": { "realtimeNetworkRail": "OK", "rttCore": "OK" },
+  "query": {
+    "location": { "namespace": "gb-nr", "description": "Reading", "shortCodes": ["RDG"], "longCodes": ["gb-nr:RDNGSTN"] },
+    "timeFrom": "2026-07-06T15:00:00+01:00",
+    "timeTo": "2026-07-06T16:00:00+01:00",
+    "detailed": false
+  },
+  "services": [
+    {
+      "temporalData": {
+        "arrival": { "scheduleInternal": "2026-07-06T15:10:00", "scheduleAdvertised": "2026-07-06T15:10:00", "realtimeForecast": "2026-07-06T15:12:00", "isCancelled": false },
+        "departure": { "scheduleInternal": "2026-07-06T15:12:00", "scheduleAdvertised": "2026-07-06T15:12:00", "realtimeForecast": "2026-07-06T15:13:00", "isCancelled": false },
+        "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false, "status": "APPROACHING"
+      },
+      "locationMetadata": { "platform": { "planned": "4", "actual": "5" }, "numberOfVehicles": 5, "allocationIndex": 0 },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:C44444:2026-07-06", "namespace": "gb-nr", "identity": "C44444", "departureDate": "2026-07-06",
+        "operator": { "code": "GW", "name": "Great Western Railway" }, "modeType": "TRAIN", "inPassengerService": true
+      },
+      "origin": [{ "location": { "description": "Oxford", "longCodes": ["OXFD"] }, "temporalData": { "scheduleInternal": "2026-07-06T14:40:00", "scheduleAdvertised": "2026-07-06T14:40:00" } }],
+      "destination": [{ "location": { "description": "London Paddington", "longCodes": ["PADTON"] }, "temporalData": { "scheduleInternal": "2026-07-06T15:40:00", "scheduleAdvertised": "2026-07-06T15:41:00" } }]
+    },
+    {
+      "temporalData": {
+        "arrival": { "scheduleInternal": "2026-07-06T15:30:00", "scheduleAdvertised": "2026-07-06T15:30:00", "isCancelled": false },
+        "departure": { "scheduleInternal": "2026-07-06T15:32:00", "scheduleAdvertised": "2026-07-06T15:32:00", "isCancelled": false },
+        "scheduledCallType": "ADVERTISED_OPEN", "realtimeCallType": "ADVERTISED_OPEN", "displayAs": "CALL", "isInterpolated": false
+      },
+      "locationMetadata": { "platform": { "planned": "7" }, "numberOfVehicles": 4, "allocationIndex": 0 },
+      "scheduleMetadata": {
+        "uniqueIdentity": "gb-nr:C55555:2026-07-06", "namespace": "gb-nr", "identity": "C55555", "departureDate": "2026-07-06",
+        "operator": { "code": "SW", "name": "South Western Railway" }, "modeType": "TRAIN", "inPassengerService": true
+      },
+      "origin": [{ "location": { "description": "Basingstoke", "longCodes": ["BSNGSTK"] }, "temporalData": { "scheduleInternal": "2026-07-06T14:55:00", "scheduleAdvertised": "2026-07-06T14:55:00" } }],
+      "destination": [{ "location": { "description": "Reading", "longCodes": ["RDNGSTN"] }, "temporalData": { "scheduleInternal": "2026-07-06T15:30:00", "scheduleAdvertised": "2026-07-06T15:30:00" } }]
+    }
+  ]
+}
