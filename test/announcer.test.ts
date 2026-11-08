@@ -48,6 +48,20 @@ describe("the train page's announcer", () => {
     expect(note.textContent).toBe("");
   });
 
+  // The engine's own headlines (engine.ts position()), which write "on time" in lower case
+  it.each([
+    ["Left Slough 09:23 (on time). Next: Burnham, expected about 09:27.", "Left Slough 09:24 (1 min late). Next: Burnham, expected about 09:28."],
+    ["At Reading since 09:40, due to leave 09:42 (on time).", "At Reading since 09:41, due to leave 09:42 (1 min late)."],
+    ["Arrived at Oxford 10:03, on time.", "Arrived at Oxford 10:04, 1 min late."],
+  ])("says nothing when a train flips from on time to late: %s", (before, after) => {
+    region.innerHTML = live(before, "12");
+    a = new Announcer(note, region);
+    poll(live(after, "12"));
+    expect(note.textContent).toBe("");
+    poll(live(before, "12"));
+    expect(note.textContent).toBe("");
+  });
+
   it("says the whole hero line when its platform changes", () => {
     poll(live("Between Slough and Reading", "11", "until it leaves Reading · 09:40 · platform 10"));
     expect(note.textContent).toBe("Between Slough and Reading. 11 min until it leaves Reading · 09:40 · platform 10");
