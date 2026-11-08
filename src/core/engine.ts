@@ -97,7 +97,7 @@ export interface Timeline {
 
 /**
  * How far through a section the train is at `now`, by elapsed time against the run expected from `since` (when it
- * left) to `expected`. It never passes `hold`: an unreported point is never passed. Shared with live-train.ts, which
+ * left) to `expected`. It never passes `hold`: an unreported point is never passed. Shared with live-marker.ts, which
  * moves the marker every second between answers.
  */
 export function sectionFraction(since: Ms, expected: Ms | null, now: Ms, hold = DEFAULT_ENGINE.holdFraction): number {

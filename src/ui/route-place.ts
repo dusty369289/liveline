@@ -1,4 +1,4 @@
-// Where the train marker sits between two rows of the route, in pixels. Pure: live-train.ts measures the rows.
+// Where the train marker sits between two rows of the route, in pixels. Pure: live-marker.ts measures the rows.
 
 /** px a departed train sits clear of the point it left (and of the next), so it never looks to be on a ring. */
 export const MIN_AWAY = 26;

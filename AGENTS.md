@@ -37,7 +37,8 @@ src/
                  folds, tabs, the train page's announcer)
     store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists
     updates.ts   the update check, banner and one-tap install
-    live-train.ts  the train page while open: marker, polling, folds, the sticky bar
+    live-train.ts  the train page while open: polling, folds, the sticky bar
+    live-marker.ts the train marker and travelled line, placed every second against the rows as laid out
     route-place.ts where the marker sits between two rows (pure, in pixels)
     train-scene.ts the Train view while showing: slides the scenery, platforms, wheels (art in views/scene-art.ts,
                    views/train-art.ts; colours in public/css/themes/scene.css)
