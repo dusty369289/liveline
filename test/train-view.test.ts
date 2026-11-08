@@ -41,7 +41,7 @@ describe("a train on another day", () => {
 
   it("opened with both stops, nothing counts down thousands of minutes, and the day shows once", async () => {
     const page = await trainFrom("WAT", fromLondon(2026, 11, 9, 8, 0), "WAT", NOW, "last");
-    expect(page).toMatch(/class="live__stop">It reaches/);
+    expect(page).toMatch(/class="live__stop">Reaches/);
     expect(page).not.toMatch(/in \d+ min/);
     expect(page.match(/Mon 9 Nov/g)).toHaveLength(1);
   });
@@ -52,7 +52,7 @@ describe("a train on another day", () => {
     expect(heroOf(fromRecent)).toMatch(/live__hero-num">00:09<\/span><span class="live__hero-unit">Sun 8 Nov/);
     const both = await trainFrom("WAT", fromLondon(2026, 11, 7, 23, 35), "WAT", NOW, "WOK");
     expect(heroOf(both)).not.toContain("Sat 7 Nov");
-    expect(both).toMatch(/It reaches <strong>Woking<\/strong> at <strong[^>]*>00:09<\/strong> Sun 8 Nov/);
+    expect(both).toMatch(/Reaches <strong>Woking<\/strong> <strong[^>]*>00:09<\/strong> Sun 8 Nov/);
   });
 
   it("opened without a stop, the title carries the day and the not-started line doesn't repeat it", async () => {
@@ -99,13 +99,34 @@ describe("the countdown between polls (live-train.ts ticks it with countText)", 
 
   it("the other stop's 'in N min' ticks too, and the clock form keeps to the hero's rules", async () => {
     const page = await trainFrom("WAT", fromLondon(2026, 11, 7, 10, 0), "WAT", NOW, "last");
-    const [, at, shown] = /<span data-count-at="(\d+)">(, in \d+ min)<\/span>/.exec(page)!;
+    const [, at, shown] = /<span data-count-at="(\d+)">(in \d+ min)<\/span>/.exec(page)!;
     expect(countText(Number(at), NOW, false)).toBe(shown);
     const t = NOW + 3 * 3_600_000;
     expect(countText(t, NOW, true)).toBe("180");
     expect(countText(t + 60_000, NOW, true)).toBe("12:21");
     expect(countText(t + 60_000, NOW, false)).toBe("");
     expect(countText(NOW + 59_000, NOW, true)).toBe("Due");
-    expect(countText(NOW + 59_000, NOW, false)).toBe(", due now");
+    expect(countText(NOW + 59_000, NOW, false)).toBe("due now");
+  });
+});
+
+describe("the status box keeps its times off lines of their own", () => {
+  // Long names (Tame Bridge Parkway) pushed "· 15:39" and "at 16:00" onto lines holding nothing else (owner,
+  // 2026-11-08): the hero's clock time now stands beside the number, and the other stop's facts share one line
+  it("the hero's time is beside the big number, its line just the station, and read after it", async () => {
+    const hero = heroOf(await trainFrom("WAT", fromLondon(2026, 11, 7, 10, 0)));
+    const [, time] = /<span class="live__hero-at tnum"><span class="visually-hidden">at <\/span>(\d\d:\d\d)<\/span>/.exec(hero)!;
+    const what = /<span class="live__hero-what"[^>]*>([^<]*)<\/span>/.exec(hero)![1];
+    expect(what).toMatch(/^until it leaves London Waterloo/);
+    expect(what).not.toContain(time); // said once, beside the number
+    // in the page's order the time comes after the words, so a screen reader says "…London Waterloo at 10:00"
+    expect(hero.indexOf("live__hero-what")).toBeLessThan(hero.indexOf("live__hero-at"));
+  });
+
+  it("the other stop: its name and time, then the countdown and stops on the line under", async () => {
+    const page = await trainFrom("WAT", fromLondon(2026, 11, 7, 10, 0), "WAT", NOW, "last");
+    const stop = /<p class="live__stop">([\s\S]*?)<\/p>/.exec(page)![1];
+    expect(stop).toMatch(/^Reaches <strong>[^<]+<\/strong> <strong class="tnum[^"]*">\d\d:\d\d<\/strong>/);
+    expect(stop).toMatch(/<span class="live__stop-more"><span data-count-at="\d+">in \d+ min<\/span><span>\d+ stops away<\/span>/);
   });
 });
