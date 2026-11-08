@@ -14,8 +14,6 @@ export interface SettingsData {
   hint: string | null; // the key's last characters
   tokenError: string | null;
   budget: BudgetState;
-  message: string | null; // after saving or forgetting the key
-  error: string | null;
   update: UpdateInfo;
   native: boolean; // on the phone (key in private storage) or a browser
   selfUpdate: boolean; // can install its own updates (Android)
@@ -37,6 +35,9 @@ function keyForm(d: SettingsData): Html {
     ${d.demo ? "" : html`<p><button class="linkish" type="button" data-forget-key>Forget my key on this ${where}</button></p>`}`;
 }
 
+/** Why the key just typed wasn't kept, shown under its field (`aria-describedby` points here). */
+export const tokenErrorView = (message: string): Html => html`<p class="problem" id="token-error" role="alert">${message}</p>`;
+
 /** A settings group: its name above, its rows in a panel below, the way phone settings screens are laid out. */
 function group(id: string, title: string, body: Html): Html {
   return html`<section class="settings__group" aria-labelledby="${id}">
@@ -53,7 +54,7 @@ function keySection(d: SettingsData): Html {
       <a href="https://api-portal.rtt.io" target="_blank" rel="noopener">api-portal.rtt.io</a>, then paste it here.</p>
     ${keyForm(d)}</div>`);
   }
-  const open = !!(d.tokenError || d.error);
+  const open = !!d.tokenError;
   return group("key-h", "Realtime Trains key", html`<details class="keybox" ${open ? html`open` : ""}>
     <summary class="keybox__summary panel__row"><span class="keybox__text"><span class="keybox__title">Your key</span>
       <span class="keybox__line">${d.tokenError ? html`<span class="problem">Needs attention</span>`
@@ -88,7 +89,7 @@ function updateBody(u: UpdateInfo, selfUpdate: boolean): Html {
     return html`<p><strong>Version ${u.latest} is available</strong> (you have ${u.current}).</p>
       ${u.notes ? html`<p class="hint">${u.notes}</p>` : ""}
       ${selfUpdate && u.apk
-        ? html`<p><button class="button" type="button" data-install-update ${u.progress ? html`disabled` : ""}>Update to ${u.latest}</button></p>
+        ? html`<p><button class="button" type="button" data-install-update ${u.progress && !u.confirming ? html`disabled` : ""}>Update to ${u.latest}</button></p>
           <p class="hint" data-update-progress role="status" aria-live="polite">${u.progress ?? ""}</p>
           ${u.message ? html`<p class="problem">${u.message}</p>` : ""}
           <p class="hint">Installs over this version. Your key, journeys and settings stay. Android checks it's signed by the same
@@ -121,8 +122,6 @@ export function settingsView(d: SettingsData): Html {
   return html`
 <div class="stack settings">
   <h1>Settings</h1>
-  ${d.message ? html`<p class="banner" role="status">${d.message}</p>` : ""}
-  ${d.error ? html`<p class="problem" role="alert">${d.error}</p>` : ""}
   ${keySection(d)}
   ${appearanceSection(d)}
   ${group("update-h", "Updates", html`

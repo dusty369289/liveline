@@ -9,7 +9,10 @@ import type { RecentTrains } from "../store/recent-trains";
 import type { TrainTab } from "../store/train-tab";
 import type { Updates } from "../updates";
 
-/** A message to show once on the next page drawn (after saving a key, say). */
+/**
+ * A message to show once on the next page drawn (after saving a key, say), in the chrome's flash region (App). `error`
+ * is the app's own fault (a page that didn't start properly); a refused key is said under its field instead.
+ */
 export interface Flash { message: string | null; error: string | null }
 
 /** What pages share, owned by App. */
@@ -22,8 +25,13 @@ export interface AppContext {
   stations: RecentStations;
   trainTab: TrainTab;
   flash: Flash;
-  /** Draw the current route again (after a change only a fresh page shows). */
-  rerender(): void;
+  /** Failures in a row by route path, so a page that keeps failing tries again less often (ProblemPage). */
+  problems: Map<string, number>;
+  /**
+   * Draw the current route again (after a change only a fresh page shows). `background`: nobody asked (an automatic
+   * retry), so the page's calls are background ones.
+   */
+  rerender(opts?: { background?: boolean }): void;
 }
 
 export abstract class Page {
@@ -31,6 +39,8 @@ export abstract class Page {
   abstract readonly tab: RouteName;
   /** The browser/app title; "" for the plain app name. */
   title = "";
+  /** Set by App when this page is drawn by an automatic retry: its calls are background ones. */
+  automatic = false;
   private timers: Array<() => void> = [];
 
   constructor(protected readonly ctx: AppContext, protected readonly route: Route) {}

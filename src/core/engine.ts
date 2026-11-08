@@ -8,11 +8,13 @@
 import {
   allowanceTotal,
   booked as bookedOf,
+  emptyTimes,
   firstEvent,
   isCancelled,
   isEmpty,
   lastEvent,
   planned,
+  type Feed,
   type Point,
   type Service,
   type Times,
@@ -25,6 +27,7 @@ export interface EngineConfig {
   minDwell: Ms;
   holdFraction: number; // never place the train past this share of an unreported section
   overdueAfter: Ms;
+  giveUpAfter: Ms; // past the latest time expected at its end (dueAtEnd) by this much, no report is coming: stop waiting
 }
 
 export const DEFAULT_ENGINE: EngineConfig = {
@@ -32,9 +35,19 @@ export const DEFAULT_ENGINE: EngineConfig = {
   minDwell: 30_000,
   holdFraction: 0.95,
   overdueAfter: 120_000,
+  // Half an hour past when it's expected at its end covers a late report or a train held outside; the expected time
+  // moves on with each report, so a late train still reporting is followed. Polling a lost train for ever wastes the hour.
+  giveUpAfter: 30 * 60_000,
 };
 
-export type State = "not-started" | "at-origin" | "at-station" | "running" | "overdue" | "arrived" | "cancelled" | "no-data";
+/**
+ * "unreported": reported on the way, but not at its end, long after it was due there (giveUpAfter). It may have
+ * arrived unseen, or been terminated early without RTT saying so: we say only what we know.
+ */
+export type State = "not-started" | "at-origin" | "at-station" | "running" | "overdue" | "arrived" | "cancelled" | "no-data"
+  | "unreported";
+/** States where we've stopped following the train: what it hasn't reached shows the timetable, never our estimate. */
+export const GIVEN_UP: readonly State[] = ["no-data", "unreported"];
 
 export interface Shown {
   time: Ms | null;
@@ -80,6 +93,16 @@ export interface Timeline {
   worst: Lost | null; // the section that lost the most time, if it lost at least 2 minutes
 }
 
+/**
+ * How far through a section the train is at `now`, by elapsed time against the run expected from `since` (when it
+ * left) to `expected`. It never passes `hold`: an unreported point is never passed. Shared with live-train.ts, which
+ * moves the marker every second between answers.
+ */
+export function sectionFraction(since: Ms, expected: Ms | null, now: Ms, hold = DEFAULT_ENGINE.holdFraction): number {
+  if (expected == null || expected <= since) return hold;
+  return Math.min(Math.max((now - since) / (expected - since), 0), hold);
+}
+
 /** Railway convention: lateness is whole minutes, rounded toward zero. */
 export const roundMin = (seconds: number) => (seconds >= 0 ? Math.floor(seconds / 60) : -Math.floor(-seconds / 60));
 
@@ -104,6 +127,9 @@ function shown(t: Times, ours: Ms | null, floor: Ms, ahead: boolean): Shown | nu
   return { time, source, booked, delayMin };
 }
 
+/** What to show for one event from RTT's times alone (no estimate of ours), as a board row does. */
+export const shownOf = (t: Times): Shown | null => shown(t, null, 0, false);
+
 /** The latest actual at this point and which event it belongs to. */
 function actualOf(p: Point): [Ms | null, Times | null] {
   const events = p.kind === "call" ? [p.departure, p.passing, p.arrival] : [p.passing];
@@ -111,12 +137,40 @@ function actualOf(p: Point): [Ms | null, Times | null] {
   return [null, null];
 }
 
-export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE): Timeline {
-  const pts = service.points;
+/**
+ * Where the train is known to have been: an actual, or an event RTT flags as passed without a report
+ * (`realtimeNoReport`), timed by RTT's forecast, else the working timetable. A flagged event that still has RTT's
+ * estimate isn't passed: RTT is still timing it as ahead. Our reading of the flag is untested against a real answer,
+ * so it never ends a journey (see build). Only actuals count for lateness.
+ */
+function passedOf(p: Point): [Ms | null, Times | null] {
+  const seen = actualOf(p);
+  if (seen[0] != null) return seen;
+  const events = p.kind === "call" ? [p.departure, p.passing, p.arrival] : [p.passing];
+  for (const t of events) if (t.noReport && t.estimate == null) return [t.forecast ?? planned(t), t];
+  return [null, null];
+}
+
+/**
+ * The point as the train will run it: a cancelled arrival or departure at a stop it still makes (a train terminated
+ * short, or starting part way) is no event at all, so nothing is shown or estimated for it. parse.ts keeps the flag,
+ * which the board needs (rowCancelled). A wholly cancelled point is left as it is: it's out of the running anyway.
+ */
+function asRun(p: Point): Point {
+  if (isCancelled(p) || !(p.arrival.cancelled || p.departure.cancelled)) return p;
+  return { ...p, arrival: p.arrival.cancelled ? emptyTimes() : p.arrival, departure: p.departure.cancelled ? emptyTimes() : p.departure };
+}
+
+/** `feed` is RTT's own state (models.feedOf): with no live data, a missing report is the feed, not the train. */
+export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE, feed: Feed = "ok"): Timeline {
+  const pts = service.points.map(asRun);
   const usable = pts.map((p, i) => (isCancelled(p) ? -1 : i)).filter((i) => i >= 0);
 
-  let last: number | null = null; // the last point with any actual
-  for (const i of usable) if (actualOf(pts[i])[0] != null) last = i;
+  // The last point it's known to have reached. Only a report proves it reached its end: "arrived" stops the polling,
+  // so a flag alone leaves it heading there, followed until the cut-off (giveUpAfter) says "not reported".
+  const endIx = usable[usable.length - 1];
+  let last: number | null = null;
+  for (const i of usable) if ((i === endIx ? actualOf(pts[i]) : passedOf(pts[i]))[0] != null) last = i;
 
   // --- our estimates, propagated forward from the last report (or from the start if none) ---
   const oursArr = new Map<number, Ms>();
@@ -139,7 +193,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
         const first = planned(lastEvent(p));
         cursor = first != null ? max(first, now) : null;
       } else {
-        const [act, ev] = actualOf(p) as [Ms, Times];
+        const [act, ev] = passedOf(p) as [Ms, Times];
         if (p.kind === "call" && ev === p.arrival && !isEmpty(p.departure)) {
           // arrived, not yet departed: departs after a minimum dwell, not before booked
           let dep = max(act + cfg.minDwell, planned(p.departure) ?? act);
@@ -194,8 +248,10 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     prev = i;
   }
 
-  const views: PointView[] = pts.map((p, i) => {
+  // `givenUp`: what it hasn't reached shows the timetable alone, since the headline says that's all we have
+  const viewsOf = (givenUp: boolean): PointView[] => pts.map((p, i) => {
     const reported = last != null && i <= last;
+    const show = (t: Times, ours: Ms | null, floor: Ms) => (givenUp && !reported ? timetable(t) : shown(t, ours, floor, !reported));
     const oa = oursArr.get(i) ?? null;
     if (p.kind === "pass") {
       return {
@@ -203,7 +259,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
         point: p,
         arrival: null,
         departure: null,
-        passing: shown(p.passing, oa, floorArr.get(i) ?? now, !reported),
+        passing: show(p.passing, oa, floorArr.get(i) ?? now),
         reported,
         oursArrival: oa,
         oursDeparture: null,
@@ -213,8 +269,8 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     return {
       index: i,
       point: p,
-      arrival: isEmpty(p.arrival) ? null : shown(p.arrival, oa, floorArr.get(i) ?? now, !reported),
-      departure: isEmpty(p.departure) ? null : shown(p.departure, od, floorDep.get(i) ?? now, !reported),
+      arrival: isEmpty(p.arrival) ? null : show(p.arrival, oa, floorArr.get(i) ?? now),
+      departure: isEmpty(p.departure) ? null : show(p.departure, od, floorDep.get(i) ?? now),
       passing: null,
       reported,
       oursArrival: oa,
@@ -222,13 +278,22 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     };
   });
 
+  const followed = viewsOf(false);
+  const pos = position(pts, followed, usable, last, now, cfg, plannedArr, feed, service.mode);
   return {
     service,
-    points: views,
-    position: position(service, views, usable, last, now, cfg, plannedArr),
+    points: GIVEN_UP.includes(pos.state) ? viewsOf(true) : followed,
+    position: pos,
     now,
     worst: worst(pts, usable, last),
   };
+}
+
+/** The booked time alone, as `shown` gives it when there's nothing else. */
+function timetable(t: Times): Shown | null {
+  if (isEmpty(t)) return null;
+  const booked = bookedOf(t);
+  return { time: booked, source: "booked", booked, delayMin: booked != null ? 0 : null };
 }
 
 /** The section where lateness grew most. Timing points make this finer than station-to-station. */
@@ -257,55 +322,104 @@ function expectedAt(v: PointView): Ms | null {
   return s ? s.time : null;
 }
 
+/** Why a report is missing when RTT itself says it has no live data: never blame a signal for that. */
+const NO_FEED = "Realtime Trains has no live data right now, so no reports are coming in.";
+
 function lateText(d: number | null): string {
   if (d == null) return "";
   if (d === 0) return "on time";
   return d > 0 ? `${d} min late` : `${-d} min early`;
 }
 
+/**
+ * The latest time the train is expected at its end: booked, RTT's forecast or estimate there, and, once reported, the
+ * last report plus the booked running time from there. Our own estimate never counts: past the first unreported
+ * point it is pushed on by now (it can't be anywhere sooner), so it would never fall behind and we'd wait for ever.
+ */
+function dueAtEnd(pts: Point[], endIx: number, last: number | null): Ms | null {
+  const fe = firstEvent(pts[endIx]);
+  const times = [bookedOf(fe), fe.forecast, fe.estimate];
+  if (last != null) {
+    const [act, ev] = passedOf(pts[last]);
+    const from = ev ? planned(ev) : null;
+    const to = planned(fe);
+    if (act != null && from != null && to != null) times.push(act + Math.max(to - from, 0));
+  }
+  const known = times.filter((t): t is Ms => t != null);
+  return known.length ? max(...known) : null;
+}
+
 function position(
-  service: Service,
+  pts: Point[],
   views: PointView[],
   usable: number[],
   last: number | null,
   now: Ms,
   cfg: EngineConfig,
   plannedArr: Map<number, Ms>,
+  feed: Feed, mode: string, // the service's mode: a bus or ship is never reported
 ): Position {
-  const pts = service.points;
   const P = (state: State, fromIndex: number | null, toIndex: number | null, since: Ms | null, expected: Ms | null,
     fraction: number, delayMin: number | null, headline: string): Position =>
     ({ state, fromIndex, toIndex, since, expected, fraction, delayMin, headline });
   if (!pts.length) return P("no-data", null, null, null, null, 0, null, "No route data for this train.");
   if (!usable.length) return P("cancelled", null, null, null, null, 0, null, "This train is cancelled.");
 
+  // Long past the latest time it's expected at its end, with nothing there: no more reports are coming, so stop
+  // waiting for one. A late train that's still reporting moves that time on, so it's still followed.
+  const endIx = usable[usable.length - 1];
+  const end = pts[endIx];
+  const dueIn = bookedOf(firstEvent(end));
+  const latest = dueAtEnd(pts, endIx, last);
+  const pastEnd = latest != null && now > latest + cfg.giveUpAfter;
+
   if (last == null) {
+    if (pastEnd) {
+      return P("no-data", null, null, null, null, 0, null,
+        `No reports for this train: it was due at ${end.name} at ${hm(dueIn)}. The times shown are the timetable.`);
+    }
     const first = usable[0];
     const p = pts[first];
     const dep = planned(p.departure) ?? planned(lastEvent(p));
     if (dep != null && now < dep) {
       return P("not-started", null, first, null, dep, 0, null, `Not started yet. Due to leave ${p.name} at ${hm(dep)}.`);
     }
-    return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null,
-      dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet.");
+    // Buses and ships aren't reported at all: "no reports yet" would suggest one is coming
+    const headline = mode !== "TRAIN"
+      ? `${mode.includes("SHIP") ? "Ships" : "Buses"} aren't tracked live: the times shown are the timetable.`
+      : `${dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet."}${feed === "none" ? ` ${NO_FEED}` : ""}`;
+    return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null, headline);
   }
 
   const lp = pts[last];
-  const [act, ev] = actualOf(lp) as [Ms, Times];
-  const pl = ev ? planned(ev) : null;
-  const delay = pl != null ? roundMin((act - pl) / 1000) : null;
-  const late = lateText(delay);
+  const [act, ev] = passedOf(lp) as [Ms, Times];
+  const seen = ev.actual != null; // false: RTT says it got here, with no report to time it
+  const pl = planned(ev);
+  const delay = seen && pl != null ? roundMin((act - pl) / 1000) : null;
+  // The words say what the row says: lateness against the public time (working time where there's none). `delay`
+  // stays on the working timetable, which is what the estimate runs on.
+  const lv = views[last];
+  const reportedShown = ev === lp.arrival ? lv.arrival : ev === lp.departure ? lv.departure : lv.passing;
+  const late = lateText(seen ? (reportedShown?.delayMin ?? delay) : null);
+  const where = seen ? `${lp.name} ${hm(act)}` : `${lp.name} (not reported)`;
+  const verb = lp.kind === "pass" ? "Passed" : ev === lp.arrival ? "Reached" : "Left";
 
   const nxtK = usable.indexOf(last) + 1;
   if (nxtK >= usable.length) {
-    return P("arrived", last, null, act, null, 1, delay, `Arrived at ${lp.name} ${hm(act)}, ${late}.`);
+    // only ever with a report at its end (build), so `where` has the actual time
+    return P("arrived", last, null, act, null, 1, delay, `Arrived at ${where}, ${late}.`);
   }
   const nxt = usable[nxtK];
+  if (pastEnd) {
+    return P("unreported", last, null, act, null, 0, delay,
+      `Last reported: ${verb.toLowerCase()} ${where}. Its arrival at ${end.name} was not reported, so this is all we know.`);
+  }
 
   if (lp.kind === "call" && ev === lp.arrival && !isEmpty(lp.departure)) {
     const due = views[last].departure ? views[last].departure!.time : null;
     const tail = due != null ? `, due to leave ${hm(due)}` : "";
-    return P("at-station", last, nxt, act, expectedAt(views[nxt]), 0, delay, `At ${lp.name} since ${hm(act)}${tail} (${late}).`);
+    return P("at-station", last, nxt, act, expectedAt(views[nxt]), 0, delay,
+      seen ? `At ${lp.name} since ${hm(act)}${tail} (${late}).` : `At ${where}${tail}.`);
   }
 
   // Judge progress against what was expected when it left, not against estimates already pushed back by the wait
@@ -313,46 +427,13 @@ function position(
   const fe = firstEvent(nv.point);
   const expected = fe.forecast ?? fe.estimate ?? plannedArr.get(nxt) ?? expectedAt(nv);
   const np = pts[nxt];
-  const frac =
-    expected == null || expected <= act ? cfg.holdFraction : Math.min(Math.max((now - act) / (expected - act), 0), cfg.holdFraction);
-  const verb = lp.kind === "pass" ? "Passed" : "Left";
+  const frac = sectionFraction(act, expected, now, cfg.holdFraction);
   if (expected != null && now > expected + cfg.overdueAfter) {
     const over = roundMin((now - expected) / 1000);
     return P("overdue", last, nxt, act, expected, cfg.holdFraction, delay,
-      `${verb} ${lp.name} ${hm(act)}. No report at ${np.name} yet, ${over} min after expected. ` +
-        "It may be held at a signal, or the report is late.");
+      `${verb} ${where}. No report at ${np.name} yet, ${over} min after expected. ` +
+        (feed === "none" ? NO_FEED : "It may be held at a signal, or the report is late."));
   }
   const expTxt = expected != null ? `, expected about ${hm(expected)}` : "";
-  return P("running", last, nxt, act, expected, frac, delay, `${verb} ${lp.name} ${hm(act)} (${late}). Next: ${np.name}${expTxt}.`);
-}
-
-export interface StopSummary {
-  name: string;
-  index: number;
-  shown: Shown | null;
-  platform: string | null;
-  platformConfirmed: boolean;
-  status: "ahead" | "here" | "gone" | "cancelled";
-  minutes: number | null; // from now until the train is due there (ahead only)
-  callsBetween: number; // stops between the train and this one
-}
-
-/** How things stand at one station on this train: where you get on (or off). */
-export function stopSummary(tl: Timeline, code: string, boarding = true): StopSummary | null {
-  const c = code.trim().toUpperCase();
-  if (!c) return null;
-  const v = tl.points.find((w) => w.point.kind === "call" && (w.point.crs === c || w.point.tiploc === c));
-  if (!v) return null;
-  const p = v.point;
-  const sh = boarding ? (v.departure ?? v.arrival) : (v.arrival ?? v.departure);
-  const pos = tl.position;
-  const status = isCancelled(p) ? "cancelled" : pos.state === "at-station" && pos.fromIndex === v.index ? "here" : v.reported ? "gone" : "ahead";
-  let minutes: number | null = null;
-  let between = 0;
-  if (status === "ahead") {
-    if (sh && sh.time != null) minutes = Math.max(Math.floor((sh.time - tl.now) / 60_000), 0);
-    const start = pos.fromIndex ?? -1;
-    between = tl.points.slice(start + 1, v.index).filter((w) => w.point.kind === "call" && !isCancelled(w.point)).length;
-  }
-  return { name: p.name, index: v.index, shown: sh, platform: p.platform, platformConfirmed: p.platformConfirmed, status, minutes, callsBetween: between };
+  return P("running", last, nxt, act, expected, frac, delay, `${verb} ${where}${seen ? ` (${late})` : ""}. Next: ${np.name}${expTxt}.`);
 }

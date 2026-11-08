@@ -1,9 +1,16 @@
 #!/bin/sh
-# Every commit message (installed by `npm install`). All work is attributed to the owner: no AI co-author trailers,
-# no "Generated with" lines, no session links. A short subject line (72 characters at most), then a body if needed.
+# Every commit message (installed by `npm install`; scripts/commit.sh also runs it before staging anything).
+# All work is attributed to the owner: no AI co-author trailers, no "Generated with <AI tool>" lines, no session
+# links (the pattern is scripts/attribution.re, shared with history-check.mjs). Nothing personal (the leak check's
+# text mode). A short subject line (72 characters at most), then a body if needed.
 msg="$1"
-if grep -qiE '^co-authored-by:.*(claude|anthropic|openai|copilot|gpt|noreply@anthropic)|generated with|claude-session:|claude\.ai/code' "$msg"; then
+scripts="$(dirname "$0")/.."
+if grep -qiE -f "$scripts/attribution.re" "$msg"; then
   echo "commit-msg: remove the AI attribution (co-author trailer, 'Generated with' or session link)." >&2
+  exit 1
+fi
+if ! grep -v '^#' "$msg" | node "$scripts/leak-check.mjs" --text; then
+  echo "commit-msg: take the personal details out of the message." >&2
   exit 1
 fi
 subject=$(grep -v '^#' "$msg" | head -n 1)

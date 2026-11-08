@@ -25,7 +25,7 @@ test("running: the whole train, the station it left and the next it's due at", a
   await expect(page.locator(".scene__end--from .scene__where")).toHaveText(/^Left /);
   await expect(page.locator(".scene__end--to .scene__where")).toHaveText(/^Due at /);
   await expect(page.locator("#panel-route")).toBeHidden();
-  await expect(page.locator(".train__head .hint")).toHaveText(/^Unit \d+$/); // one unit: "Unit", not "Units"
+  await expect(page.locator("[data-formation-note]")).toContainText(/Class 800, unit \d+\./); // one unit: "unit", not "units"
   await expect(page.locator(".coaches__name").first()).toHaveText("Coach A"); // the demo sends coach letters
   // The line between the two ends runs level with both times, however the labels above them wrap
   const line = (await page.locator(".scene__line").boundingBox())!;
@@ -76,6 +76,33 @@ test("pulls away from the platform once it's reported gone", async ({ page, erro
   expect(await at()).toBeLessThan(first); // the platform slides back as the train picks up speed
   void errors;
 });
+});
+
+test("at large system text (200%), the coaches' names and icons and the bar's age all show", async ({ page, errors }, info) => {
+  await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
+    document.documentElement.style.fontSize = "200%";
+  }));
+  await openTrain(page);
+  await trainView(page);
+  expect(await audit(page)).toEqual([]);
+  const cut = await page.evaluate(() => {
+    const out: string[] = [];
+    const scene = document.querySelector(".scene")!.getBoundingClientRect();
+    for (const el of document.querySelectorAll(".coaches__item")) {
+      const b = el.getBoundingClientRect();
+      if (b.bottom > scene.bottom + 0.5) out.push(`coach cut off by ${Math.round(b.bottom - scene.bottom)}px`);
+    }
+    const age = document.querySelector<HTMLElement>(".trainbar__age")!;
+    if (getComputedStyle(age).textOverflow === "ellipsis" || age.scrollWidth > age.clientWidth + 1) out.push("age cut short");
+    const jump = document.querySelector<HTMLElement>(".trainbar__jump")!;
+    if (getComputedStyle(jump).display !== "none") out.push("Jump to train still takes room");
+    return [...new Set(out)];
+  });
+  expect(cut).toEqual([]);
+  // One screen, not the whole (very long) page: the coaches at the foot, the sticky bar at the top
+  await page.locator(".scene__coaches").evaluate((el) => el.scrollIntoView({ block: "end" }));
+  await page.screenshot({ path: `.ui-report/${info.project.name}/24-train-view-large-text.png` });
+  void errors;
 });
 
 test("with reduced motion the scenery stands still, though the train is running", async ({ page, errors }) => {

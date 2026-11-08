@@ -8,7 +8,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import config from "../capacitor.config";
 import { STORE } from "../src/core/keys";
+import type { KeyValueStore } from "../src/core/rtt";
 import { KEYS } from "../src/ui/store/keys";
+import { MemStore } from "./support";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
@@ -33,6 +35,13 @@ describe("updates keep the user's data", () => {
       marker: "liveline.marker",
       trainTab: "liveline.trainTab", // new in the Train view: nothing older to migrate
     });
+  });
+
+  it("the key store takes only registered names (checked by the typecheck)", async () => {
+    const store: KeyValueStore = new MemStore();
+    expect(await store.get(STORE.access)).toBeNull();
+    // @ts-expect-error a name that isn't in STORE is a compile error, as it is for Pref and KEYS
+    expect(await store.get("rtt.accessToken")).toBeNull();
   });
 
   it("Android doesn't back data up to a new phone, but an update in place keeps it", () => {

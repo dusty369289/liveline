@@ -1,13 +1,14 @@
 // The app shell: which page a route is, drawing it inside the chrome, and what happens when it can't load.
 // Pages live in pages/, their markup in views/, shared pieces in components/ and widgets/, stored data in store/.
-import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
+import { AllowanceError, BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { chrome } from "./components/chrome";
 import { SearchForm } from "./components/search-form";
-import { render } from "./html";
+import { focusKey, refocus } from "./focus";
+import { type Html, html, render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
 import { SettingsPage } from "./pages/settings";
-import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage } from "./pages/simple";
+import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage, retryDelay } from "./pages/simple";
 import { TrainPage } from "./pages/train";
 import { parseHash, queryOf, type Route, type RouteName } from "./routes";
 import { Appearance } from "./store/appearance";
@@ -15,10 +16,13 @@ import { TrainTab } from "./store/train-tab";
 import { Journeys, RecentStations } from "./store/lists";
 import { RecentTrains } from "./store/recent-trains";
 import { Updates } from "./updates";
-import { problemView } from "./views/home";
+import { problemView, type Retry } from "./views/home";
 import { StationSuggest } from "./widgets/station-suggest";
 
 type PageClass = new (ctx: AppContext, route: Route) => Page;
+
+const BROKEN = "LiveLine hit a problem of its own showing this page. Trying again may work; if it keeps happening, it's a bug.";
+const MOUNT_FAILED = "Part of this page didn't start properly, so some buttons may not work. Open the page again to retry.";
 
 const PAGES: Record<RouteName, PageClass> = {
   home: HomePage,
@@ -34,60 +38,194 @@ export class App {
   private readonly ctx: AppContext;
   private page: Page | null = null;
   private seq = 0; // a newer navigation wins over a slow answer
+  private flashRegion: HTMLElement | null = null;
+  private drawnPath: string | null = null; // the page on screen, to tell a new page from the same one drawn again
+  private drawn: string | null = null; // the hash last drawn: the same one again is a refresh, so it keeps its place
 
   constructor(private readonly root: HTMLElement, rail: Rail) {
     this.ctx = {
       rail,
-      updates: new Updates(() => void this.render()),
+      updates: new Updates(() => this.updateChanged()),
       appearance: new Appearance(),
       trains: new RecentTrains(),
       journeys: new Journeys(),
       stations: new RecentStations(),
       trainTab: new TrainTab(),
       flash: { message: null, error: null },
-      rerender: () => void this.render(),
+      problems: new Map(),
+      rerender: (opts) => void this.render(opts?.background ?? false),
     };
   }
 
   async start(): Promise<void> {
+    window.addEventListener("hashchange", () => void this.render()); // before any wait: a tap meanwhile still counts
     this.ctx.appearance.apply();
-    await this.ctx.rail.start();
-    window.addEventListener("hashchange", () => void this.render());
+    this.ctx.updates.restore(); // before the first draw, so a banner found earlier doesn't draw the page twice
+    try {
+      await this.ctx.rail.start();
+    } catch (e) {
+      console.error("Couldn't read the saved key, so showing demo trains", e); // Rail starts in demo mode
+    }
     await this.render();
     void this.ctx.updates.daily();
   }
 
-  async render(): Promise<void> {
-    this.page?.dispose();
+  /**
+   * Draw the route in the hash. Never throws: whatever goes wrong ends as a page saying so, not "Loading…" for good.
+   * `background`: nobody asked (an automatic retry), so the page's calls are background ones.
+   */
+  async render(background = false): Promise<void> {
     const mine = ++this.seq;
     const stale = () => mine !== this.seq;
     const route = parseHash(location.hash);
-    let page: Page = new PAGES[route.name](this.ctx, route);
-    let view;
+    this.navigating(true);
     try {
-      view = await page.load(stale);
+      const { page, view } = await this.load(route, stale, background);
+      if (stale() || !view) return;
+      this.draw(page, view, route);
     } catch (e) {
-      if (stale() || !(e instanceof RttError)) throw e;
-      page = this.problem(route, e);
-      view = await page.load(stale);
+      if (stale()) return;
+      try {
+        const page = this.problem(route, e);
+        const view = await page.load(stale);
+        if (view && !stale()) this.draw(page, view, route);
+      } catch (again) {
+        console.error("Couldn't even show the problem page", again);
+      }
+    } finally {
+      if (!stale()) this.navigating(false); // a newer navigation is still waiting: it clears it
     }
-    if (stale() || !view) return;
-    this.page = page;
-    render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
-    document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
-    this.wireShared();
-    page.mount(this.root);
   }
 
-  /** A page that couldn't load says why, plainly; "busy" tries again by itself. */
-  private problem(route: Route, e: RttError): Page {
-    const busy = e instanceof BusyError;
-    const title = e instanceof OfflineError ? "No connection" : busy ? "Realtime Trains is busy" : "Couldn't show that";
-    return new ProblemPage(this.ctx, route, problemView(title, e.message, busy, route.name === "board" ? queryOf(route.params) : null), busy);
+  /** While the next page loads, the old one stays; screen readers hear "busy", and a slow wait shows a thin line (CSS). */
+  private navigating(on: boolean): void {
+    this.root.classList.toggle("is-navigating", on);
+    if (on) this.root.setAttribute("aria-busy", "true");
+    else this.root.removeAttribute("aria-busy");
+  }
+
+  /** The page's own data and markup, or a problem page when it can't be had. */
+  private async load(route: Route, stale: () => boolean, background: boolean): Promise<{ page: Page; view: Html | null }> {
+    const page = new PAGES[route.name](this.ctx, route);
+    page.automatic = background;
+    try {
+      const view = await page.load(stale);
+      this.ctx.problems.delete(route.path); // it loaded: the next failure starts the retry wait from the first again
+      return { page, view };
+    } catch (e) {
+      if (stale()) return { page, view: null };
+      const problem = this.problem(route, e);
+      return { page: problem, view: await problem.load(stale) };
+    }
+  }
+
+  /** Swap pages: the old one stops only now, so it keeps working while a slow answer for the next is awaited. */
+  private draw(page: Page, view: Html, route: Route): void {
+    const first = this.drawnPath === null;
+    const again = this.drawnPath === route.path; // the same page drawn again (a refresh, a saved key), not a new one
+    const active = document.activeElement;
+    const focused = active && this.root.contains(active) ? focusKey(active) : null;
+    this.page?.dispose();
+    this.page = page;
+    this.drawnPath = route.path;
+    render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
+    this.keepFlashRegion();
+    document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
+    this.wireShared();
+    // A new page starts at the top, its heading in view; a redraw keeps its place. Before mount, so a page that
+    // scrolls itself (the train page's jump to the train) still wins.
+    const redraw = this.drawn === location.hash;
+    this.drawn = location.hash;
+    if (!redraw) window.scrollTo(0, 0);
+    try {
+      page.mount(this.root);
+    } catch (e) {
+      console.error("A page didn't start properly", e);
+      this.ctx.flash.error = MOUNT_FAILED;
+    }
+    this.showFlash();
+    // Not on launch (nothing had focus to lose), nor when the same page is drawn again with focus elsewhere (a busy
+    // page retrying by itself shouldn't pull a screen reader away)
+    if (!first && !(again && !focused)) this.placeFocus(again ? focused : null);
+  }
+
+  /**
+   * Where focus goes after a page change: back to the same control when the page was only drawn again, else (or if
+   * that control is gone) to the page's heading, so a screen reader starts reading there instead of at the top bar.
+   */
+  private placeFocus(key: string | null): void {
+    if (refocus(this.root, key)) return;
+    const h1 = this.root.querySelector<HTMLElement>("main h1");
+    if (!h1) return;
+    h1.tabIndex = -1;
+    h1.focus({ preventScroll: true });
+  }
+
+  /**
+   * A page that couldn't load says why, plainly; busy or offline tries again by itself, less often each time.
+   * Anything that isn't Realtime Trains' answer is a fault in the app: the details go to the console, and the page
+   * offers to try again.
+   */
+  private problem(route: Route, e: unknown): Page {
+    if (!(e instanceof RttError)) {
+      console.error("A page failed to load", e);
+      return new ProblemPage(this.ctx, route, problemView("Something went wrong", BROKEN, null, null, true), null);
+    }
+    const busy = e instanceof BusyError; // (offline and a spent allowance are kinds of busy: waiting may help)
+    const title = e instanceof OfflineError ? "No connection" : e instanceof AllowanceError ? "Allowance used up"
+      : busy ? "Realtime Trains is busy" : "Couldn't show that";
+    let retry: Retry | null = null;
+    if (busy) {
+      const failures = this.ctx.problems.get(route.path) ?? 0;
+      this.ctx.problems.set(route.path, failures + 1);
+      const secs = retryDelay(failures);
+      // One wait: Realtime Trains' time when it gave one later than ours, else ours
+      const at = e.retryAt != null && e.retryAt > this.ctx.rail.clock() + secs * 1000 ? e.retryAt : null;
+      retry = { secs, at };
+    }
+    return new ProblemPage(this.ctx, route, problemView(title, e.message, retry, route.name === "board" ? queryOf(route.params) : null), retry);
+  }
+
+  /**
+   * The message region is the same element on every page: a screen reader announces a change to a live region it
+   * already knows, and may miss one that arrived with a whole new page.
+   */
+  private keepFlashRegion(): void {
+    const fresh = this.root.querySelector<HTMLElement>("[data-flash]");
+    if (!fresh) return;
+    if (this.flashRegion) fresh.replaceWith(this.flashRegion);
+    else this.flashRegion = fresh;
+  }
+
+  /** The message waiting for the next page (after saving a key, say), shown once. */
+  private showFlash(): void {
+    const el = this.flashRegion;
+    const { message, error } = this.ctx.flash;
+    this.ctx.flash.message = this.ctx.flash.error = null;
+    if (!el) return;
+    el.classList.toggle("is-problem", !!error);
+    el.textContent = error ?? message ?? "";
+  }
+
+  /**
+   * An update check answered or an install failed. Settings shows it in its own section, so it's drawn again; any
+   * other page only swaps its banner, so a half-typed search or an open train page is left alone.
+   */
+  private updateChanged(): void {
+    if (this.page?.tab === "settings") return void this.render();
+    const slot = this.root.querySelector<HTMLElement>("[data-banner-slot]");
+    if (!slot || !this.page) return;
+    render(slot, this.ctx.updates.banner(this.page.tab) ?? html``);
+    this.ctx.updates.wire(slot);
   }
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */
   private wireShared(): void {
+    // The routes live in the hash, so "#main" would be a page that isn't there: move focus instead of following it
+    this.root.querySelector(".skip-link")?.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      this.root.querySelector<HTMLElement>("main")?.focus();
+    });
     StationSuggest.wireAll(this.root, this.ctx.rail.stations, () => this.ctx.stations.all());
     SearchForm.wire(this.root);
     this.ctx.updates.wire(this.root);

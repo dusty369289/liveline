@@ -1,27 +1,31 @@
 // The git hooks are the process's guard rails, so they're tested like code. They run as plain shell, with no network,
-// each in a throwaway repository (so they never depend on what's staged here: pre-commit runs these tests mid-commit).
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+// each in a throwaway repository (TempRepo).
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { script, TempRepo } from "./repo-support";
 
-const HOOK = resolve("scripts/git-hooks/pre-push");
 const OURS = "https://github.com/dusty369289/liveline.git";
-let repo: string;
-// Mid-commit, git hands its hooks GIT_DIR, GIT_INDEX_FILE and friends: without clearing them, the throwaway
-// repository's git would read this checkout's index instead
-const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
-const git = (...args: string[]) => spawnSync("git", args, { cwd: repo, env, encoding: "utf8" });
+let repo: TempRepo;
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), "hooks-"));
-  git("init", "-q");
+  repo = new TempRepo();
 });
-afterEach(() => rmSync(repo, { recursive: true, force: true }));
+afterEach(() => repo.remove());
 
 /** Run pre-push as git would: `pre-push <remote name> <remote url>`, the refs on stdin. */
-const prePush = (name: string, url: string) => spawnSync("sh", [HOOK, name, url], { cwd: repo, env, input: "", encoding: "utf8" });
+const prePush = (name: string, url: string, refs = "") => repo.run("sh", [script("git-hooks/pre-push"), name, url], refs);
+
+/** Put a stand-in `npm` first on PATH, whose `npm run check` runs `check` (shell). Kept in .git, so it's not untracked. */
+function stubNpm(check = "exit 0") {
+  repo.write(".git/stub-bin/npm", `#!/bin/sh\n${check}\n`, true);
+  repo.env.PATH = `${repo.dir}/.git/stub-bin:${repo.env.PATH}`;
+}
+const preCommit = () => repo.run("sh", [script("git-hooks/pre-commit")]);
+
+/** Run commit-msg on a message, as git would: the message in a file. */
+function commitMsg(message: string) {
+  repo.write("MSG", message);
+  return repo.run("sh", [script("git-hooks/commit-msg"), "MSG"]);
+}
 
 describe("pre-push", () => {
   it("pushes to this repository, however the remote is named or reached", () => {
@@ -41,11 +45,213 @@ describe("pre-push", () => {
   });
 
   it("refuses while files are staged: a commit just before it probably failed", () => {
-    writeFileSync(join(repo, "a.txt"), "x");
-    git("add", "a.txt");
+    repo.write("a.txt", "x");
+    repo.git("add", "a.txt");
     const run = prePush("liveline", OURS);
     expect(run.status).not.toBe(0);
     expect(run.stderr).toMatch(/staged/);
     expect(run.stderr).toContain("a.txt");
+  });
+
+  it("refuses a pushed commit that someone else wrote or committed, and passes the owner's", () => {
+    repo.init();
+    const head = () => repo.git("rev-parse", "HEAD").stdout.trim();
+    const zero = "0".repeat(40);
+    expect(prePush("liveline", OURS, `refs/heads/x ${head()} refs/heads/x ${zero}\n`).status).toBe(0);
+    repo.write("b.txt", "y");
+    repo.git("add", "b.txt");
+    repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "Second", "--author", "Some One <one@example.com>");
+    const run = prePush("liveline", OURS, `refs/heads/x ${head()} refs/heads/x ${zero}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("Some One");
+  });
+
+  it("passes a branch rebased onto a main that moved, though main's commits have GitHub's committer", () => {
+    repo.init();
+    const sha = (ref: string) => repo.git("rev-parse", ref).stdout.trim();
+    const quiet = ["-c", "core.hooksPath=/dev/null"];
+    repo.git("switch", "-q", "-c", "x");
+    repo.write("b.txt", "y");
+    repo.git("add", "b.txt");
+    repo.git(...quiet, "commit", "-q", "-m", "Mine");
+    const old = sha("x");
+    repo.git("update-ref", "refs/remotes/liveline/x", old); // pushed once already
+    // Meanwhile another PR merged: GitHub's rebase merge sets the committer to the merger's profile name
+    repo.git("switch", "-q", "main");
+    repo.write("c.txt", "z");
+    repo.git("add", "c.txt");
+    repo.git(...quiet, "-c", "user.name=The Merger", "commit", "-q", "-m", "Merged elsewhere");
+    repo.git("update-ref", "refs/remotes/liveline/main", sha("main"));
+    repo.git("switch", "-q", "x");
+    expect(repo.git(...quiet, "rebase", "-q", "liveline/main").status).toBe(0);
+    const ok = prePush("liveline", OURS, `refs/heads/x ${sha("x")} refs/heads/x ${old}\n`);
+    expect(ok.status, ok.stderr).toBe(0);
+    // The branch's own commits are still checked
+    repo.write("d.txt", "w");
+    repo.git("add", "d.txt");
+    repo.git(...quiet, "commit", "-q", "-m", "Theirs", "--author", "Some One <one@example.com>");
+    const run = prePush("liveline", OURS, `refs/heads/x ${sha("x")} refs/heads/x ${old}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("Some One");
+    expect(run.stderr).not.toContain("The Merger");
+  });
+});
+
+describe("pre-commit", () => {
+  beforeEach(() => {
+    repo.init();
+    repo.write("a.txt", "x");
+    repo.git("add", "a.txt");
+  });
+
+  it("commits as the owner", () => {
+    stubNpm();
+    expect(preCommit().status).toBe(0);
+  });
+
+  it("refuses any other name or email, before running the check", () => {
+    stubNpm("echo ran > ran.txt");
+    for (const [key, value] of [["user.name", "Some One"], ["user.email", "one@example.com"]]) {
+      const was = repo.git("config", key).stdout.trim();
+      repo.git("config", key, value);
+      const run = preCommit();
+      expect(run.status, key).not.toBe(0);
+      expect(run.stderr).toMatch(/identity/);
+      repo.git("config", key, was);
+    }
+    expect(repo.git("ls-files", "--others").stdout).not.toContain("ran.txt");
+  });
+
+  it("checks the commit itself: a staged file that needs an untracked one fails", () => {
+    repo.write("main.mjs", `import "./helper.mjs";\n`);
+    repo.write("helper.mjs", "export {};\n"); // here in the working tree, but not in the commit
+    repo.git("add", "main.mjs");
+    stubNpm("node main.mjs");
+    expect(repo.run("node", ["main.mjs"]).status).toBe(0); // passes where it stands
+    const run = preCommit();
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/check failed/);
+    expect(repo.git("worktree", "list").stdout.trim().split("\n")).toHaveLength(1); // the snapshot is cleaned away
+  });
+
+  it("keeps the test review's state in this checkout, not in the throwaway snapshot", () => {
+    repo.write("u.txt", "untracked"); // so the snapshot path runs
+    stubNpm(`d="\${TEST_REVIEW_DIR:-.test-review}"; mkdir -p "$d"; echo seen >> "$d/failures.log"`);
+    const run = preCommit();
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stderr).toMatch(/staged snapshot/);
+    expect(repo.run("cat", [".test-review/failures.log"]).stdout).toBe("seen\n");
+  });
+
+  describe("with the hooks on, as a checkout has them", () => {
+    beforeEach(() => {
+      repo.git("config", "core.hooksPath", script("git-hooks"));
+      stubNpm(`echo ran >> "${repo.dir}/.git/ran"`);
+    });
+    const ran = () => repo.run("cat", [".git/ran"]).stdout;
+
+    it("lets the advised repair through: a commit under a wrong identity, amended with --reset-author", () => {
+      repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "Second",
+        "--author", "Some One <one@example.com>");
+      const run = repo.git("commit", "-q", "--amend", "--no-edit", "--reset-author");
+      expect(run.status, run.stderr).toBe(0);
+      expect(run.stderr).toMatch(/no file changes/);
+      expect(repo.git("log", "-1", "--format=%an <%ae>").stdout.trim()).not.toContain("Some One");
+      expect(ran()).toBe(""); // the tree is the one already committed: nothing new to check
+    });
+
+    it("lets a message-only amend through", () => {
+      repo.git("commit", "-q", "-m", "Second");
+      const run = repo.git("commit", "-q", "--amend", "-m", "Second, reworded");
+      expect(run.status, run.stderr).toBe(0);
+      expect(repo.git("log", "-1", "--format=%s").stdout.trim()).toBe("Second, reworded");
+    });
+
+    it("still refuses the wrong identity on an amend with no file changes", () => {
+      repo.git("commit", "-q", "-m", "Second");
+      const run = repo.git("-c", "user.name=Some One", "commit", "-q", "--amend", "--no-edit", "--reset-author");
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toMatch(/identity/);
+    });
+  });
+
+  it("checks a clean tree where it stands (the fast path), and leaves no log behind", () => {
+    stubNpm(`pwd > "${repo.dir}/.git/where"`);
+    expect(preCommit().status).toBe(0);
+    expect(repo.run("cat", [".git/where"]).stdout.trim()).toBe(repo.run("pwd", []).stdout.trim());
+    expect(repo.git("status", "--short", "--untracked-files=all").stdout).not.toContain(".git-check.log");
+  });
+});
+
+describe("npm run commit (scripts/commit.sh)", () => {
+  const commit = (...args: string[]) => repo.run("sh", [script("commit.sh"), ...args]);
+  const count = () => repo.git("rev-list", "--count", "HEAD").stdout.trim();
+  beforeEach(() => {
+    repo.init();
+    repo.write("a.txt", "a");
+    repo.write("b.txt", "b");
+  });
+
+  it("commits exactly the paths named, with the message, and nothing else", () => {
+    const run = commit("Add a", "-m", "Because.", "a.txt");
+    expect(run.status, run.stderr).toBe(0);
+    expect(repo.git("log", "-1", "--format=%B").stdout.trim()).toBe("Add a\n\nBecause.");
+    expect(repo.git("show", "--name-only", "--format=", "HEAD").stdout.trim()).toBe("a.txt");
+    expect(repo.git("ls-files", "--others").stdout.trim()).toBe("b.txt");
+  });
+
+  it("refuses a bad message before staging anything", () => {
+    const run = commit("a".repeat(73), "a.txt");
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/72/);
+    expect(repo.staged()).toBe("");
+    expect(count()).toBe("1");
+  });
+
+  it("unstages what it staged when the commit fails (a pre-commit refusal, say)", () => {
+    repo.write(".git/test-hooks/pre-commit", "#!/bin/sh\necho 'check failed' >&2\nexit 1\n", true);
+    repo.git("config", "core.hooksPath", ".git/test-hooks");
+    const run = commit("Add a", "a.txt");
+    expect(run.status).not.toBe(0);
+    expect(repo.staged()).toBe("");
+    expect(count()).toBe("1");
+  });
+
+  it("refuses when something is already staged, and leaves it staged", () => {
+    repo.git("add", "b.txt");
+    const run = commit("Add a", "a.txt");
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("b.txt");
+    expect(repo.staged()).toBe("b.txt");
+    expect(count()).toBe("1");
+  });
+});
+
+describe("commit-msg", () => {
+  it("refuses AI attribution: a co-author trailer, a session link, a 'Generated with' line", () => {
+    for (const trailer of ["Co-Authored-By: Claude <noreply@anthropic.com>", "Claude-Session: https://example.com/x",
+      "Generated with [Claude Code](https://claude.com/claude-code)"]) {
+      const run = commitMsg(`Fix the board\n\n${trailer}\n`);
+      expect(run.status, trailer).not.toBe(0);
+      expect(run.stderr).toMatch(/attribution/);
+    }
+  });
+
+  it("keeps the words 'generated with' for anything that isn't an AI tool", () => {
+    expect(commitMsg("Pictures generated with the demo\n").status).toBe(0);
+  });
+
+  it("refuses personal details, as the leak check does for files", () => {
+    const home = ["", "home", "someone", "src"].join("/"); // joined here, or the file's own leak check finds it
+    const run = commitMsg(`Fix the build\n\nIt broke in ${home}/app.\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stdout + run.stderr).toMatch(/personal/i);
+  });
+
+  it("takes a subject of 72 characters and refuses 73", () => {
+    expect(commitMsg(`${"a".repeat(72)}\n`).status).toBe(0);
+    const run = commitMsg(`${"a".repeat(73)}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/72/);
   });
 });

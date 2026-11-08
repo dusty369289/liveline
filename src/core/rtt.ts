@@ -1,23 +1,18 @@
 // RTT client: token handling (access or refresh), caching, and the allowance, over any Http.
 // On the phone it holds one key: its owner's.
 import { Budget } from "./budget";
-import { STORE } from "./keys";
+import { AllowanceError, AuthError, BusyError, OfflineError, RttError } from "./errors";
+import { STORE, type StoreKey } from "./keys";
 import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
-import { hm, isoLocal, type Ms } from "./time";
+import { isoLocal, type Ms } from "./time";
 
 /** Minutes of board asked for in one call (RTT allows up to 1439). Three hours covers now, Later and Later again. */
 export const FETCH_WINDOW = 180;
 /** Seconds a board starting an hour or more ahead is kept. */
 export const FUTURE_BOARD_TTL = 300;
 
-export class RttError extends Error {}
-/** The key is missing, wrong, expired or revoked. */
-export class AuthError extends RttError {}
-/** Not the user's fault and not permanent: out of allowance, asked to wait, or RTT unreachable. Try again soon. */
-export class BusyError extends RttError {}
-/** Busy because this device has no connection: retried the same way, but named honestly. */
-export class OfflineError extends BusyError {}
+export { AllowanceError, AuthError, BusyError, OfflineError, RttError } from "./errors";
 
 export interface Fetched {
   body: unknown; // null for "no services" (204)
@@ -36,9 +31,9 @@ export const isDetailed = (i: TokenInfo | null) => !!i && i.entitlements.include
 
 /** Where the short-life access token and what the key may do are remembered between app launches. */
 export interface KeyValueStore {
-  get(key: string): Promise<string | null>;
-  set(key: string, value: string): Promise<void>;
-  remove(key: string): Promise<void>;
+  get(key: StoreKey): Promise<string | null>;
+  set(key: StoreKey, value: string): Promise<void>;
+  remove(key: StoreKey): Promise<void>;
 }
 
 const STATE_KEY = STORE.access;
@@ -183,8 +178,8 @@ export class RttClient {
       await this.save();
       return this.info;
     }
-    if (r.status === 429 || r2.status === 429) throw new BusyError("Realtime Trains asked us to slow down. Try again shortly.");
-    throw new AuthError(`Realtime Trains refused the key (HTTP ${r.status}). Check it in api-portal.rtt.io.`);
+    if (r.status === 429 || r2.status === 429) throw new BusyError("Realtime Trains asked us to slow down.", this.budget.state().blockedUntil);
+    throw new AuthError("Realtime Trains didn't accept that key. Check you copied all of it from api-portal.rtt.io.");
   }
 
   private async bearer(): Promise<string> {
@@ -231,8 +226,8 @@ export class RttClient {
     if (!this.budget.canSpend(interactive)) {
       if (cached) return this.stale(cached, "Saving the hourly allowance");
       const st = this.budget.state();
-      if (st.blockedUntil != null) throw new BusyError(`Realtime Trains asked us to wait until ${hm(st.blockedUntil)}.`);
-      throw new BusyError("The Realtime Trains allowance is used up for now. Try again in a few minutes.");
+      if (st.blockedUntil != null) throw new BusyError("Realtime Trains asked us to wait.", st.blockedUntil);
+      throw new AllowanceError(this.budget.spent(interactive) ?? "hour");
     }
     let r: HttpResponse;
     try {
@@ -248,7 +243,7 @@ export class RttClient {
     }
     if (r.status === 429) {
       if (cached) return this.stale(cached, "Realtime Trains asked us to slow down");
-      throw new BusyError("Realtime Trains asked us to slow down. Try again shortly.");
+      throw new BusyError("Realtime Trains asked us to slow down.", this.budget.state().blockedUntil);
     }
     let f: Fetched;
     if (r.status === 204) f = { body: null, fetchedAt: now, stale: false, note: null };

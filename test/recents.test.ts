@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { KEYS } from "../src/ui/store/keys";
 import { type RecentTrain, RecentTrains } from "../src/ui/store/recent-trains";
+import { recentView } from "../src/ui/views/recent";
 import { MemStorage } from "./support";
 
 const H = 3_600_000;
@@ -45,6 +46,33 @@ describe("recent trains", () => {
     trains.remember(live);
     trains.remember(done); // opened more recently, but finished
     expect(trains.carryOn(t0)?.href).toBe(live.href);
+  });
+
+  it("a train that hasn't set off yet isn't running, and the search page doesn't offer it", () => {
+    const tomorrow: RecentTrain = { ...train("TMW:2026-11-08", t0 + 25 * H, t0), starts: t0 + 24 * H };
+    const later: RecentTrain = { ...train("LATER:2026-11-07", t0 + 4 * H, t0), starts: t0 + 3 * H };
+    expect(RecentTrains.isRunning(tomorrow, t0)).toBe(false);
+    expect(RecentTrains.isRunning(later, t0)).toBe(false);
+    trains.remember(tomorrow);
+    trains.remember(later);
+    expect(trains.carryOn(t0)).toBeNull();
+    // half an hour before it sets off, when you'd be heading for it, it counts
+    expect(RecentTrains.isRunning(later, t0 + 3 * H - RecentTrains.STARTS_WITHIN)).toBe(true);
+    expect(trains.carryOn(t0 + 3 * H)?.href).toBe(later.href);
+    // Recent says when it leaves, not "Running now"
+    const shown = String(recentView([tomorrow, later], t0));
+    expect(shown).not.toContain("Running now");
+    expect(shown).toContain("Runs Sun 8 Nov, 09:00");
+    expect(shown).toContain("Leaves 12:00");
+  });
+
+  it("Recent says when it leaves until it sets off, even in the half hour the search page offers it", () => {
+    const later: RecentTrain = { ...train("LATER:2026-11-07", t0 + 4 * H, t0), starts: t0 + 3 * H };
+    const soon = String(recentView([later], t0 + 3 * H - 10 * 60_000));
+    expect(soon).not.toContain("Running now");
+    expect(soon).toContain("Leaves 12:00");
+    expect(soon).not.toContain("is-running");
+    expect(String(recentView([later], t0 + 3 * H + 60_000))).toContain("Running now");
   });
 
   it("can be cleared", () => {

@@ -6,22 +6,24 @@
 }
 .tabs__tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .tabs__tab:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }
-.train[data-tab="scene"] .trainbar__jump { visibility: hidden; } /* the Train view is always on the train */
+/* The Train view is always on the train; gone rather than hidden, so the bar's age has the room at large text */
+.train[data-tab="scene"] .trainbar__jump { display: none; }
 
 /* The Train view: scenery edge to edge, the train in a sideways scroller over it */
-/* 300 px of scenery, then the coach names and facility icons on the page's own colour */
-.scene { position: relative; height: 354px; margin-inline: calc(-1 * var(--gutter)); overflow: hidden; }
+/* 300 px of scenery, then the coach names and facility icons on the page's own colour. The scroller is in the flow,
+   so the names and icons set the height: at large system text they grow, and nothing is cut off. */
+.scene { position: relative; min-height: 354px; margin-inline: calc(-1 * var(--gutter)); overflow: hidden; }
 .scene__art { position: absolute; inset: 0 0 auto 0; height: 300px; overflow: hidden; }
 .scene__sky, .scene__layer, .scene__platform { position: absolute; top: 0; left: 0; display: block; }
 .scene__layer, .scene__platform { will-change: transform; } /* each its own composited layer: sliding repaints nothing */
 .scene__platform svg { display: block; }
 .scene__scroller {
-  position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  position: relative; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
   scrollbar-width: none; -webkit-overflow-scrolling: touch;
 }
 .scene__scroller::-webkit-scrollbar { display: none; }
 .scene__scroller:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
-.scene__content { position: relative; height: 100%; box-sizing: border-box; }
+.scene__content { position: relative; box-sizing: border-box; }
 .scene__train { display: block; }
 .scene__platform.is-gone { display: none; }
 
@@ -52,7 +54,7 @@
 .sc-graze { animation: graze 2.6s ease-in-out infinite; }
 
 /* The coaches' names, under each coach: drawn right to left, as the train faces */
-.scene__coaches { position: absolute; top: 300px; } /* starts where the train does (the content's left padding) */
+.scene__coaches { padding-bottom: var(--s-2); } /* under the train's 300 px, from where it starts (the left padding) */
 .coaches { list-style: none; margin: 0; padding: 0 26px 0 0; display: flex; flex-direction: row-reverse; } /* 26: the nose */
 .coaches__item { width: 156px; box-sizing: border-box; padding: var(--s-1) var(--s-2) 0; display: grid; align-content: start; }
 .coaches__name { font: 700 var(--t-sm)/1.2 var(--sign-font); color: var(--ink); }

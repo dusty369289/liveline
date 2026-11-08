@@ -4,3 +4,6 @@ export const STORE = {
   key: "rtt.key", // the user's Realtime Trains key
   access: "rtt.access", // the access token derived from it, and its entitlements (no call needed on reopening)
 } as const;
+
+/** A name the core may store under: anything else is a compile error, as `Key` is for the UI's Pref. */
+export type StoreKey = (typeof STORE)[keyof typeof STORE];
