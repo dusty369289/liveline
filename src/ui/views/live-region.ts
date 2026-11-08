@@ -69,8 +69,11 @@ function pointMeta(v: PointView): unknown {
   if (isCancelled(pt)) return html`<span class="problem">${pt.display === "DIVERTED" ? "Diverted away" : "Cancelled here"}</span>`;
   const longDwell = pt.kind === "call" && v.arrival?.booked != null && v.departure?.booked != null && v.departure.booked - v.arrival.booked >= 120_000;
   const status = { APPROACHING: " · Approaching", AT_PLATFORM: " · At platform", DEPART_READY: " · Ready to leave", DEPARTING: " · Leaving" } as Record<string, string>;
+  // RTT shows where an altered train now ends or starts: say it, as the route beyond is cancelled
+  const altered = { TERMINATES: "Now ends here", STARTS: "Now starts here" } as Record<string, string>;
   return [
     pt.kind === "call" && pt.platform ? html`Plat ${pt.platform}${pt.platformChanged ? html` <span class="is-changed">changed</span>` : ""}` : "",
+    altered[pt.display] ? html` · <span class="problem">${altered[pt.display]}</span>` : "",
     longDwell ? ` · arr ${hm(v.arrival!.time)}` : "",
     pt.requestStop ? " · Request stop" : "",
     !pt.public && pt.kind === "call" ? " · Not for passengers" : "",

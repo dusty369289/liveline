@@ -8,6 +8,7 @@
 import {
   allowanceTotal,
   booked as bookedOf,
+  emptyTimes,
   firstEvent,
   isCancelled,
   isEmpty,
@@ -143,9 +144,19 @@ function passedOf(p: Point): [Ms | null, Times | null] {
   return [null, null];
 }
 
+/**
+ * The point as the train will run it: a cancelled arrival or departure at a stop it still makes (a train terminated
+ * short, or starting part way) is no event at all, so nothing is shown or estimated for it. parse.ts keeps the flag,
+ * which the board needs (rowCancelled). A wholly cancelled point is left as it is: it's out of the running anyway.
+ */
+function asRun(p: Point): Point {
+  if (isCancelled(p) || !(p.arrival.cancelled || p.departure.cancelled)) return p;
+  return { ...p, arrival: p.arrival.cancelled ? emptyTimes() : p.arrival, departure: p.departure.cancelled ? emptyTimes() : p.departure };
+}
+
 /** `feed` is RTT's own state (models.feedOf): with no live data, a missing report is the feed, not the train. */
 export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE, feed: Feed = "ok"): Timeline {
-  const pts = service.points;
+  const pts = service.points.map(asRun);
   const usable = pts.map((p, i) => (isCancelled(p) ? -1 : i)).filter((i) => i >= 0);
 
   let last: number | null = null; // the last point it's known to have reached
@@ -258,7 +269,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   return {
     service,
     points: views,
-    position: position(service, views, usable, last, now, cfg, plannedArr, feed),
+    position: position(pts, views, usable, last, now, cfg, plannedArr, feed),
     now,
     worst: worst(pts, usable, last),
   };
@@ -300,7 +311,7 @@ function lateText(d: number | null): string {
 }
 
 function position(
-  service: Service,
+  pts: Point[],
   views: PointView[],
   usable: number[],
   last: number | null,
@@ -309,7 +320,6 @@ function position(
   plannedArr: Map<number, Ms>,
   feed: Feed,
 ): Position {
-  const pts = service.points;
   const P = (state: State, fromIndex: number | null, toIndex: number | null, since: Ms | null, expected: Ms | null,
     fraction: number, delayMin: number | null, headline: string): Position =>
     ({ state, fromIndex, toIndex, since, expected, fraction, delayMin, headline });
@@ -403,7 +413,11 @@ export function stopSummary(tl: Timeline, code: string, boarding = true): StopSu
   const p = v.point;
   const sh = boarding ? (v.departure ?? v.arrival) : (v.arrival ?? v.departure);
   const pos = tl.position;
-  const status = isCancelled(p) ? "cancelled" : pos.state === "at-station" && pos.fromIndex === v.index ? "here" : v.reported ? "gone" : "ahead";
+  // A train terminated short still arrives where it now ends, but you can't board it there (and the reverse where it
+  // now starts): the flags are on the point as RTT sent it, since the as-run point has those events taken out
+  const sent = tl.service.points[v.index];
+  const cancelled = isCancelled(p) || (boarding ? sent.departure.cancelled : sent.arrival.cancelled);
+  const status = cancelled ? "cancelled" : pos.state === "at-station" && pos.fromIndex === v.index ? "here" : v.reported ? "gone" : "ahead";
   let minutes: number | null = null;
   let between = 0;
   if (status === "ahead") {

@@ -105,6 +105,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   (`SCHEDULE_ONLY` or `REALTIME_DATA_NONE`, `feedOf` in `core/models.ts`), a missing report is put down to that,
   never to a signal, and the page says times are the timetable only. The feed's state rides on `ServiceResult.status`,
   beside `Service` (which the goldens pin).
+- **Altered trains:** a cancelled arrival or departure at a stop the train still makes (terminated short, or starting
+  part way) is left out of the train page and the estimate (`asRun` in `core/engine.ts`); the board still shows the
+  row Cancelled, as parse keeps the flag. Boarding where the departure is cancelled, or alighting where the arrival
+  is, is "cancelled". Such a stop is labelled "Now ends here" or "Now starts here".
 - **Our estimate** carries the delay forward and lets a late train win back 75% of booked allowances and dwell over
   30 s, never leaving an advertised stop early. Used only where RTT gives no forecast or gives an impossible one. Not
   backtested: it's a reasoned guess.
