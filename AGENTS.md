@@ -42,11 +42,13 @@ src/
   data/        bundled station list (ODbL, see its README)
 public/css/    CUBE layers; the only raw colours are in themes/platform.css
 android/       Capacitor's Android project (committed), including UpdaterPlugin.java
-test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt/ (RTT recordings), golden/ (frozen
-               answers), harness/ (the test review), ui/ (Playwright: *.spec.ts)
+test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt/ (RTT recordings), fixtures/release/
+               (saved apksigner and aapt2 output), golden/ (frozen answers), harness/ (the test review), ui/
+               (Playwright: *.spec.ts)
                readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
 docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`
-scripts/       leak-check.mjs, review.mjs, android-build.sh
+scripts/       leak-check.mjs, review.mjs, android-build.sh, merge-pr.sh, release-check.sh (the release's Version job)
+.github/       workflows/ (ci.yml, release.yml: checked by test/workflows.test.ts and actionlint), dependabot.yml
 ```
 
 ## Architecture rules (checked by `test/architecture.test.ts`)
@@ -230,10 +232,31 @@ are no version-bump PRs. Semver: patch for fixes, minor for features.
 gh workflow run release.yml -f version=1.2.3   # or Actions > Release > Run workflow, or push a tag v1.2.3 on main
 ```
 
-It refuses a version that isn't `X.Y.Z`, is already released, or isn't newer than the latest, and a tag not on `main`.
-Then: the tests, a signed APK built as that version (checked with apksigner and aapt2), the tag, and the Release with
-the APK and its `.sha256`. Signing reads `LIVELINE_KEYSTORE_FILE/PASSWORD` and `LIVELINE_KEY_ALIAS/PASSWORD` (CI
-secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10000 + minor*100 + patch`.
+The Version job (`scripts/release-check.sh`, tested in `test/release-check.test.ts`) refuses a run that isn't from
+`main` (Run workflow on any other branch, even at a commit that's on `main`), a commit not on `main` however the run
+started, a version that isn't `X.Y.Z` (no leading zeros), has a minor or patch over 99 (versionCode is
+`major*10000 + minor*100 + patch`, so 0.1.100 would collide with 0.2.0), is already released, or isn't newer than the
+latest. Then:
+1. **Tests**: the whole of `ci.yml` again.
+2. **Unsigned APK**: `npm ci --ignore-scripts` and Gradle build it as that version, with no secrets and read-only
+   access (npm and Gradle run code from hundreds of packages). `android/app/build.gradle` signs only when
+   `LIVELINE_*` or a gitignored `android/keystore.properties` is there, so this build comes out unsigned. It's handed on
+   as an artifact.
+3. **Sign and publish**, the only job that sees the key or may write: no checkout, no npm, no Gradle, only the
+   Android SDK's tools. It zipaligns and signs with `apksigner` (passwords from the environment, never a command
+   line), then checks the result: signed by exactly one certificate whose SHA-256 is `SIGNER_SHA256` in release.yml
+   (the release key's, from v0.1.0), and `aapt2` shows `dev.liveline.app` with this versionName and versionCode. Then
+   the tag and the Release with the APK and its `.sha256`.
+
+`test/workflows.test.ts` pins this shape (who holds secrets, who can write, what the sign job runs) and runs the
+signer check against saved apksigner output. Actions are pinned to commits with their version beside them.
+**What protects users:** Android installs an update only if it's signed with the same key as the app already on the
+phone, so the key (and the certificate check that every release carries it) is the guarantee of authenticity. The
+`.sha256` the app checks guards only against a corrupt download: anyone who could swap the APK could swap it too.
+
+**Dependabot** (`.github/dependabot.yml`) proposes npm, Gradle and Actions updates monthly, a week after each version
+is published. Its PRs follow the same rules as any other: both required checks, and a merge only when the owner says
+so.
 
 ### Writing code
 - **One job per unit.** A page is a `Page` subclass; its markup is a pure function in `views/`; markup two views share
