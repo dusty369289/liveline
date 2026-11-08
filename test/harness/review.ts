@@ -13,7 +13,9 @@ import { join } from "node:path";
 
 export const LIMITS = {
   slowFactor: 2, // slower than twice its baseline...
-  slowMs: 100, // ...and by at least this much (tiny tests jitter by more than 2x)
+  // ...and by at least this much. Tiny tests jitter by more than 2x, and in a parallel run a file of 10 ms tests beside
+  // the ones that spawn git and sh ran at about 250 ms (2026-11-08): a margin under that queued a different file every run
+  slowMs: 250,
   minMs: 30, // the lowest baseline (faster tests count as this fast), and the floor for the machine-speed vote
   recoverRuns: 3, // back within limits this many runs in a row: off the queue
   history: 7, // passing runs kept for the median
