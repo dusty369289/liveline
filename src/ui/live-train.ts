@@ -178,6 +178,7 @@ export class LiveTrain {
     }
     const secs = this.refreshSecs();
     if (secs == null) return this.finished();
+    this.done = false; // a tap after a give-up brought a live answer: follow it again, coming back to the app too
     this.schedule(nextWait(secs, this.failures));
   }
 

@@ -3,7 +3,7 @@
 // The clock is 09:20 (support.ts); the train was due in at 08:10.
 import type { Page } from "@playwright/test";
 import { fakeService, type FakeLocation } from "../support";
-import { audit, expect, seedKey, snap, test } from "./support";
+import { audit, expect, seedKey, setVisible, snap, test } from "./support";
 
 const route = (reported: boolean): FakeLocation[] => [
   { name: "Reading", crs: "RDG", dep: { gbtt: "07:30", wtt: "07:30", actual: reported ? "07:31" : undefined } },
@@ -54,6 +54,49 @@ test("train: reported on the way, never at its end", async ({ page, errors }, in
   await expect(page.locator("[data-jump]")).toBeVisible(); // the marker stands where it was last reported
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "18-train-unreported");
+  void errors;
+});
+
+test("train: given up on, then a tapped refresh brings a live answer, and polling picks up again", async ({ page, errors }) => {
+  // the same train, reported late all the way: due in at Paddington about 09:33, so followed again
+  const late: FakeLocation[] = route(true);
+  late[2].arr!.actual = "09:05";
+  late[2].dep!.actual = "09:06";
+  late[3].arr!.actual = "09:14";
+  late[3].dep!.actual = "09:15";
+  let answer = route(true);
+  let asked = 0;
+  await openGivenUp(page, true);
+  await page.route("**/rtt/gb-nr/service**", (r) => {
+    asked += 1;
+    return r.fulfill({ json: fakeService(answer) });
+  });
+  await expect(page.locator(".live")).toHaveAttribute("data-state", "unreported");
+  const advance = async (ms: number) => {
+    await page.clock.fastForward(ms);
+    await page.waitForTimeout(300);
+  };
+
+  answer = late;
+  await advance(20_000); // old enough for a tap to fetch
+  await page.locator("[data-refresh-now]").click();
+  await expect(page.locator(".live")).toHaveAttribute("data-state", "running");
+  expect(asked).toBe(1);
+  await expect(page.locator("[data-age]")).not.toContainText("No reports");
+  const secs = Number(await page.locator(".live").getAttribute("data-refresh"));
+  expect(secs).toBeGreaterThan(0);
+
+  // the next poll comes when the answer said
+  await advance(secs * 1000 + 2000);
+  expect(asked).toBe(2);
+
+  // and coming back to the app after a while fetches again, as for any train still followed
+  await setVisible(page, false);
+  await advance(secs * 1000 + 2000);
+  expect(asked).toBe(2);
+  await setVisible(page, true);
+  await page.waitForTimeout(300);
+  expect(asked).toBe(3);
   void errors;
 });
 
