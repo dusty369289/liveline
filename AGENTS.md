@@ -134,7 +134,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
 - **Updates** (`ui/updates.ts`): Settings, or once a day quietly, asks GitHub for the latest release. If newer, one tap
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
-  version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key.
+  version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key. Installing
+  closes the app and Android doesn't reopen it, so the installing step says to open it again from the home screen.
 
 ## UI
 

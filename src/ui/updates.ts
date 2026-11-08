@@ -3,7 +3,7 @@
 // doesn't repeat on every launch.
 import type { Ms } from "../core/time";
 import { isNewer, readRelease, RELEASES_API } from "../core/update";
-import { APP_VERSION, canSelfUpdate, getJson, installUpdate } from "../platform";
+import { APP_VERSION, canSelfUpdate, getJson, installUpdate, type UpdateProgress } from "../platform";
 import { type Html, html } from "./html";
 import type { RouteName } from "./routes";
 import { KEYS } from "./store/keys";
@@ -25,6 +25,18 @@ export interface UpdateInfo {
 }
 
 const DAY = 86_400_000;
+
+/**
+ * What each install step says. Android stops the running copy to replace it and doesn't open the new one, so the
+ * installing step says so, and the line after it (rarely seen) claims nothing about what happens next.
+ */
+export function progressText(p: UpdateProgress): string {
+  if (p.stage === "permission") return "Allow LiveLine to install updates (Android asks once), then come back.";
+  if (p.stage === "downloading") return p.fraction != null && p.fraction >= 0 ? `Downloading… ${Math.round(p.fraction * 100)}%` : "Downloading…";
+  if (p.stage === "installing") return "Installing… LiveLine closes when it's done: open it again from your home screen.";
+  return "Confirm the update in Android's dialog.";
+}
+export const INSTALLED = "Update installed.";
 
 export class Updates {
   info: UpdateInfo = { state: "idle", current: APP_VERSION };
@@ -95,13 +107,8 @@ export class Updates {
     };
     show("Starting…");
     try {
-      await installUpdate({ url: u.apk, sha256: u.sha256 ?? null, sha256Url: u.sha256Url ?? null }, (p) => {
-        if (p.stage === "permission") show("Allow LiveLine to install updates (Android asks once), then come back.");
-        else if (p.stage === "downloading") show(p.fraction != null && p.fraction >= 0 ? `Downloading… ${Math.round(p.fraction * 100)}%` : "Downloading…");
-        else if (p.stage === "installing") show("Installing…");
-        else show("Confirm the update in Android's dialog.");
-      });
-      show("Updated. LiveLine restarts with the new version.");
+      await installUpdate({ url: u.apk, sha256: u.sha256 ?? null, sha256Url: u.sha256Url ?? null }, (p) => show(progressText(p)));
+      show(INSTALLED);
     } catch (e) {
       this.info = { ...this.info, progress: undefined, message: e instanceof Error ? e.message : String(e) };
       this.changed();

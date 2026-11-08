@@ -210,7 +210,7 @@ public class UpdaterPlugin extends Plugin {
                     }
                     return;
                 }
-                // on success Android replaces this app and restarts it, so this is mostly seen on failure
+                // on success Android stops this app to replace it and doesn't reopen it, so this is mostly seen on failure
                 if (status == PackageInstaller.STATUS_SUCCESS) finish(true, "Updated.", null);
                 else if (status == PackageInstaller.STATUS_FAILURE_ABORTED) finish(false, "The update was cancelled.", "CANCELLED");
                 else if (status == PackageInstaller.STATUS_FAILURE_CONFLICT || status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE) {

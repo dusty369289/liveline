@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isNewer, readRelease } from "../src/core/update";
+import { INSTALLED, progressText } from "../src/ui/updates";
 
 const SUM = "a".repeat(64);
 const release = (assets: unknown[], extra: Record<string, unknown> = {}) => ({
@@ -50,5 +51,13 @@ describe("update check", () => {
     expect(r.pageUrl).toContain("/releases/tag/v0.2.0");
     expect(readRelease(release([], { draft: true }))).toBeNull();
     expect(readRelease(null)).toBeNull();
+  });
+});
+
+describe("one-tap install wording", () => {
+  it("says the app closes when installing, and never promises a restart", () => {
+    expect(progressText({ stage: "installing" })).toBe("Installing… LiveLine closes when it's done: open it again from your home screen.");
+    expect(INSTALLED).not.toMatch(/restart/i);
+    for (const stage of ["permission", "downloading", "confirm"] as const) expect(progressText({ stage })).not.toMatch(/restart/i);
   });
 });
