@@ -128,7 +128,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   });
   return html`
 <section class="live" aria-labelledby="live-h" data-state="${p.state}" data-from="${p.fromIndex ?? ""}" data-to="${p.toIndex ?? ""}"
-  data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}" data-hold="0.95"
+  data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}"
   data-refresh="${res.refreshAfter == null ? "" : Math.floor(res.refreshAfter)}" data-fetched="${res.fetched.fetchedAt}">
   <div class="live__status" role="status">
     <h2 id="live-h" class="visually-hidden">Where the train is</h2>
@@ -141,6 +141,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   </div>
   ${tl.service.reasons.length ? html`<ul class="reasons">${tl.service.reasons.map((r) => html`<li>${r.kind === "CANCEL" ? "Cancelled" : "Delayed"} because of ${r.text.slice(0, 1).toLowerCase() + r.text.slice(1)}.</li>`)}</ul>` : ""}
   <div class="route-wrap">
+    <div class="route__done"></div>
     <ol class="route" aria-label="Route">${route}</ol>
     <div class="route__train" data-train-marker hidden aria-hidden="true"></div>
   </div>

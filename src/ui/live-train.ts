@@ -1,7 +1,7 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { stopSummary } from "../core/engine";
+import { DEFAULT_ENGINE, stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
@@ -10,6 +10,9 @@ import { PassFolds } from "./widgets/pass-folds";
 
 const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
 const MIN_AGE = 15_000; // the client won't refetch anything younger either, so pressing refresh again costs nothing
+// Seconds to the next poll when the page has no answer to plan from (or one with an unreadable plan): soon, but the
+// client's cache and the allowance's floor still apply
+const FALLBACK_POLL = 30;
 
 export class LiveTrain {
   private jumped = false;
@@ -110,8 +113,8 @@ export class LiveTrain {
   /** From the last answer (poll.ts). Null: the train arrived, is cancelled, or you've left it, so stop asking. */
   private refreshSecs(): number | null {
     const l = this.live();
-    if (!l) return 30;
-    return l.dataset.refresh ? Number(l.dataset.refresh) || 30 : null;
+    if (!l) return FALLBACK_POLL;
+    return l.dataset.refresh ? Number(l.dataset.refresh) || FALLBACK_POLL : null;
   }
 
   private rowCentre(row: Element | null | undefined, wrap: Element): number | null {
@@ -131,12 +134,7 @@ export class LiveTrain {
     const route = live.querySelector<HTMLElement>(".route")!;
     const marker = live.querySelector<HTMLElement>("[data-train-marker]")!;
     marker.dataset.m = document.documentElement.dataset.marker ?? "dot"; // Settings > Appearance
-    let done = wrap.querySelector<HTMLElement>(".route__done");
-    if (!done) {
-      done = document.createElement("div");
-      done.className = "route__done";
-      wrap.prepend(done);
-    }
+    const done = wrap.querySelector<HTMLElement>(".route__done")!; // the travelled line (views/live-region.ts)
     const d = live.dataset;
     const rows = [...route.querySelectorAll<HTMLElement>(".route__pt")];
     const from = d.from === "" ? null : rows[Number(d.from)];
@@ -144,7 +142,7 @@ export class LiveTrain {
     let y: number | null = null;
     let waiting = false;
     if (d.state === "running" || d.state === "overdue") {
-      const hold = Number(d.hold) || 0.95;
+      const hold = DEFAULT_ENGINE.holdFraction;
       let rowA = from;
       let rowB = to;
       let since = Number(d.since);
