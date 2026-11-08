@@ -1,27 +1,24 @@
 // The git hooks are the process's guard rails, so they're tested like code. They run as plain shell, with no network,
-// each in a throwaway repository (so they never depend on what's staged here: pre-commit runs these tests mid-commit).
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+// each in a throwaway repository (TempRepo).
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { script, TempRepo } from "./support";
 
-const HOOK = resolve("scripts/git-hooks/pre-push");
 const OURS = "https://github.com/dusty369289/liveline.git";
-let repo: string;
-// Mid-commit, git hands its hooks GIT_DIR, GIT_INDEX_FILE and friends: without clearing them, the throwaway
-// repository's git would read this checkout's index instead
-const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")));
-const git = (...args: string[]) => spawnSync("git", args, { cwd: repo, env, encoding: "utf8" });
+let repo: TempRepo;
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), "hooks-"));
-  git("init", "-q");
+  repo = new TempRepo();
 });
-afterEach(() => rmSync(repo, { recursive: true, force: true }));
+afterEach(() => repo.remove());
 
 /** Run pre-push as git would: `pre-push <remote name> <remote url>`, the refs on stdin. */
-const prePush = (name: string, url: string) => spawnSync("sh", [HOOK, name, url], { cwd: repo, env, input: "", encoding: "utf8" });
+const prePush = (name: string, url: string, refs = "") => repo.run("sh", [script("git-hooks/pre-push"), name, url], refs);
+
+/** Run commit-msg on a message, as git would: the message in a file. */
+function commitMsg(message: string) {
+  repo.write("MSG", message);
+  return repo.run("sh", [script("git-hooks/commit-msg"), "MSG"]);
+}
 
 describe("pre-push", () => {
   it("pushes to this repository, however the remote is named or reached", () => {
@@ -41,11 +38,40 @@ describe("pre-push", () => {
   });
 
   it("refuses while files are staged: a commit just before it probably failed", () => {
-    writeFileSync(join(repo, "a.txt"), "x");
-    git("add", "a.txt");
+    repo.write("a.txt", "x");
+    repo.git("add", "a.txt");
     const run = prePush("liveline", OURS);
     expect(run.status).not.toBe(0);
     expect(run.stderr).toMatch(/staged/);
     expect(run.stderr).toContain("a.txt");
+  });
+});
+
+describe("commit-msg", () => {
+  it("refuses AI attribution: a co-author trailer, a session link, a 'Generated with' line", () => {
+    for (const trailer of ["Co-Authored-By: Claude <noreply@anthropic.com>", "Claude-Session: https://example.com/x",
+      "Generated with [Claude Code](https://claude.com/claude-code)"]) {
+      const run = commitMsg(`Fix the board\n\n${trailer}\n`);
+      expect(run.status, trailer).not.toBe(0);
+      expect(run.stderr).toMatch(/attribution/);
+    }
+  });
+
+  it("keeps the words 'generated with' for anything that isn't an AI tool", () => {
+    expect(commitMsg("Pictures generated with the demo\n").status).toBe(0);
+  });
+
+  it("refuses personal details, as the leak check does for files", () => {
+    const home = ["", "home", "someone", "src"].join("/"); // joined here, or the file's own leak check finds it
+    const run = commitMsg(`Fix the build\n\nIt broke in ${home}/app.\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stdout + run.stderr).toMatch(/personal/i);
+  });
+
+  it("takes a subject of 72 characters and refuses 73", () => {
+    expect(commitMsg(`${"a".repeat(72)}\n`).status).toBe(0);
+    const run = commitMsg(`${"a".repeat(73)}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toMatch(/72/);
   });
 });
