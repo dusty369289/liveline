@@ -73,17 +73,24 @@ describe("one place for each thing", () => {
 describe("small files", () => {
   // A file past this has two jobs: split it (pages/, views/, components/, widgets/, store/).
   const LIMIT = 300;
+  const sizes = [...source, ...files(join(ROOT, "test"), /\.ts$/).filter((p) => !p.includes("/golden/"))]
+    .map((p) => [rel(p), text(p).split("\n").length] as const);
+
   it(`no source file over ${LIMIT} lines`, () => {
-    const big = [...source, ...files(join(ROOT, "test"), /\.ts$/).filter((p) => !p.includes("/golden/"))]
-      .map((p) => [rel(p), text(p).split("\n").length] as const).filter(([, n]) => n > LIMIT)
-      .filter(([p]) => !EXEMPT[p]);
-    expect(big).toEqual([]);
+    expect(sizes.filter(([p, n]) => n > LIMIT && !EXEMPT[p])).toEqual([]);
+  });
+
+  it("no exempt file grows past its own cap", () => {
+    expect(sizes.filter(([p, n]) => EXEMPT[p] && n > EXEMPT[p].max).map(([p, n]) => `${p}: ${n} > ${EXEMPT[p].max}`)).toEqual([]);
   });
 });
 
-/** Bigger on purpose, each with its reason. Adding one needs a reason a reviewer would accept. */
-const EXEMPT: Record<string, string> = {
-  "src/core/simulator.ts": "two whole routes' timetables and their generator: data, not tangled logic",
-  "src/core/engine.ts": "one algorithm (position and estimate) whose parts share state; split only with care",
-  "src/core/rtt.ts": "the RTT client: auth, budget, cache and endpoints are one object by design",
+/**
+ * Bigger on purpose, each with its reason, and capped near its size when exempted, so it can't quietly outgrow the
+ * reason. Raising a cap, or adding a file, needs a reason a reviewer would accept.
+ */
+const EXEMPT: Record<string, { reason: string; max: number }> = {
+  "src/core/simulator.ts": { reason: "two whole routes' timetables and their generator: data, not tangled logic", max: 460 },
+  "src/core/engine.ts": { reason: "one algorithm (position and estimate) whose parts share state; split only with care", max: 440 },
+  "src/core/rtt.ts": { reason: "the RTT client: auth, budget, cache and endpoints are one object by design", max: 325 },
 };

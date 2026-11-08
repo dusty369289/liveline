@@ -59,8 +59,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   `core/keys.ts` and `ui/store/keys.ts`. `localStorage` only through `Pref` (and the platform's browser key store).
   Markup reaches the page only through `html.ts` (`render`, `fragment`), so everything is escaped. Raw colours only in
   the theme.
-- **Small files:** none over 300 lines. Three core files are exempt, each with its reason in the test; a new exemption
-  needs a reason a reviewer would accept, not "it grew".
+- **Small files:** none over 300 lines. Three core files are exempt, each with its reason in the test and a cap near
+  its size, which it fails past; a new exemption, or a higher cap, needs a reason a reviewer would accept, not "it grew".
 - Clock and transport are injected (`Rail`, `RttClient`, `SimTransport`, `TestReview`), so tests control time and
   never touch the network.
 
