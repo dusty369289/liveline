@@ -110,7 +110,8 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   and says so: "Showing the answer from N min ago. Not updated: <why>". Empty stock and staff-only rows are hidden
   unless "show all". Each row's live cell reads its time as the train page does (the engine's `shownOf`, coloured by
   `delayClass`): "Left/Arr hh:mm" once reported, "Exp hh:mm" for a forecast a minute or more off, early or late (an
-  early train is coloured early, not "On time"), "On time" when it matches, "No report" with no live time. Arrivals
+  early train is coloured early, not "On time"), "On time" when it matches. With no live time it says "Timetable" until 2 minutes past booked
+  (`NO_REPORT_AFTER`), then "No report"; a bus with none says nothing there (the row already says Bus). Arrivals
   say "from" before the origin. The platform plate carries hidden words ("Platform 5, not confirmed, changed"), not an
   aria-label. The platform is a navy plate when confirmed, outlined when only expected; a changed platform adds a
   yellow bar along the plate's foot (either kind) and "Platform changed" in the row's details. The summary line under
