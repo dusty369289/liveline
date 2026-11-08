@@ -40,32 +40,45 @@ describe("budget", () => {
     clock.advance(31);
     expect(b.canSpend(true)).toBe(true);
   });
-  it("slows refreshes when the hour runs low", () => {
-    const b = new Budget(clock.now);
-    expect(b.refreshInterval()).toBe(40);
+  // RTT's minute and hour are the clock's (seen 2026-11-08: a full 10 again at 22:19:06 after a call at 22:18:54, and a
+  // full 100 at 23:00:08 after calls from 22:20). So the hour's calls all come back at the top of the hour.
+  it("paces what's left of the hour over the time until it turns", () => {
+    const b = new Budget(clock.now); // 14:20: 40 minutes left
+    expect(b.refreshInterval()).toBe(30); // 2400 s ÷ 90 is under the floor
     b.observe(200, { "x-ratelimit-remaining-hour": "20" });
-    expect(b.refreshInterval()).toBe(360);
+    expect(b.refreshInterval()).toBe(240); // 2400 s ÷ 10
     b.observe(200, { "x-ratelimit-remaining-hour": "5" });
     expect(b.refreshInterval()).toBe(600);
   });
-  it("knows when a spent hour frees up: when its oldest calls are an hour old", () => {
+  it("a spent hour frees at the top of the next one, all at once", () => {
     const b = new Budget(clock.now);
-    const first = clock.now();
     for (let i = 0; i < 100; i++) {
       b.spend();
-      clock.advance(30); // two a minute: only the hour runs out
+      clock.advance(10); // the minute never runs out (spend doesn't ask), the hour does, by 14:36:40
     }
+    const top = fromLondon(2026, 11, 7, 15, 0);
     expect(b.remaining("hour")).toBe(0);
-    expect(b.freeAt("hour", 1)).toBe(first + 3_600_000);
-    expect(b.freeAt("hour", 11)).toBe(first + 10 * 30_000 + 3_600_000); // the 11th oldest call leaves
-    expect(b.freeAt("minute", 1)).toBe(clock.now()); // not spent: free now
-    clock.t = first + 3_600_000;
-    expect(b.remaining("hour")).toBe(1);
+    expect(b.freeAt("hour", 1)).toBe(top);
+    expect(b.freeAt("hour", 11)).toBe(top);
+    clock.t = top - 1000;
+    expect(b.remaining("hour")).toBe(0);
+    clock.t = top;
+    expect(b.remaining("hour")).toBe(100);
+    expect(b.remaining("day")).toBe(900); // the day isn't known to be the clock's: it stays a rolling 24 hours
   });
-  it("a header saying the hour is spent holds until its hour is over", () => {
+  it("a spent minute frees at the top of the next minute", () => {
+    clock.t = fromLondon(2026, 11, 7, 14, 20) + 50_000;
+    const b = new Budget(clock.now);
+    for (let i = 0; i < 10; i++) b.spend();
+    expect(b.canSpend(true)).toBe(false);
+    expect(b.freeAt("minute", 1)).toBe(fromLondon(2026, 11, 7, 14, 21));
+  });
+  it("a header saying the hour is spent holds until the hour turns, not for an hour", () => {
     const b = new Budget(clock.now);
     b.observe(200, { "x-ratelimit-remaining-hour": "0" });
-    expect(b.freeAt("hour", 1)).toBe(clock.now() + 3_600_000);
+    expect(b.freeAt("hour", 1)).toBe(fromLondon(2026, 11, 7, 15, 0));
+    clock.t = fromLondon(2026, 11, 7, 15, 0);
+    expect(b.remaining("hour")).toBe(100); // the old header belongs to the last hour
   });
 });
 
