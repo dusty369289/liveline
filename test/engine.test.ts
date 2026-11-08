@@ -255,6 +255,26 @@ for (const cfg of [DEFAULT_ENGINE, OTHER]) {
   });
 }
 
+describe("an RTT forecast earlier than the train could get there is stale, and ours is shown", () => {
+  // Left Alpha 10:10, ten minutes late, with 20 min booked to Omega: it can't be there before about 10:30
+  const run = (forecast: string) => timeline([
+    { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual: "10:10" } },
+    { name: "Omega", crs: "OOO", arr: { gbtt: "10:20", wtt: "10:20", forecast } },
+  ], clock(10, 11)).points[1].arrival!;
+
+  it("a forecast of 10:15 is impossible: our estimate, no sooner than 10:24", () => {
+    const s = run("10:15");
+    expect(s.source).toBe("est");
+    expect(s.time).toBeGreaterThanOrEqual(clock(10, 24));
+  });
+
+  it("a forecast of 10:35 is plausible: RTT's forecast stands", () => {
+    const s = run("10:35");
+    expect(s.source).toBe("forecast");
+    expect(s.time).toBe(clock(10, 35));
+  });
+});
+
 describe("how far through a section", () => {
   it("is elapsed time over the expected run", () => {
     expect(sectionFraction(0, 10 * M, 0)).toBe(0);
