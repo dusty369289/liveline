@@ -227,7 +227,8 @@ export class RttClient {
       if (cached) return this.stale(cached, "Saving the hourly allowance");
       const st = this.budget.state();
       if (st.blockedUntil != null) throw new BusyError("Realtime Trains asked us to wait.", st.blockedUntil);
-      throw new AllowanceError(this.budget.spent(interactive) ?? "hour");
+      // The page retries as a background call, never as a search: it names when one of those can go
+      throw new AllowanceError(this.budget.spent(interactive) ?? "hour", this.budget.freeFor(true), this.budget.freeFor(false));
     }
     let r: HttpResponse;
     try {
