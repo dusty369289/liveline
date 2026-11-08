@@ -444,7 +444,9 @@ for attribution and personal details.
   run the keyed paths and count the calls a page makes (`calls.spec.ts`).
 - `android/app/src/test/` (JUnit, plain JVM): the Android code's pure parts, such as `ApkDownload`, the checksum check
   that decides whether an update is installed. `npm run android:test` runs them; so does the Checks job (JDK 21).
-- **Test review** (`test/harness/review.ts`, state in `.test-review/`): each test's time is kept against its baseline. A
+- **Test review** (`test/harness/review.ts`, state in `.test-review/`): both suites feed it, Vitest through
+  `review-reporter.ts` and Playwright through `review-playwright.ts` (browser ids are `file > project > title`; a
+  timeout counts as a failure). Each test's time is kept against its baseline. A
   test clearly slower (over 2x and 100 ms, after allowing for the whole machine being slower) stays queued on every run
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that
   fails then passes on the same code is flaky and stays listed until `npm run review -- explain "<id>" --reason "..."`.

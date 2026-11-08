@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FINGERPRINT_ROOTS, fingerprint, LIMITS, type TestRun, TestReview } from "./harness/review";
+import { toRun } from "./harness/review-playwright";
 
 let dir: string;
 let review: TestReview;
@@ -83,7 +84,7 @@ describe("flaky review", () => {
   it("the fingerprint covers what the tests read beyond src/: CSS, the Android files, the scripts and workflows", () => {
     for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts", ".github",
       "android/gradle/wrapper/gradle-wrapper.properties", "android/app/src/test", "android/app/src/androidTest",
-      "android/app/src/main/java"]) {
+      "android/app/src/main/java", "index.html", "playwright.config.ts"]) {
       expect(FINGERPRINT_ROOTS).toContain(r);
     }
   });
@@ -126,5 +127,36 @@ describe("on CI", () => {
     expect(r.slowest[0].id).toBe("t");
     expect(review.pending().queue).toEqual([]);
     expect(TestReview.report(r, true)).toEqual(["Slowest: 900 ms t; 10 ms u"]);
+  });
+});
+
+describe("browser tests", () => {
+  const FOLDS = "test/ui/flows.spec.ts > phone-360-light > train page > folds";
+  type Status = "passed" | "failed" | "timedOut" | "interrupted" | "skipped";
+  /** Just the parts of Playwright's TestCase and TestResult that toRun reads. */
+  const pw = (status: Status, ms: number, stack?: string) => toRun(
+    { titlePath: () => ["", "phone-360-light", "flows.spec.ts", "train page", "folds"],
+      location: { file: join(process.cwd(), "test/ui/flows.spec.ts") },
+      parent: { project: () => ({ name: "phone-360-light" }) } },
+    { status, duration: ms, errors: stack ? [{ stack }] : [] });
+
+  it("names a run by file, project and title, and counts a timeout or an interruption as a failure", () => {
+    expect(pw("passed", 900)).toEqual({ id: FOLDS, state: "passed", ms: 900, error: undefined });
+    expect(pw("timedOut", 10_000, "Test timeout of 10000ms exceeded")).toMatchObject({ state: "failed",
+      error: "Test timeout of 10000ms exceeded" });
+    expect(pw("interrupted", 10).state).toBe("failed");
+    expect(pw("skipped", 0).state).toBe("skipped");
+  });
+
+  it("a failure is logged, a fail then a pass on the same code is flaky, and the unit tests' baselines stay", () => {
+    const unit = "test/poll.test.ts > t";
+    for (let i = 0; i < 3; i++) review.record([...steady(), passed(unit, 100)], "fp");
+    review.record([pw("failed", 3000, "expected aria-expanded false")], "fp");
+    expect(readFileSync(join(dir, "failures.log"), "utf8")).toContain(`${FOLDS}\nexpected aria-expanded false`);
+    expect(review.record([pw("passed", 3000)], "fp").newlyFlaky).toEqual([FOLDS]);
+    const timings = JSON.parse(readFileSync(join(dir, "timings.json"), "utf8"));
+    expect(Object.keys(timings)).toEqual(expect.arrayContaining([unit, "steady a", FOLDS]));
+    // the unit test's baseline survived the browser runs, so it still notices that test slowing down
+    expect(review.record([...steady(), passed(unit, 400)], "fp").newlySlow).toEqual([unit]);
   });
 });
