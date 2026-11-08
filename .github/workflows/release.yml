@@ -3,8 +3,11 @@ name: Release
 # Releasing is a choice, separate from merging: main can hold unreleased work. The version lives in the release tag,
 # not in the repo, so there are no version-bump PRs. To release what's on main now:
 #   Actions > Release > Run workflow, version 1.2.3      (or: gh workflow run release.yml -f version=1.2.3)
-# or push a tag v1.2.3 on main. Either way: tests, then a signed APK built as that version, then the tag (if it
-# isn't there yet) and the GitHub Release. The app's "Check for updates" reads the latest release and offers its .apk.
+# or push a tag v1.2.3 on main. Either way: tests, then an unsigned APK built as that version, then a separate job
+# signs it, checks the signer and version, and makes the tag (if it isn't there yet) and the GitHub Release. The app's
+# "Check for updates" reads the latest release and offers its .apk.
+# The structure is pinned by test/workflows.test.ts: only the sign job sees the key or can write, and it runs no code
+# from the repo, npm or Gradle.
 on:
   workflow_dispatch:
     inputs:
@@ -44,19 +47,21 @@ jobs:
     needs: check
     uses: ./.github/workflows/ci.yml
 
+  # npm and Gradle run code from hundreds of packages, so the build gets no secrets and no write access: it makes an
+  # unsigned APK (no LIVELINE_* settings, so app/build.gradle sets no signing config) and hands it on.
   apk:
-    name: Signed APK
+    name: Unsigned APK
     needs: [check, test]
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     env:
       VERSION: ${{ needs.check.outputs.version }}
-      TAG: v${{ needs.check.outputs.version }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.check.outputs.sha }}
+          persist-credentials: false
 
       - uses: actions/setup-node@v5
         with:
@@ -69,41 +74,98 @@ jobs:
           cache: gradle
 
       - name: Build as this version
-        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
 
-      - name: Keystore from secrets
+      - name: Build
+        run: |
+          npm ci --ignore-scripts
+          npm run android:release
+          test -f android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7 # long enough to look at it if signing fails
+
+  # The only job that sees the signing key or may write to the repository. It runs nothing from the repo, npm or
+  # Gradle (no checkout, no install, no build): only the Android SDK's own tools, already on the runner.
+  sign:
+    name: Sign and publish
+    needs: [check, apk]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      TAG: v${{ needs.check.outputs.version }}
+      # The release certificate (apksigner verify --print-certs on the published v0.1.0 APK). Android installs an
+      # update only if it's signed with the same key as the installed app, so every release must carry this one.
+      SIGNER_SHA256: f5d35a356e38c418cdbcfc4b4e8353932cad2f9a0cb62da2cae2ccb86b009785
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk-unsigned
+          path: unsigned
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Android build tools
+        run: find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1 >> "$GITHUB_PATH"
+
+      - name: Sign
         env:
           KEYSTORE_B64: ${{ secrets.LIVELINE_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.LIVELINE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.LIVELINE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.LIVELINE_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_B64" ]; then
             echo "::error::Secret LIVELINE_KEYSTORE_B64 is missing, so the APK can't be signed."
             exit 1
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          ks="$RUNNER_TEMP/release.jks"
+          trap 'rm -f "$ks"' EXIT
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$ks"
+          zipalign -p -f 4 unsigned/app-release-unsigned.apk aligned.apk
+          # Passwords are read from the environment (env:), never put on a command line.
+          apksigner sign --ks "$ks" --ks-key-alias "$KEY_ALIAS" --ks-pass env:KEYSTORE_PASSWORD \
+            --key-pass env:KEY_PASSWORD --out "LiveLine-$TAG.apk" aligned.apk
 
-      - name: Build
-        env:
-          LIVELINE_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
-          LIVELINE_KEYSTORE_PASSWORD: ${{ secrets.LIVELINE_KEYSTORE_PASSWORD }}
-          LIVELINE_KEY_ALIAS: ${{ secrets.LIVELINE_KEY_ALIAS }}
-          LIVELINE_KEY_PASSWORD: ${{ secrets.LIVELINE_KEY_PASSWORD }}
+      - name: Read the APK
         run: |
-          npm ci
-          npm run android:release
+          apksigner verify --print-certs "LiveLine-$TAG.apk" > apk-certs.txt
+          aapt2 dump badging "LiveLine-$TAG.apk" > apk-badging.txt
+          cat apk-certs.txt
 
-      - name: Check the APK is signed and is this version
+      # Tested in test/workflows.test.ts against saved apksigner and aapt2 output.
+      - name: Check the signer and version
         run: |
-          apk=android/app/build/outputs/apk/release/app-release.apk
-          test -f "$apk"
-          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$tools/apksigner" verify --print-certs "$apk"
-          "$tools/aapt2" dump badging "$apk" | grep -q "versionName='$VERSION'" || { echo "::error::APK isn't version $VERSION"; exit 1; }
-          cp "$apk" "LiveLine-$TAG.apk"
-          sha256sum "LiveLine-$TAG.apk" > "LiveLine-$TAG.apk.sha256"
+          if ! grep -qx "Signer #1 certificate SHA-256 digest: $SIGNER_SHA256" apk-certs.txt; then
+            echo "::error::The APK isn't signed with the release key ($SIGNER_SHA256), so phones would refuse it as an update."
+            exit 1
+          fi
+          if grep -q '^Signer #2 ' apk-certs.txt; then
+            echo "::error::The APK has more than one signer. It should carry the release key only."
+            exit 1
+          fi
+          code=$(echo "$VERSION" | awk -F. '{ print $1 * 10000 + $2 * 100 + $3 }')
+          if ! grep -q "^package: name='dev.liveline.app' versionCode='$code' versionName='$VERSION' " apk-badging.txt; then
+            echo "::error::The APK isn't dev.liveline.app $VERSION (versionCode $code): $(head -1 apk-badging.txt)"
+            exit 1
+          fi
+
+      - name: Checksum
+        run: sha256sum "LiveLine-$TAG.apk" > "LiveLine-$TAG.apk.sha256"
 
       - name: Tag and publish
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.check.outputs.sha }}
         run: |
-          gh release create "$TAG" "LiveLine-$TAG.apk" "LiveLine-$TAG.apk.sha256" \
-            --target "${{ needs.check.outputs.sha }}" --title "LiveLine $TAG" --generate-notes
+          gh release create "$TAG" "LiveLine-$TAG.apk" "LiveLine-$TAG.apk.sha256" -R "$GITHUB_REPOSITORY" \
+            --target "$SHA" --title "LiveLine $TAG" --generate-notes
