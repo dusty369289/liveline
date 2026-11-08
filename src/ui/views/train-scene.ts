@@ -99,7 +99,7 @@ export function scenePanel(sc: Scene, f: Formation, headline: string, sky: strin
   </div>
   <div class="scene__map" aria-hidden="true"><span class="scene__map-bar" data-map></span><span class="scene__map-text" data-map-text></span></div>
   <div data-ends>${sceneEnds(sc)}</div>
-  <p class="scene__headline" data-headline role="status">${headline}</p>
+  <p class="scene__headline" data-headline>${headline}</p>
   <div class="hint stack scene__note" data-formation-note>${formationNote(f)}</div>
 </section>`;
 }

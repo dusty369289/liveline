@@ -130,7 +130,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
 <section class="live" aria-labelledby="live-h" data-state="${p.state}" data-from="${p.fromIndex ?? ""}" data-to="${p.toIndex ?? ""}"
   data-since="${p.since ?? ""}" data-expected="${p.expected ?? ""}" data-fraction="${p.fraction.toFixed(3)}" data-hold="0.95"
   data-refresh="${res.refreshAfter == null ? "" : Math.floor(res.refreshAfter)}" data-fetched="${res.fetched.fetchedAt}">
-  <div class="live__status" role="status">
+  <div class="live__status">
     <h2 id="live-h" class="visually-hidden">Where the train is</h2>
     ${heroHtml}
     ${hs && hs.index === p.toIndex && p.state === "not-started" ? "" /* the big number already says when it leaves */

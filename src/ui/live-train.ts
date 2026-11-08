@@ -7,6 +7,7 @@ import type { Rail, ServiceResult } from "../core/rail";
 import { keepFocus } from "./focus";
 import { fragment } from "./html";
 import { liveRegion } from "./views/live-region";
+import { Announcer } from "./widgets/announcer";
 import { PassFolds } from "./widgets/pass-folds";
 
 const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
@@ -24,6 +25,7 @@ export class LiveTrain {
   private messageUntil = 0;
   private region: HTMLElement;
   private folds: PassFolds;
+  private announcer: Announcer;
   private listeners: Array<(res: ServiceResult) => void> = [];
   private onVisible = () => {
     if (document.visibilityState !== "visible" || this.done) return;
@@ -38,6 +40,7 @@ export class LiveTrain {
   constructor(private page: HTMLElement, private rail: Rail, private uid: string, private at: string, private to: string) {
     this.region = page.querySelector<HTMLElement>("[data-live-region]")!;
     this.folds = new PassFolds(this.region, () => this.place(true));
+    this.announcer = new Announcer(page.querySelector<HTMLElement>("[data-refresh-note]")!, this.region);
   }
 
   /** Called with every new answer this page fetches (the Train view keeps up from these). */
@@ -88,8 +91,7 @@ export class LiveTrain {
   private say(text: string, secs = 4): void {
     this.message = text;
     this.messageUntil = Date.now() + secs * 1000;
-    const note = this.page.querySelector("[data-refresh-note]");
-    if (note) note.textContent = text;
+    this.announcer.say(text);
     this.age();
   }
 
@@ -237,6 +239,7 @@ export class LiveTrain {
         if (node) this.region.replaceChildren(node);
         this.folds.apply();
       });
+      this.announcer.heard(this.region, force);
       for (const fn of this.listeners) fn(res);
       this.failures = 0;
       this.place(true);

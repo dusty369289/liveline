@@ -33,6 +33,21 @@ test("a fold button you're on keeps focus when the train is polled", async ({ pa
   void errors;
 });
 
+test("the train page has one announcer, kept through polls, and the redrawn part isn't a live region", async ({ page, errors }) => {
+  await openTrain(page);
+  await expect(page.locator(".live [role=status], .live[role=status]")).toHaveCount(0);
+  await expect(page.locator("[data-train] [role=status]")).toHaveCount(1);
+  await page.evaluate(() => {
+    (document.querySelector("[data-refresh-note]") as HTMLElement).dataset.mark = "1";
+    (document.querySelector(".live") as HTMLElement).dataset.old = "1";
+  });
+  await page.clock.fastForward("05:00"); // past the next poll
+  await expect(page.locator(".live[data-old]")).toHaveCount(0);
+  await expect(page.locator("[data-refresh-note][data-mark]")).toHaveCount(1);
+  await expect(page.locator(".live [role=status]")).toHaveCount(0);
+  void errors;
+});
+
 test("while Realtime Trains is slow, the app says it's busy, and stops once the page is drawn", async ({ page, errors }) => {
   // A made-up key (never a real one), so the board asks the faked RTT, which holds its answer until told
   await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-key-for-tests-only-0123456789"));
