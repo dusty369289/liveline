@@ -44,6 +44,22 @@ test("board: nothing in the hour", async ({ page, errors }, info) => {
   void errors;
 });
 
+// Its sub-line ("… on Sun 8 Nov", with a calling-at station) wraps to two lines at 360 px. The space under the nameboard
+// must not depend on the line being short enough to centre inside the 44 px link.
+test("board: a wrapped sub-line keeps its space under the nameboard", async ({ page, errors }) => {
+  await open(page, "/board?station=PAD&to=OXF&time=02:00");
+  const gap = await page.evaluate(() => {
+    const plate = document.querySelector(".board__plate")!.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector(".board__sub a")!);
+    const lines = [...range.getClientRects()].filter((r) => r.height > 0);
+    return { gap: Math.min(...lines.map((r) => r.top)) - plate.bottom, lines: new Set(lines.map((r) => Math.round(r.top))).size };
+  });
+  if ((page.viewportSize()?.width ?? 0) <= 360) expect(gap.lines).toBeGreaterThan(1); // the case this guards
+  expect(gap.gap).toBeGreaterThanOrEqual(12);
+  void errors;
+});
+
 test("board: another day", async ({ page, errors }, info) => {
   await open(page, "/board?station=WAT&time=08:00&day=2026-11-09");
   await expect(page.locator(".board__sub")).toContainText("Mon 9 Nov");
