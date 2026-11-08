@@ -12,7 +12,7 @@ export class HomePage extends Page {
 
   async load(): Promise<Html> {
     const c = this.ctx;
-    return homeView({ query: queryOf(this.route.params), carry: c.trains.carryOn(Date.now()), journeys: c.journeys.all() });
+    return homeView({ query: queryOf(this.route.params), carry: c.trains.carryOn(c.rail.clock()), journeys: c.journeys.all() });
   }
 }
 
@@ -21,7 +21,7 @@ export class RecentPage extends Page {
   title = "Recent trains";
 
   async load(): Promise<Html> {
-    return recentView(this.ctx.trains.all(), Date.now());
+    return recentView(this.ctx.trains.all(), this.ctx.rail.clock());
   }
 
   mount(root: HTMLElement): void {

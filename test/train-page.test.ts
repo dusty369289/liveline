@@ -1,5 +1,5 @@
-// The train page's own wiring, without a browser: leaving it stops every timer even when opening it went wrong half
-// way.
+// The train page's own wiring, without a browser: it reads the time from Rail's clock (so a test's railway and the
+// page agree), and leaving it stops every timer even when opening it went wrong half way.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Rail } from "../src/core/rail";
 import { fromLondon } from "../src/core/time";
@@ -76,6 +76,16 @@ async function openPage(): Promise<{ page: TrainPage; view: string; ctx: ReturnT
   const view = String(await page.load(() => false));
   return { page, view, ctx };
 }
+
+describe("the train page's clock is Rail's", () => {
+  it("the sky and the Recent entry follow Rail's clock, not the device's", async () => {
+    const { page, view, ctx } = await openPage();
+    expect(view).toContain('data-sky="day"');
+    page.mount(anyElement());
+    expect(ctx.trains.all()[0].seen).toBe(NOON);
+    page.dispose();
+  });
+});
 
 describe("leaving the train page", () => {
   it("stops the live train even if opening the page failed half way", async () => {

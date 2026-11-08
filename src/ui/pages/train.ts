@@ -29,15 +29,16 @@ export class TrainPage extends Page {
     this.ends = tl.service.destinations[0]?.time ?? 0;
     const tab = this.ctx.trainTab.get();
     const sc = sceneOf(tl);
-    const scene = scenePanel(sc, res.formation, tl.position.headline, skyFor(sc, this.ctx.rail.stations, Date.now()), tab === "scene");
+    const scene = scenePanel(sc, res.formation, tl.position.headline, skyFor(sc, this.ctx.rail.stations, this.ctx.rail.clock()), tab === "scene");
     return trainView(res, this.uid, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false), { tab, scene });
   }
 
   mount(root: HTMLElement): void {
-    this.ctx.trains.remember({ href: location.hash, title: this.title, ends: this.ends, seen: Date.now() });
+    const rail = this.ctx.rail;
+    this.ctx.trains.remember({ href: location.hash, title: this.title, ends: this.ends, seen: rail.clock() });
     const page = root.querySelector<HTMLElement>("[data-train]")!;
-    const live = new LiveTrain(page, this.ctx.rail, this.uid, this.at, this.to);
-    const scene = new TrainScene(page.querySelector<HTMLElement>("[data-scene-panel]")!, this.ctx.rail.stations);
+    const live = new LiveTrain(page, rail, this.uid, this.at, this.to);
+    const scene = new TrainScene(page.querySelector<HTMLElement>("[data-scene-panel]")!, rail.stations, rail.clock);
     // before anything starts: if wiring fails half way, leaving the page still stops whatever did start
     this.onDispose(() => {
       live.stop();

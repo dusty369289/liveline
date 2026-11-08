@@ -28,7 +28,7 @@ export class LiveTrain {
     if (document.visibilityState !== "visible" || this.done) return;
     // back in the app: fetch now only if the planned poll is already due, else wait for it
     const due = (this.refreshSecs() ?? Infinity) * 1000;
-    const age = Date.now() - this.fetchedAt();
+    const age = this.rail.clock() - this.fetchedAt();
     if (age >= Math.max(due, MIN_AGE * 2)) void this.refresh(false);
     else this.schedule((due - age) / 1000);
   };
@@ -162,7 +162,7 @@ export class LiveTrain {
       const a = this.rowCentre(rowA, wrap);
       const b = this.rowCentre(rowB, wrap);
       let f = Number(d.fraction) || 0;
-      if (since && expected && expected > since) f = Math.min(Math.max((Date.now() - since) / (expected - since), 0), hold);
+      if (since && expected && expected > since) f = Math.min(Math.max((this.rail.clock() - since) / (expected - since), 0), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
       if (d.state === "overdue") waiting = true;
       // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
@@ -217,7 +217,7 @@ export class LiveTrain {
       el.textContent = this.message;
       return;
     }
-    const s = Math.max(0, Math.round((Date.now() - this.fetchedAt()) / 1000));
+    const s = Math.max(0, Math.round((this.rail.clock() - this.fetchedAt()) / 1000));
     const when = s < 5 ? "just now" : s < 60 ? `${s} s ago` : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
     el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? "Finished · updated" : "Updated"} ${when}`;
   }
@@ -257,7 +257,7 @@ export class LiveTrain {
       this.say("Only the calls kept for searches are left this hour. Showing the last answer.", 5);
       return;
     }
-    const age = Date.now() - this.fetchedAt();
+    const age = this.rail.clock() - this.fetchedAt();
     if (age < minAge * 1000) {
       this.say(age < MIN_AGE ? `Already up to date (${Math.round(age / 1000)} s old)`
         : `Saving calls: you can refresh again in ${Math.ceil(minAge - age / 1000)} s`, 3);

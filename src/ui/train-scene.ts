@@ -8,6 +8,7 @@ import { type Mode, Motion } from "../core/motion";
 import type { ServiceResult } from "../core/rail";
 import { type Scene, sceneOf } from "../core/scene";
 import type { StationIndex } from "../core/stations";
+import type { Ms } from "../core/time";
 import { fragment, render } from "./html";
 import { LAYERS, type Layer, TILE } from "./views/scene-art";
 import { COACH, coachLeft, trainSvg, trainWidth } from "./views/train-art";
@@ -46,13 +47,16 @@ export class TrainScene {
   private readonly reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   private readonly panel: HTMLElement;
   private readonly stations: StationIndex;
+  private readonly clock: () => Ms;
   private readonly onVisible = () => this.kick();
   private readonly onScroll = () => this.kick();
   private readonly onResize = () => this.layout(false);
 
-  constructor(panel: HTMLElement, stations: StationIndex) {
+  /** `clock` is Rail's: the sky and the dot follow the same time as the answers. */
+  constructor(panel: HTMLElement, stations: StationIndex, clock: () => Ms) {
     this.panel = panel;
     this.stations = stations;
+    this.clock = clock;
   }
 
   private $<T extends Element = HTMLElement>(sel: string): T {
@@ -90,7 +94,7 @@ export class TrainScene {
     else this.motion.set(mode);
     const scene = this.$("[data-scene]");
     scene.dataset.phase = sc.phase;
-    scene.dataset.sky = skyFor(sc, this.stations, Date.now());
+    scene.dataset.sky = skyFor(sc, this.stations, this.clock());
     this.drawFormation(res.formation);
     if (sc.station && mode === "stop") this.drawPlatform(sc.station.name, sc.station.platform);
     render(this.$("[data-ends]"), sceneEnds(sc));
@@ -205,6 +209,6 @@ export class TrainScene {
     const a = this.sc?.left?.shown?.time;
     const b = this.sc?.right?.shown?.time;
     if (!dot || a == null || b == null || b <= a) return;
-    dot.style.left = `${Math.min(Math.max((Date.now() - a) / (b - a), 0), 1) * 100}%`;
+    dot.style.left = `${Math.min(Math.max((this.clock() - a) / (b - a), 0), 1) * 100}%`;
   }
 }
