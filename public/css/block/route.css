@@ -4,8 +4,9 @@
 /* Thin bar that stays at the top while you scroll the route: how old the answer is, refresh, and back to the train */
 .trainbar {
   position: sticky; top: 0; z-index: 5;
-  /* edge-to-edge phones: the bar's own paper covers the status bar and its buttons start below it */
-  padding-top: env(safe-area-inset-top, 0px);
+  /* edge-to-edge phones: once stuck, a navy strip the status bar's height sits behind it (its icons are light, set in
+     platform/index.ts, for the navy top bar) and the buttons start below it */
+  border-top: env(safe-area-inset-top, 0px) solid var(--sign);
   display: flex; align-items: center; gap: var(--s-2);
   margin-inline: calc(-1 * var(--gutter)); padding-inline: calc(var(--gutter) - .5rem) var(--gutter);
   min-height: var(--tap); background: var(--page); border-bottom: 1px solid var(--line);

@@ -74,6 +74,25 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
+test("the stuck train page bar paints the strip under the status bar navy", async ({ page, errors }) => {
+  await openTrain(page);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  // On a phone the strip is env(safe-area-inset-top) tall (0 here): its colour is what keeps the light status icons
+  // readable once the navy top bar has scrolled away.
+  const { border, style, sign } = await page.evaluate(() => {
+    const bar = getComputedStyle(document.querySelector("[data-trainbar]")!);
+    const probe = document.createElement("i");
+    probe.style.color = "var(--sign)";
+    document.body.append(probe);
+    const sign = getComputedStyle(probe).color;
+    probe.remove();
+    return { border: bar.borderTopColor, style: bar.borderTopStyle, sign };
+  });
+  expect(style).toBe("solid");
+  expect(border).toBe(sign);
+  void errors;
+});
+
 test("a train you opened is in Recent, and Recent can be cleared", async ({ page, errors }) => {
   await openTrain(page);
   await open(page, "/");
