@@ -115,10 +115,12 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Polling** (`core/poll.ts`): never more than once a minute; 20 s after the next report is due while running; just
   after departure at a station; shortly before it's due when not started (at least every 3 minutes); every minute when
   overdue; every 2 minutes while your stop is over 40 minutes off. Stops when the train arrives or is cancelled
-  (passing your stop doesn't stop it), or once it's 30 minutes past its booked final arrival with no report there
-  (`giveUpAfter`): never reported at all, it says the times shown are the timetable (`no-data`); reported on the way,
-  it says where it was last reported and that its arrival wasn't (`unreported`). The allowance's own floor, `3600 / (calls left this hour - 10)`, can only slow
-  it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
+  (passing your stop doesn't stop it), or once it's 30 minutes (`giveUpAfter`) past the latest time it's expected at
+  its end with no report there (`dueAtEnd`: booked, RTT's forecast or estimate, the last report plus the booked running
+  time from there, or our estimate from the last report), so a late train still reporting is followed. Never reported
+  at all, it says the times shown are the timetable (`no-data`); reported on the way, it says where it was last
+  reported and that its arrival wasn't (`unreported`). The allowance's own floor, `3600 / (calls left this hour - 10)`,
+  can only slow it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that

@@ -27,7 +27,7 @@ export interface EngineConfig {
   minDwell: Ms;
   holdFraction: number; // never place the train past this share of an unreported section
   overdueAfter: Ms;
-  giveUpAfter: Ms; // past the booked final arrival by this much, nothing more will be reported: stop waiting
+  giveUpAfter: Ms; // past the latest time expected at its end (dueAtEnd) by this much, no report is coming: stop waiting
 }
 
 export const DEFAULT_ENGINE: EngineConfig = {
@@ -35,8 +35,8 @@ export const DEFAULT_ENGINE: EngineConfig = {
   minDwell: 30_000,
   holdFraction: 0.95,
   overdueAfter: 120_000,
-  // Half an hour covers an ordinary late arrival and a late report; a train later than that still shows as late if
-  // it reports again, since the next answer is built afresh. Polling a train with no reports for ever wastes the hour.
+  // Half an hour past when it's expected at its end covers a late report or a train held outside; the expected time
+  // moves on with each report, so a late train still reporting is followed. Polling a lost train for ever wastes the hour.
   giveUpAfter: 30 * 60_000,
 };
 
@@ -310,6 +310,25 @@ function lateText(d: number | null): string {
   return d > 0 ? `${d} min late` : `${-d} min early`;
 }
 
+/**
+ * The latest time the train is expected at its end: booked, RTT's forecast or estimate there, and, once reported, the
+ * last report plus the booked running time from there, or our estimate from the last report. Our estimate never
+ * counts before a report, nor with the hold: both start from now, so it would never fall behind and we'd wait for ever.
+ */
+function dueAtEnd(pts: Point[], endIx: number, last: number | null, plannedArr: Map<number, Ms>): Ms | null {
+  const fe = firstEvent(pts[endIx]);
+  const times = [bookedOf(fe), fe.forecast, fe.estimate];
+  if (last != null) {
+    const [act, ev] = passedOf(pts[last]);
+    const from = ev ? planned(ev) : null;
+    const to = planned(fe);
+    if (act != null && from != null && to != null) times.push(act + Math.max(to - from, 0));
+    times.push(plannedArr.get(endIx) ?? null);
+  }
+  const known = times.filter((t): t is Ms => t != null);
+  return known.length ? max(...known) : null;
+}
+
 function position(
   pts: Point[],
   views: PointView[],
@@ -326,10 +345,13 @@ function position(
   if (!pts.length) return P("no-data", null, null, null, null, 0, null, "No route data for this train.");
   if (!usable.length) return P("cancelled", null, null, null, null, 0, null, "This train is cancelled.");
 
-  // Long past its booked arrival with nothing at the end: no more reports are coming, so stop waiting for one
-  const end = pts[usable[usable.length - 1]];
+  // Long past the latest time it's expected at its end, with nothing there: no more reports are coming, so stop
+  // waiting for one. A late train that's still reporting moves that time on, so it's still followed.
+  const endIx = usable[usable.length - 1];
+  const end = pts[endIx];
   const dueIn = bookedOf(firstEvent(end));
-  const pastEnd = dueIn != null && now > dueIn + cfg.giveUpAfter;
+  const latest = dueAtEnd(pts, endIx, last, plannedArr);
+  const pastEnd = latest != null && now > latest + cfg.giveUpAfter;
 
   if (last == null) {
     if (pastEnd) {

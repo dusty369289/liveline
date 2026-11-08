@@ -78,6 +78,50 @@ describe(`giving up ${DEFAULT_ENGINE.giveUpAfter / M} min after the booked arriv
     expect(pollAfter(tl, now, 30)).toBeNull();
   });
 
+  // The cut-off runs from the latest time it's expected at its end, never from the booked arrival alone
+  const late = (forecast?: string): FakeLocation[] => {
+    const locs = route({ gbtt: "10:40", wtt: "10:40", forecast });
+    locs[0].dep!.actual = "10:40";
+    locs[1].arr!.actual = "10:59";
+    locs[1].dep!.actual = "11:00"; // 39 min late, still reporting
+    return locs;
+  };
+
+  it("a train 39 min late and still reporting is followed past booked + 30 min, with RTT's forecast", () => {
+    const now = clock(11, 15);
+    const tl = timeline(late("11:19"), now);
+    expect(tl.position.state).toBe("running");
+    expect(pollAfter(tl, now, 30)).not.toBeNull();
+  });
+
+  it("a train 39 min late and still reporting is followed past booked + 30 min, with no forecast", () => {
+    const now = clock(11, 15);
+    const tl = timeline(late(), now);
+    expect(tl.position.state).toBe("running");
+    expect(pollAfter(tl, now, 30)).not.toBeNull();
+  });
+
+  it("that late train is given up on 30 min after the last report plus the booked running time", () => {
+    // left Beta 11:00, booked 19 min to Omega: expected 11:19, so given up after 11:49
+    expect(timeline(late(), clock(11, 49)).position.state).not.toBe("unreported");
+    const now = clock(11, 50);
+    const tl = timeline(late(), now);
+    expect(tl.position.state).toBe("unreported");
+    expect(pollAfter(tl, now, 30)).toBeNull();
+  });
+
+  it("a short journey not yet reported is followed while RTT forecasts it late", () => {
+    const locs: FakeLocation[] = [
+      { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", forecast: "10:40" } },
+      { name: "Omega", crs: "OOO", arr: { gbtt: "10:05", wtt: "10:05", forecast: "10:45" } },
+    ];
+    const now = clock(10, 36);
+    const tl = timeline(locs, now);
+    expect(tl.position.state).not.toBe("no-data");
+    expect(pollAfter(tl, now, 30)).not.toBeNull();
+    expect(timeline(locs, clock(11, 16)).position.state).toBe("no-data");
+  });
+
   it("a point RTT flags as passed without a report counts as passed", () => {
     const locs = route({ gbtt: "10:40", wtt: "10:40" });
     locs[0].dep!.actual = "10:01";
