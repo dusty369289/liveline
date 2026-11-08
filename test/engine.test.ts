@@ -1,7 +1,7 @@
 // The engine's rules, each by name, so a change to one fails a test that says which (the golden answers in
 // test/parity.test.ts only say that something changed).
 import { describe, expect, it } from "vitest";
-import { build, DEFAULT_ENGINE, sectionFraction } from "../src/core/engine";
+import { build, DEFAULT_ENGINE, type EngineConfig, sectionFraction } from "../src/core/engine";
 import { parseService } from "../src/core/parse";
 import { pollAfter } from "../src/core/poll";
 import { fromLondon } from "../src/core/time";
@@ -90,6 +90,77 @@ describe(`giving up ${DEFAULT_ENGINE.giveUpAfter / M} min after the booked arriv
     expect(tl.worst).toBeNull();
   });
 });
+
+// Each rule runs with the defaults and with a different EngineConfig, so the rule follows its setting
+const OTHER: EngineConfig = { recoveryShare: 0.5, minDwell: 60_000, holdFraction: 0.8, overdueAfter: 60_000, giveUpAfter: 10 * M };
+const at = (locs: FakeLocation[], now: number, cfg: EngineConfig) => build(parseService(fakeService(locs), () => now), now, cfg);
+
+for (const cfg of [DEFAULT_ENGINE, OTHER]) {
+  describe(`engine rules (recoveryShare ${cfg.recoveryShare}, hold ${cfg.holdFraction}, overdue ${cfg.overdueAfter / 1000} s)`, () => {
+    it("a late train wins back recoveryShare of the section's allowance, no more", () => {
+      const allowance = 240;
+      const tl = at([
+        { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual: "10:10" }, allowance },
+        { name: "Junction", pass: { wtt: "10:20" } },
+        { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+      ], clock(10, 11), cfg);
+      const run = 20 * 60 - allowance * cfg.recoveryShare; // seconds: booked run less what it can win back
+      expect(tl.points[1].oursArrival).toBe(clock(10, 10) + run * 1000);
+      expect(tl.points[1].passing?.source).toBe("est");
+    });
+
+    it("never runs ahead of the working timetable, however much allowance there is", () => {
+      const tl = at([
+        { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual: "10:01" }, allowance: 600 },
+        { name: "Junction", pass: { wtt: "10:20" } },
+        { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+      ], clock(10, 2), cfg);
+      expect(tl.points[1].oursArrival).toBe(clock(10, 20));
+    });
+
+    it("never leaves an advertised stop before its booked time, early or late", () => {
+      for (const actual of ["09:59", "10:03"]) {
+        const tl = at([
+          { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual } },
+          { name: "Beta", crs: "BBB", arr: { gbtt: "10:10", wtt: "10:10" }, dep: { gbtt: "10:15", wtt: "10:15" } },
+          { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+        ], clock(10, 4), cfg);
+        expect(tl.points[1].oursDeparture, `left Alpha ${actual}`).toBe(clock(10, 15));
+      }
+    });
+
+    it("a late train keeps at least minDwell at a stop", () => {
+      const tl = at([
+        { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual: "10:20" } },
+        { name: "Beta", crs: "BBB", arr: { gbtt: "10:10", wtt: "10:10" }, dep: { gbtt: "10:15", wtt: "10:15" } },
+        { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+      ], clock(10, 21), cfg);
+      expect(tl.points[1].oursDeparture! - tl.points[1].oursArrival!).toBe(cfg.minDwell);
+    });
+
+    const section: FakeLocation[] = [
+      { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00", actual: "10:00" } },
+      { name: "Junction", pass: { wtt: "10:10" } },
+      { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+    ];
+    const due = clock(10, 10);
+
+    it(`holds at ${cfg.holdFraction} of a section until the next point is reported`, () => {
+      const tl = at(section, due + 30_000, cfg);
+      expect(tl.position.state).toBe("running");
+      expect(tl.position.fraction).toBe(cfg.holdFraction);
+      expect(at(section, clock(10, 5), cfg).position.fraction).toBeCloseTo(Math.min(0.5, cfg.holdFraction));
+    });
+
+    it(`is overdue only after expected + ${cfg.overdueAfter / 1000} s`, () => {
+      expect(at(section, due + cfg.overdueAfter, cfg).position.state).toBe("running");
+      const late = at(section, due + cfg.overdueAfter + 1000, cfg).position;
+      expect(late.state).toBe("overdue");
+      expect(late.fraction).toBe(cfg.holdFraction);
+      expect(late.headline).toMatch(/No report at Junction yet/);
+    });
+  });
+}
 
 describe("how far through a section", () => {
   it("is elapsed time over the expected run", () => {

@@ -28,6 +28,7 @@ export interface FakeLocation {
   dep?: FakeEvent;
   pass?: FakeEvent;
   display?: string;
+  allowance?: number; // seconds of performance allowance in the section after this point
 }
 
 const at = (hms?: string) => (hms ? `2026-11-07T${hms.length === 5 ? `${hms}:00` : hms}` : undefined);
@@ -49,7 +50,7 @@ export function fakeService(locs: FakeLocation[], systemStatus = { realtimeNetwo
           displayAs: l.display ?? (l.pass ? "PASS" : "CALL"),
           scheduledCallType: l.pass ? null : "ADVERTISED_OPEN",
         },
-        locationMetadata: {},
+        locationMetadata: l.allowance ? { allowances: { performance: l.allowance } } : {},
       })),
     },
   };

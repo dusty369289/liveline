@@ -274,6 +274,9 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
   fails then passes on the same code is flaky and stays listed until `npm run review -- explain "<id>" --reason "..."`.
   Never re-run until green. Every failure's message goes to `.test-review/failures.log`. Warnings never fail a run;
   CI keeps no baselines (its machines are thrown away) and prints the slowest tests.
+- The engine's rules each have a named test (`test/engine.test.ts`, run with the default and another `EngineConfig`),
+  and `test/engine-sweep.test.ts` checks its promises for every demo train over a simulated morning. The goldens
+  only say that something changed; these say which rule. `fakeService` in `test/support.ts` makes small RTT answers.
 - `test/golden/` is frozen (see its README): a change that alters a golden answer updates it in the same PR and says why.
 - Run output goes to a file before you read it (`npm test > out.txt 2>&1`), and you read the real error.
 
