@@ -31,7 +31,10 @@
 .trains__plat:empty { background: transparent; }
 .trains__plat .muted { color: inherit; opacity: .7; font-size: .8em; }
 .trains__plat-label { display: block; font: 600 .5625rem/1 var(--sign-font); letter-spacing: .12em; text-transform: uppercase; opacity: .8; margin-bottom: .1rem; }
-.trains__plat.is-changed { box-shadow: inset 0 -4px 0 var(--train); }
+/* A changed platform keeps its white number and gains a yellow bar along the foot; outlined (not confirmed yet), it
+   keeps the outline and the bar, as that's when a passenger most needs to notice. test/design.test.ts works out what
+   the cascade gives each of the four states. */
+.trains__plat.is-changed { color: var(--on-sign); box-shadow: inset 0 -4px 0 var(--train); }
 .is-cancelled .trains__time, .is-cancelled .trains__place { text-decoration: line-through; color: var(--muted); }
 .board__foot { padding-top: var(--s-2); }
 
@@ -39,3 +42,4 @@
   .trains__link { grid-template-columns: 5.75rem 1fr auto; gap: 0 var(--s-2); } /* still fits "● Left 09:00" */
 }
 .trains__plat.is-unconfirmed { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--sign); }
+.trains__plat.is-unconfirmed.is-changed { color: var(--ink); box-shadow: inset 0 0 0 2px var(--sign), inset 0 -4px 0 var(--train); }

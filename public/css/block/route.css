@@ -142,7 +142,7 @@
 .is-late { color: var(--late); }
 .is-very-late { color: var(--very-late); }
 .is-early { color: var(--early); }
-.is-changed { color: var(--late); }
+.route__meta .is-changed { color: var(--late); } /* "Plat 3 changed" on the train page; the board's plate has its own */
 .trains__live.is-cancelled { color: var(--problem); }
 
 .legend { font-size: var(--t-sm); color: var(--muted); padding-top: var(--s-3); }

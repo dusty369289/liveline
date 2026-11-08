@@ -86,7 +86,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
+  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all". The platform is a navy plate when
+  confirmed, outlined when only expected; a changed platform adds a yellow bar along the plate's foot (either kind)
+  and "Platform changed" in the row's details.
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or

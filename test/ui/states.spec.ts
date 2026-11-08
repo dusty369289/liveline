@@ -1,6 +1,7 @@
 // Every state a person meets, on the contact sheet, so a review sees them all: returning search, boards (arrivals,
-// empty, another day), a train before, during and after its run, Recent empty. The clock is fixed at 09:20
-// (support.ts), so each board time below picks a train in a known state.
+// empty, another day, changed platforms), a train before, during and after its run, Recent empty. The clock is fixed
+// at 09:20 (support.ts), so each board time below picks a train in a known state.
+import { readFileSync } from "node:fs";
 import type { Page, TestInfo } from "@playwright/test";
 import { audit, expect, open, snap, test } from "./support";
 
@@ -45,6 +46,32 @@ test("board: another day", async ({ page, errors }, info) => {
   await open(page, "/board?station=WAT&time=08:00&day=2026-11-09");
   await expect(page.locator(".board__sub")).toContainText("Mon 9 Nov");
   await shot(page, info, "13-board-another-day");
+  void errors;
+});
+
+test("board: changed platforms, confirmed and only expected", async ({ page, errors }, info) => {
+  // A made-up key RTT "accepts", then a spec-derived board with all four platform states (its _note says which)
+  const board = readFileSync("test/fixtures/rtt/spec_location_platform_changed.json", "utf8");
+  const info200 = '{"api_version":"2026-07-25","credentials":{"entitlements":[]}}';
+  await page.route(/\/rtt\/api\/info\?/, (r) => r.fulfill({ contentType: "application/json", body: info200 }));
+  await page.route(/\/rtt\/gb-nr\/location\?/, (r) => r.fulfill({ contentType: "application/json", body: board }));
+  await open(page, "/settings");
+  await page.locator("#token").fill("x".repeat(40));
+  await page.locator("[data-key-form] button[type=submit]").click();
+  await expect(page.locator(".banner--demo")).toHaveCount(0);
+  await open(page, "/board?station=RDG&time=09:15");
+  const row = (dest: string) => page.locator(".trains__row", { hasText: dest });
+  for (const dest of ["Bristol Temple Meads", "Manchester Piccadilly"]) {
+    await expect(row(dest).locator(".trains__meta")).toContainText(/Platform\schanged/);
+  }
+  // What the browser really paints, whatever order the stylesheets come in: white on the navy plate, ink when outlined
+  const style = (dest: string) => row(dest).locator(".trains__plat").evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { color: cs.color, shadow: cs.boxShadow };
+  });
+  expect((await style("Bristol Temple Meads")).color).toBe("rgb(255, 255, 255)");
+  expect((await style("Manchester Piccadilly")).shadow).toMatch(/rgb\(255, 204, 0\)/); // keeps the yellow bar
+  await shot(page, info, "18-board-platform-changed");
   void errors;
 });
 

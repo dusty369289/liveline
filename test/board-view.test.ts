@@ -33,13 +33,13 @@ describe("a changed platform on the board", () => {
     const li = rows.get("Bristol Temple Meads")!;
     expect(plate(li)).toContain("is-changed");
     expect(plate(li)).not.toContain("is-unconfirmed");
-    expect(meta(li)).toContain("Platform changed");
+    expect(meta(li)).toMatch(/Platform\schanged/);
   });
 
   it("only expected: both marks, and the words", () => {
     const li = rows.get("Manchester Piccadilly")!;
     expect(plate(li)).toEqual(expect.arrayContaining(["is-changed", "is-unconfirmed"]));
-    expect(meta(li)).toContain("Platform changed");
+    expect(meta(li)).toMatch(/Platform\schanged/);
   });
 
   it("unchanged platforms say nothing about it", () => {
