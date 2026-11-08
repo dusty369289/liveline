@@ -86,7 +86,7 @@ export class App {
     } catch (e) {
       if (stale()) return;
       try {
-        const page = this.problem(route, e);
+        const page = this.problem(route, e, background);
         const view = await page.load(stale);
         if (view && !stale()) this.draw(page, view, route);
       } catch (again) {
@@ -114,7 +114,7 @@ export class App {
       return { page, view };
     } catch (e) {
       if (stale()) return { page, view: null };
-      const problem = this.problem(route, e);
+      const problem = this.problem(route, e, background);
       return { page: problem, view: await problem.load(stale) };
     }
   }
@@ -164,9 +164,9 @@ export class App {
   /**
    * A page that couldn't load says why, plainly; busy or offline tries again by itself, less often each time.
    * Anything that isn't Realtime Trains' answer is a fault in the app: the details go to the console, and the page
-   * offers to try again.
+   * offers to try again. `background`: drawn by an automatic retry, so the message isn't announced again.
    */
-  private problem(route: Route, e: unknown): Page {
+  private problem(route: Route, e: unknown, background: boolean): Page {
     if (!(e instanceof RttError)) {
       console.error("A page failed to load", e);
       return new ProblemPage(this.ctx, route, problemView("Something went wrong", BROKEN, null, null, true), null);
@@ -183,7 +183,7 @@ export class App {
       const at = e.retryAt != null && e.retryAt > this.ctx.rail.clock() + secs * 1000 ? e.retryAt : null;
       retry = { secs, at };
     }
-    return new ProblemPage(this.ctx, route, problemView(title, e.message, retry, route.name === "board" ? queryOf(route.params) : null), retry);
+    return new ProblemPage(this.ctx, route, problemView(title, e.message, retry, route.name === "board" ? queryOf(route.params) : null, false, !background), retry);
   }
 
   /**

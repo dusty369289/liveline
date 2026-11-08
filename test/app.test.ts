@@ -2,6 +2,7 @@
 // The app shell in a DOM: what it draws when a page fails in a way nobody planned for, and how often it draws on
 // launch. The core runs on the simulator (demo mode); nothing touches the network.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BusyError } from "../src/core/errors";
 import { Rail } from "../src/core/rail";
 import { App } from "../src/ui/app";
 import { keepFocus } from "../src/ui/focus";
@@ -93,6 +94,21 @@ describe("a page that fails", () => {
     await app.render();
     expect(root.querySelector("[data-flash]")).toBe(region);
     expect(region?.textContent).toBe("");
+  });
+});
+
+describe("a busy page", () => {
+  it("announces the problem when first drawn, but not again on each retry by itself", async () => {
+    const { app, root, rail } = await setUp("#/train/C12345:2026-11-07");
+    rail.service = async () => {
+      throw new BusyError("Realtime Trains asked us to wait.");
+    };
+    await app.start();
+    expect(root.querySelector("main h1")?.textContent).toBe("Realtime Trains is busy");
+    expect(root.querySelector('main [role="alert"]')?.textContent).toBe("Realtime Trains asked us to wait.");
+    await app.render(true); // the automatic retry, failing the same way
+    expect(root.querySelector("main .problem")?.textContent).toBe("Realtime Trains asked us to wait.");
+    expect(root.querySelector('main [role="alert"]')).toBeNull();
   });
 });
 
