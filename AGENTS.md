@@ -252,7 +252,8 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 ### Tests
 - `test/*.test.ts` (Vitest): logic, with injected clocks and fakes. 10 s hard limit per test: a hang is a bug. A page's
   wiring (timers, what a refresh swaps) is tested without a browser through `FakeDocument` and `FakeElement` in
-  `test/support.ts` (`test/board-page.test.ts`).
+  `test/support.ts` (`test/board-page.test.ts`); parsed markup is searched by `[attribute]`, so a test sees only what
+  that element really wraps.
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
   moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
   plates, 44 px targets) and goes on the contact sheet. `keyed.spec.ts` runs with a dummy key against faked RTT

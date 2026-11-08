@@ -62,7 +62,8 @@ export class MemStorage {
 
 /**
  * Just enough of a DOM for a page's wiring, without a browser: an element is a tree of named parts found by selector.
- * Parsed markup (html.ts `fragment`) comes back as one FakeElement per selector, holding the whole view's markup.
+ * Parsed markup (html.ts `fragment`) is searched for real: `[attr]` finds the element carrying that attribute and comes
+ * back as a FakeElement holding only that element's markup (see `elementMarkup`), or null if the view has none.
  */
 export class FakeElement {
   isConnected = true;
@@ -105,7 +106,15 @@ export class FakeDocument {
     for (const fn of this.listeners.get(type) ?? []) fn();
   }
   createElement() {
-    const tpl = { innerHTML: "", content: { querySelector: () => new FakeElement({}, tpl.innerHTML) } };
+    const tpl = {
+      innerHTML: "",
+      content: {
+        querySelector: (sel: string) => {
+          const m = elementMarkup(tpl.innerHTML, sel);
+          return m == null ? null : new FakeElement({}, m);
+        },
+      },
+    };
     return tpl;
   }
   static install(): FakeDocument {
@@ -113,4 +122,25 @@ export class FakeDocument {
     (globalThis as unknown as { document: FakeDocument }).document = d;
     return d;
   }
+}
+
+/**
+ * The markup of the element carrying `[attr]`, from its opening tag to its own closing tag (nested tags of the same
+ * name counted), or null if there is none. Only attribute selectors: anything else throws, so a test can't pass by
+ * matching nothing.
+ */
+export function elementMarkup(markup: string, sel: string): string | null {
+  const attr = /^\[([\w-]+)\]$/.exec(sel)?.[1];
+  if (!attr) throw new Error(`FakeDocument only finds [attribute] selectors, not ${sel}`);
+  const open = new RegExp(`<([a-z][\\w-]*)\\b[^>]*\\s${attr}(?=[\\s=>])[^>]*>`, "i").exec(markup);
+  if (!open) return null;
+  const tag = open[1];
+  const tags = new RegExp(`<(/?)${tag}\\b[^>]*>`, "gi");
+  tags.lastIndex = open.index + open[0].length;
+  let depth = 1;
+  for (let t = tags.exec(markup); t; t = tags.exec(markup)) {
+    depth += t[1] ? -1 : 1;
+    if (depth === 0) return markup.slice(open.index, t.index + t[0].length);
+  }
+  throw new Error(`no closing </${tag}> for ${sel}`);
 }

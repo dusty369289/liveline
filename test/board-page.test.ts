@@ -118,10 +118,20 @@ describe("a refreshing board", () => {
     expect(body).toContain("Showing the answer from");
   });
 
-  it("the window line and Earlier/Later follow the fresh answer", async () => {
-    const { top } = await refreshOnce(await setup(), (r) => r);
+  it("the body slot carries the status banner, the rows and the footer; the top slot none of them", async () => {
+    const limited = (r: BoardResult) => ({ ...r, board: { ...r.board, status: { ...r.board.status, core: "SCHEDULE_ONLY" } } }) as BoardResult;
+    const { body, top } = await refreshOnce(await setup(), limited);
+    for (const part of ['class="banner"', 'class="trains"', "board__foot"]) {
+      expect(body).toContain(part);
+      expect(top).not.toContain(part);
+    }
+  });
+
+  it("the window line and Earlier/Later follow the fresh answer, in the top slot only", async () => {
+    const { top, body } = await refreshOnce(await setup(), (r) => r);
     expect(top).toContain("09:02 to 10:02"); // a "now" board moved on two minutes
     expect(top).toContain("time=10%3A02"); // Later is an hour after the new start
+    expect(body).not.toContain("board__nav");
   });
 });
 
