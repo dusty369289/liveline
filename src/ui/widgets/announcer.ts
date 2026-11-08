@@ -16,7 +16,7 @@ const words = (els: Element[]) => els.map(text).filter(Boolean).join(" ");
 const isCount = (el: Element) => el.matches(".live__hero-num, .live__hero-unit") && /^\d*$|^min$/.test(text(el));
 // Clock times ("09:23") and lateness ("(2 min late)", "on time", "4 min after expected") are not news on their own.
 // Any case: the engine writes "on time" mid-sentence, and a train flipping to "1 min late" is not news either.
-const headlineKey = (s: string) =>
+export const headlineKey = (s: string) =>
   s.replace(/\b\d{1,2}:\d{2}\b/g, "").replace(/\(?\b(\d+ min (late|early)|on time)\)?|\b\d+ min after expected/gi, "")
     .replace(/\s+/g, " ").trim();
 
