@@ -32,6 +32,8 @@ function meta(r: BoardRow): unknown[] {
     r.branding ? ` · ${r.branding}` : "",
     r.vehicles ? ` · ${r.vehicles} coaches` : "",
     r.status === "APPROACHING" ? " · Approaching" : ["AT_PLATFORM", "DEPART_PREPARING", "DEPART_READY"].includes(r.status ?? "") ? " · At platform" : "",
+    // In words too: the plate's mark alone is easy to miss, and it's what a passenger most needs to see
+    r.platformChanged ? " · Platform changed" : "",
   ];
 }
 
