@@ -7,6 +7,13 @@ export const DIMENSIONS = { minute: 60, hour: 3600, day: 86400, week: 604800 } a
 export type Dim = keyof typeof DIMENSIONS;
 const DIMS = Object.keys(DIMENSIONS) as Dim[];
 export const FREE_LIMITS: Record<Dim, number> = { minute: 10, hour: 100, day: 1000, week: 10000 }; // as RTT sent them, 2026-11-08
+/**
+ * The windows RTT counts by the clock: all their calls come back at the top of the minute or hour (seen 2026-11-08:
+ * a full 10 at 22:19:06 after a call at 22:18:54; a full 100 at 23:00:08 after calls from 22:20). The day and week
+ * aren't known to, so they're counted as rolling windows, which can only be too careful. UK time is a whole number of
+ * hours from UTC, so the clock's minutes and hours start on UTC's.
+ */
+const CLOCK_WINDOWS: ReadonlySet<Dim> = new Set<Dim>(["minute", "hour"]);
 
 export interface BudgetState {
   limits: Record<Dim, number>;
@@ -35,10 +42,21 @@ export class Budget {
     return new Budget(clock, 0, true);
   }
 
-  /** Calls in the last `secs` seconds. One exactly that old has just left, so freeAt can name an exact moment. */
-  private used(now: Ms, secs: number): number {
-    const cutoff = now - secs * 1000;
-    return this.calls.filter((t) => t > cutoff).length;
+  /** When a clock window started, at `now`. */
+  private static start(dim: Dim, now: Ms): Ms {
+    const win = DIMENSIONS[dim] * 1000;
+    return Math.floor(now / win) * win;
+  }
+
+  /** Whether a call (or a header) made at `t` still counts in this window at `now`. */
+  private static counts(dim: Dim, t: Ms, now: Ms): boolean {
+    if (CLOCK_WINDOWS.has(dim)) return t >= Budget.start(dim, now);
+    return t > now - DIMENSIONS[dim] * 1000; // one exactly that old has just left, so freeAt can name an exact moment
+  }
+
+  /** Calls counted in this window. */
+  private used(now: Ms, dim: Dim): number {
+    return this.calls.filter((t) => Budget.counts(dim, t, now)).length;
   }
 
   /** How many free calls in this window a kind of call needs: background ones leave the reserve for searches. */
@@ -47,12 +65,14 @@ export class Budget {
   }
 
   /**
-   * When `need` calls in this window are free again, if nothing more is spent: our own count frees up as its oldest
-   * calls leave the window, a header's count when its window is over. Null if it never can (a limit below `need`).
+   * When `need` calls in this window are free again, if nothing more is spent: a clock window's all at once when it
+   * turns; a rolling one's as its oldest calls leave, or a header's count when its window is over. Null if it never
+   * can (a limit below `need`).
    */
   freeAt(dim: Dim, need: number, now: Ms = this.clock()): Ms | null {
     const win = DIMENSIONS[dim] * 1000;
     if (this.limits[dim] < need) return null;
+    if (CLOCK_WINDOWS.has(dim)) return this.remaining(dim, now) >= need ? now : Budget.start(dim, now) + win;
     const inWindow = this.calls.filter((t) => t > now - win);
     const leave = inWindow.length - (this.limits[dim] - need); // this many of the oldest must leave
     let at = leave > 0 ? inWindow[leave - 1] + win : now;
@@ -73,12 +93,12 @@ export class Budget {
   }
 
   remaining(dim: Dim, now: Ms = this.clock()): number {
-    let ours = this.limits[dim] - this.used(now, DIMENSIONS[dim]);
+    let ours = this.limits[dim] - this.used(now, dim);
     const h = this.headerRemaining.get(dim);
     if (h) {
       const [value, seen] = h;
       const since = this.calls.filter((t) => t > seen).length;
-      if (now - seen < DIMENSIONS[dim] * 1000) ours = Math.min(ours, value - since); // a header holds within its window
+      if (Budget.counts(dim, seen, now)) ours = Math.min(ours, value - since); // a header holds within its window
     }
     return Math.max(ours, 0);
   }
@@ -127,11 +147,16 @@ export class Budget {
     }
   }
 
-  /** Seconds between background re-fetches of one train, so the hour isn't used up early. */
+  /**
+   * Seconds between background re-fetches of one train, so the hour isn't used up early: what's left (less the
+   * reserve), spread over the time until the hour turns and all its calls come back.
+   */
   refreshInterval(floor = 30): number {
-    const left = this.remaining("hour") - this.reserve;
+    const now = this.clock();
+    const left = this.remaining("hour", now) - this.reserve;
     if (left <= 0) return 600;
-    return Math.max(floor, 3600 / left);
+    const untilTurn = (Budget.start("hour", now) + DIMENSIONS.hour * 1000 - now) / 1000;
+    return Math.max(floor, untilTurn / left);
   }
 
   state(): BudgetState {

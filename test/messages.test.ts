@@ -28,23 +28,24 @@ describe("when the allowance stops a call", () => {
     const e = await c.service("X1:2026-11-07").catch((x: unknown) => x);
     expect(e).toBeInstanceOf(AllowanceError);
     expect(e).toBeInstanceOf(BusyError); // still retried like any busy answer
-    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 10:20.");
+    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 10:00.");
   });
 
-  it("an hour spent by its own calls names the time, and tries again only once a background call can go", async () => {
-    const own = new Clock(fromLondon(2026, 11, 7, 8, 30));
+  it("an hour spent by its own calls names the top of the hour, and the retry waits for it too", async () => {
+    const own = new Clock(fromLondon(2026, 11, 7, 9, 0));
     const b = new Budget(own.now);
     const c = new RttClient(ok, ACCESS, b, own.now);
     for (let i = 0; i < 100; i++) {
       b.spend();
-      own.advance(30); // the last at 09:19:30
+      own.advance(12); // the last at 09:19:48
     }
     const e = await c.service("X4:2026-11-07").catch((x: unknown) => x);
-    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 09:30.");
-    // The page's retry is a background call, which can't use the 10 kept for searches: not before 11 are free
+    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 10:00.");
+    // The page's retry is a background call, which can't use the 10 kept for searches: not before 11 are free, which
+    // with the clock's hour is the same moment
     const at = (e as BusyError).retryAt!;
     expect(at).toBeGreaterThanOrEqual(b.freeAt("hour", 11)!);
-    expect(text(problemView("Allowance used up", (e as Error).message, { secs: 30, at }))).toMatch(/tries again by itself at 09:35/);
+    expect(text(problemView("Allowance used up", (e as Error).message, { secs: 30, at }))).toMatch(/tries again by itself at 10:00/);
   });
 
   it("names the minute when only the minute's calls are gone", async () => {

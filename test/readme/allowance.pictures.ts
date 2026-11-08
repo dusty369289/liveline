@@ -93,7 +93,7 @@ test("the hour: as its calls run down, the app slows itself", async ({ page, err
   const W = 1280, H = 390, Y = 170;
   const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img">
     ${text("h", 60, 52, ["The hour’s 100 calls, as they run down"], "start")}
-    ${text("s", 60, 80, ["Each call leaves the count an hour after it’s made, so the train runs back along the line as time passes."], "start")}
+    ${text("s", 60, 80, ["At the top of each hour all 100 come back, and the train starts again from the left."], "start")}
     <path class="line" d="M100 ${Y} L560 ${Y}"/>
     <path class="low" d="M560 ${Y} L860 ${Y}"/>
     <path class="kept" d="M860 ${Y} L1160 ${Y}"/>
@@ -109,7 +109,7 @@ test("the hour: as its calls run down, the app slows itself", async ({ page, err
     ${text("t", 330, 222, ["Refresh: an answer over 15 s old"])}
     ${text("s", 330, 246, ["Polls: when the train next reports,", "at most once a minute"])}
     ${text("t", 710, 222, ["Refresh: only over 60 s old"])}
-    ${text("s", 710, 246, ["Polls spread over the hour: no", "sooner than 3600 s ÷ (left − 10)"])}
+    ${text("s", 710, 246, ["Polls spread to the hour’s end: no sooner", "than the seconds left ÷ (calls left − 10)"])}
     ${text("t", 1010, 222, ["Searches only"])}
     ${text("s", 1010, 246, ["Refresh shows what’s on screen;", "polls wait for calls to free up"])}
     ${text("t", 1220, 330, ["None left: the last answers, marked old,"], "end")}
