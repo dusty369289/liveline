@@ -30,6 +30,10 @@ title=$(gh pr view "$n" -R "$repo" --json title --jq .title)
 body=$(gh pr view "$n" -R "$repo" --json body --jq .body)
 # history-check.mjs skips the body of a Dependabot PR (the upstream changelog), and only that
 author=$(gh pr view "$n" -R "$repo" --json author --jq .author.login)
+# gh names a bot by its app ("app/dependabot"); CI's event payload, and so history-check.mjs, say "dependabot[bot]"
+if [ "$author" = "app/dependabot" ] && [ "$(gh pr view "$n" -R "$repo" --json author --jq .author.is_bot)" = "true" ]; then
+  author="dependabot[bot]"
+fi
 if ! PR_AUTHOR="$author" PR_TITLE="$title" PR_BODY="$body" node "$(dirname "$0")/history-check.mjs"; then
   echo "merge: refusing PR #$n: edit its title or body first." >&2
   exit 1

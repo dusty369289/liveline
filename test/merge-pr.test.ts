@@ -5,12 +5,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { OWNER, script, TempRepo } from "./repo-support";
 
 let repo: TempRepo;
+// A Dependabot PR's author as real gh reports it (gh 2.103: {"is_bot":true,"login":"app/dependabot"}), not the
+// dependabot[bot] that CI's event payload carries
+const DEPENDABOT_GH = { STUB_AUTHOR: "app/dependabot", STUB_IS_BOT: "true" };
 // The stand-in answers the questions merge-pr.sh asks, from the environment, and logs a label or merge to merged.log
 const GH = `#!/bin/sh
 case "$*" in
   *headRefOid*) echo abc123 ;;
   *headRefName*) echo "$STUB_BRANCH" ;;
   *"--jq .author.login"*) echo "$STUB_AUTHOR" ;;
+  *"--jq .author.is_bot"*) echo "$STUB_IS_BOT" ;;
   *"label create"*) ;;
   *"pr edit"*) echo "$*" >> "$STUB_LOG" ;;
   *"pr checks"*) printf '%b' "$STUB_CHECKS"; exit "\${STUB_CHECKS_EXIT:-0}" ;;
@@ -27,7 +31,7 @@ beforeEach(() => {
   Object.assign(repo.env, {
     PATH: `${repo.dir}/.git/stub-bin:${repo.env.PATH}`, STUB_LOG: `${repo.dir}/.git/merged.log`,
     STUB_CHECKS: "Checks=SUCCESS\\nBrowser=SUCCESS\\n", STUB_TITLE: "Board shows late trains", STUB_BODY: "What changed.",
-    STUB_BRANCH: "fix/board-late-trains", STUB_AUTHOR: OWNER.name,
+    STUB_BRANCH: "fix/board-late-trains", STUB_AUTHOR: OWNER.name, STUB_IS_BOT: "false",
   });
 });
 afterEach(() => repo.remove());
@@ -73,7 +77,7 @@ describe("npm run merge", () => {
     + "Co-authored-by: Copilot <c@github.com>";
 
   it("merges a Dependabot PR whatever its changelog body says", () => {
-    Object.assign(repo.env, { STUB_AUTHOR: "dependabot[bot]", STUB_BODY: changelog, STUB_TITLE: "Bump vite to 7.1.5" });
+    Object.assign(repo.env, { ...DEPENDABOT_GH, STUB_BODY: changelog, STUB_TITLE: "Bump vite to 7.1.5" });
     const run = merge();
     expect(run.status, run.stderr).toBe(0);
     expect(merged()).toContain("pr merge 42");
@@ -84,10 +88,18 @@ describe("npm run merge", () => {
     let run = merge();
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain("the PR body");
-    Object.assign(repo.env, { STUB_AUTHOR: "dependabot[bot]", STUB_TITLE: "Bump x\nGenerated with Claude Code" });
+    Object.assign(repo.env, { ...DEPENDABOT_GH, STUB_TITLE: "Bump x\nGenerated with Claude Code" });
     run = merge();
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain("the PR title");
+    expect(merged()).toBe("");
+  });
+
+  it("exempts only a bot: an author gh doesn't flag as one gets its body checked", () => {
+    Object.assign(repo.env, { ...DEPENDABOT_GH, STUB_IS_BOT: "false", STUB_BODY: changelog });
+    const run = merge();
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("the PR body");
     expect(merged()).toBe("");
   });
 });

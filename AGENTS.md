@@ -407,10 +407,11 @@ phone, so the key (and the certificate check that every release carries it) is t
 **Dependabot** (`.github/dependabot.yml`) proposes npm, Gradle and Actions updates monthly, a week after each version
 is published. Its PRs follow the same rules as any other: both required checks, and a merge only when the owner says
 so. Release notes leave out PRs labelled `process` (`.github/release.yml`; `npm run merge` adds the label). One
-exemption, for a PR whose author GitHub reports as `dependabot[bot]` (CI passes it as `PR_AUTHOR`; `npm run merge`
-asks `gh`): `history-check.mjs` expects its commits authored by `dependabot[bot]` and committed by GitHub instead of
-the owner, and skips the PR body, the upstream changelog with its contributors' mentions and trailers. Commit messages
-and the title are still checked for attribution and personal details.
+exemption, for a PR whose author GitHub reports as `dependabot[bot]` (CI passes it as `PR_AUTHOR`; `gh`, which
+`npm run merge` asks, says `app/dependabot` with `is_bot` true, and the script maps that back): `history-check.mjs`
+expects its commits authored by `dependabot[bot]` and committed by GitHub instead of the owner, and skips the PR body,
+the upstream changelog with its contributors' mentions and trailers. Commit messages and the title are still checked
+for attribution and personal details.
 
 ### Writing code
 - **One job per unit.** A page is a `Page` subclass; its markup is a pure function in `views/`; markup two views share
