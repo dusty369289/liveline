@@ -3,7 +3,7 @@
 // is hidden, and the last answer kept, plainly marked as older, when RTT asks us to slow down.
 import type { Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { audit, expect, open, snap, test } from "./support";
+import { audit, expect, open, seedKey, setVisible, snap, test } from "./support";
 
 const ROUND = 120_000; // BOARD_REFRESH.every
 const FOR = 15 * 60_000; // BOARD_REFRESH.for
@@ -16,7 +16,7 @@ const RECORDED = new Date("2026-11-07T15:26:00Z");
 async function keyed(page: Page): Promise<{ calls: () => number }> {
   let calls = 0;
   await page.clock.setSystemTime(RECORDED);
-  await page.addInitScript(() => localStorage.setItem("rtt.key", "dummy-key-for-browser-tests-only"));
+  await seedKey(page);
   await page.route(/\/rtt\/api\/info/, (r) => r.fulfill({ status: 200, contentType: "application/json", body: '{"api_version":"2026-07-25"}' }));
   await page.route(/\/rtt\/gb-nr\/location/, (r) => {
     calls += 1;
@@ -24,11 +24,6 @@ async function keyed(page: Page): Promise<{ calls: () => number }> {
   });
   return { calls: () => calls };
 }
-
-const hide = (page: Page, hidden: boolean) => page.evaluate((h) => {
-  Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (h ? "hidden" : "visible") });
-  document.dispatchEvent(new Event("visibilitychange"));
-}, hidden);
 
 /**
  * Move the page's clock on, then wait a moment of real time: a call the round started is asynchronous, so counting at
@@ -68,11 +63,11 @@ test("a now board asks again each round once its answer is old, and stops after 
 test("a now board asks nothing while hidden, and once on coming back, even just before a round", async ({ page, errors }) => {
   const rtt = await keyed(page);
   await open(page, "/board?station=RDG");
-  await hide(page, true);
+  await setVisible(page, false);
   // Back 90 s before a round: older than the client keeps a board (a minute), so a second ask would reach RTT
   await after(page, 3 * ROUND - 90_000);
   expect(rtt.calls()).toBe(1);
-  await redrawn(page, () => hide(page, false));
+  await redrawn(page, () => setVisible(page, true));
   expect(rtt.calls()).toBe(2);
   await after(page, 100_000); // the round comes 90 s after that answer: too soon to ask again
   expect(rtt.calls()).toBe(2);

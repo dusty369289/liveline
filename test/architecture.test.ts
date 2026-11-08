@@ -71,6 +71,11 @@ describe("one place for each thing", () => {
     expect(bad).toEqual([]);
   });
 
+  it("browser tests seed storage by the registries' names too (seedKey, KEYS), so a rename can't leave them behind", () => {
+    const bad = files(join(ROOT, "test/ui"), /\.ts$/).filter((p) => STORAGE_NAME.test(code(p))).map(rel);
+    expect(bad).toEqual([]);
+  });
+
   it("localStorage only through Pref (and the platform's browser key store, which has nowhere private)", () => {
     const allowed = ["src/ui/store/pref.ts", "src/platform/index.ts"];
     const bad = source.filter((p) => !allowed.includes(rel(p)) && /\blocalStorage\b/.test(code(p))).map(rel);

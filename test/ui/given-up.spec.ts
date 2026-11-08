@@ -3,7 +3,7 @@
 // The clock is 09:20 (support.ts); the train was due in at 08:10.
 import type { Page } from "@playwright/test";
 import { fakeService, type FakeLocation } from "../support";
-import { audit, expect, snap, test } from "./support";
+import { audit, expect, seedKey, snap, test } from "./support";
 
 const route = (reported: boolean): FakeLocation[] => [
   { name: "Reading", crs: "RDG", dep: { gbtt: "07:30", wtt: "07:30", actual: reported ? "07:31" : undefined } },
@@ -15,7 +15,7 @@ const route = (reported: boolean): FakeLocation[] => [
 ];
 
 async function openGivenUp(page: Page, reported: boolean): Promise<void> {
-  await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-test-key"));
+  await seedKey(page);
   await page.route("**/rtt/api/info**", (r) => r.fulfill({ json: { api_version: "2026-07-25", credentials: { entitlements: [] } } }));
   await page.route("**/rtt/gb-nr/service**", (r) => r.fulfill({ json: fakeService(route(reported)) }));
   await page.goto("/#/train/X12345:2026-11-07?at=SLO&to=PAD");

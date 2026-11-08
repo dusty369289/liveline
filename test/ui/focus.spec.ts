@@ -1,5 +1,5 @@
 // Where keyboard and screen-reader focus goes when pages change, and what the app says while it waits.
-import { expect, open, openTrain, test } from "./support";
+import { expect, open, openTrain, seedKey, test } from "./support";
 
 test("the skip link moves focus to the page, without changing the route", async ({ page, errors }) => {
   await open(page, "/recent");
@@ -91,7 +91,7 @@ test("a poll with news says the new headline in the announcer, and the train pag
 
 test("while Realtime Trains is slow, the app says it's busy, and stops once the page is drawn", async ({ page, errors }) => {
   // A made-up key (never a real one), so the board asks the faked RTT, which holds its answer until told
-  await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-key-for-tests-only-0123456789"));
+  await seedKey(page);
   let release!: () => void;
   const held = new Promise<void>((r) => (release = r));
   await page.route("**/rtt/**", async (r) => {
