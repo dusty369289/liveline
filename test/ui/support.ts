@@ -110,15 +110,27 @@ export async function openTrain(page: Page, time = "09:00"): Promise<void> {
  * is a control, and isn't).
  */
 export async function audit(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
+  // The screen's width, from Playwright. Not innerWidth or clientWidth: under mobile emulation the layout viewport
+  // grows to fit content that runs wide, so measuring against it can never see the overflow it is meant to catch
+  const vw = page.viewportSize()!.width;
+  return page.evaluate((vw) => {
     const out: string[] = [];
-    const vw = innerWidth;
     if (document.documentElement.scrollWidth > vw) out.push(`page scrolls sideways by ${document.documentElement.scrollWidth - vw}px`);
+    const scroller = (el: Element) => {
+      for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        if (/auto|scroll/.test(getComputedStyle(p).overflowX)) return true;
+      }
+      return false;
+    };
     for (const el of document.querySelectorAll<HTMLElement>("body *")) {
       const cs = getComputedStyle(el);
       if (cs.display === "none" || cs.visibility === "hidden" || el.closest("[hidden], .visually-hidden")) continue;
       const b = el.getBoundingClientRect();
       if (!b.width || !b.height) continue;
+      // Past the screen's right edge. Scenery (aria-hidden) and anything inside its own sideways scroller may be
+      if (b.right + scrollX > vw + 0.5 && !el.closest('[aria-hidden="true"]') && !scroller(el)) {
+        out.push(`past the screen's edge by ${Math.round(b.right + scrollX - vw)}px: ${el.tagName.toLowerCase()}.${el.className}`);
+      }
       // (Decorative art, aria-hidden, is meant to run off its window: the Train view's scenery and signs)
       if ((cs.overflow === "hidden" || cs.textOverflow === "ellipsis") && el.scrollWidth > el.clientWidth + 1
         && el.textContent?.trim() && cs.textOverflow !== "ellipsis" && !el.closest('[aria-hidden="true"]')) {
@@ -151,7 +163,7 @@ export async function audit(page: Page): Promise<string[]> {
       if (b.height < 44) out.push(`small target ${Math.round(b.width)}x${Math.round(b.height)}: ${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 25)}"`);
     }
     return [...new Set(out)];
-  });
+  }, vw);
 }
 
 /** A full-page picture for the contact sheet (.ui-report/), named by page and project. */
