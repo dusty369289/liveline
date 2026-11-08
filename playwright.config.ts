@@ -12,7 +12,8 @@ export default defineConfig({
   retries: 0,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  reporter: [["list"], ["./test/ui/contact-sheet.ts"]],
+  // the review reporter records outcomes and times, so a fail then a pass is listed as flaky (test/harness/review.ts)
+  reporter: [["list"], ["./test/ui/contact-sheet.ts"], ["./test/harness/review-playwright.ts"]],
   use: {
     baseURL: `http://localhost:${PORT}`,
     locale: "en-GB",
