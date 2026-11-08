@@ -22,9 +22,11 @@ const step = (job: Job, name: string) => {
   return found;
 };
 
-// Saved `apksigner verify --print-certs` of the published v0.1.0 APK (every release since has the same signer), and
-// the first lines of `aapt2 dump badging` of v0.4.0.
+// Saved `apksigner verify --print-certs` of the published v0.1.0 APK (every release since has the same signer), the
+// same from the release runner's newer apksigner, which names the scheme instead of numbering signers ("V3.0 Signer:",
+// v0.5.0's first try failed on it), and the first lines of `aapt2 dump badging` of v0.4.0.
 const CERTS = fixture("apksigner-v0.1.0.txt");
+const CERTS_V3 = fixture("apksigner-v3-runner.txt");
 const BADGING = fixture("aapt2-badging-v0.4.0.txt");
 
 /** Run the sign job's check step as GitHub would (bash -e, pipefail) over the given tool outputs. */
@@ -144,19 +146,26 @@ describe("release", () => {
   it("the key's certificate is pinned, in full", () => {
     expect(sign.env!.SIGNER_SHA256).toMatch(/^[0-9a-f]{64}$/);
     expect(CERTS).toContain(`Signer #1 certificate SHA-256 digest: ${sign.env!.SIGNER_SHA256}\n`);
+    expect(CERTS_V3).toContain(`V3.0 Signer: certificate SHA-256 digest: ${sign.env!.SIGNER_SHA256}\n`);
   });
 
-  it("passes an APK signed by the release key, as this version", () => {
-    const run = checkApk("0.4.0");
-    expect(run.out).not.toContain("::error::");
-    expect(run.status).toBe(0);
+  it("passes an APK signed by the release key, as this version, in either apksigner's words", () => {
+    for (const certs of [CERTS, CERTS_V3]) {
+      const run = checkApk("0.4.0", certs);
+      expect(run.out).not.toContain("::error::");
+      expect(run.status).toBe(0);
+    }
   });
 
   it("refuses an APK signed by another key, or by a second one too", () => {
-    const other = CERTS.replace(/digest: f5d3/, "digest: 0000");
-    expect(checkApk("0.4.0", other).out).toMatch(/::error::.*isn't signed with the release key/);
+    for (const certs of [CERTS, CERTS_V3]) {
+      const other = certs.replace(/digest: f5d3/, "digest: 0000");
+      expect(checkApk("0.4.0", other).out).toMatch(/::error::.*isn't signed with the release key/);
+    }
     const second = `${CERTS}Signer #2 certificate DN: CN=Someone\nSigner #2 certificate SHA-256 digest: ${"ab".repeat(32)}\n`;
     expect(checkApk("0.4.0", second).out).toMatch(/::error::.*more than one signer/);
+    const rotated = `${CERTS_V3}V3.1 Signer: certificate SHA-256 digest: ${"ab".repeat(32)}\n`;
+    expect(checkApk("0.4.0", rotated).out).toMatch(/::error::.*more than one signer/);
     expect(checkApk("0.4.0", "").status).not.toBe(0);
   });
 
