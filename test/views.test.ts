@@ -5,7 +5,7 @@ import { type PointView, roundMin, type Shown } from "../src/core/engine";
 import { emptyTimes, type Point } from "../src/core/models";
 import { markOf, type TimeKind } from "../src/ui/components/marks";
 import { delayClass, lateness } from "../src/ui/format";
-import { clampBetween, MIN_AWAY } from "../src/ui/route-place";
+import { clampBetween, MAX_CLEAR, MIN_AWAY, PASS_AWAY } from "../src/ui/route-place";
 import { pointTimes } from "../src/ui/views/live-region";
 
 const T = Date.UTC(2026, 10, 7, 10, 0);
@@ -96,8 +96,21 @@ describe("the marker between two rows", () => {
     expect(clampBetween(100, 300, 0.25)).toBe(150);
   });
 
-  it("sits at half the gap on a section shorter than twice MIN_AWAY", () => {
-    for (const f of [0, 0.3, 0.95, 1]) expect(clampBetween(0, 40, f)).toBe(20);
+  // Owner, 2026-11-08: between passing points the train sat still until the next report. Their rows are ~37 px apart,
+  // and keeping 26 px clear of both (or half the gap) pinned it to the middle for the whole section.
+  it("moves on a short section: the clear space never takes more than MAX_CLEAR of it", () => {
+    for (const [gap, ends] of [[37, [PASS_AWAY, PASS_AWAY]], [40, [MIN_AWAY, PASS_AWAY]], [40, [MIN_AWAY, MIN_AWAY]]] as const) {
+      const ys = [0, 0.25, 0.5, 0.75, 1].map((f) => clampBetween(0, gap, f, ends[0], ends[1]));
+      for (let i = 1; i < ys.length; i++) expect(ys[i]).toBeGreaterThanOrEqual(ys[i - 1]); // never backwards
+      expect(ys[4] - ys[0]).toBeGreaterThanOrEqual(gap * (1 - MAX_CLEAR) - 1e-9); // at least a third to move along
+    }
+  });
+
+  it("keeps less clear of a passing point (a tick) than of a station (a ring)", () => {
+    expect(PASS_AWAY).toBeLessThan(MIN_AWAY);
+    expect(clampBetween(0, 200, 0, PASS_AWAY, PASS_AWAY)).toBe(PASS_AWAY);
+    expect(clampBetween(0, 200, 0, MIN_AWAY, PASS_AWAY)).toBe(MIN_AWAY);
+    expect(clampBetween(0, 200, 1, MIN_AWAY, PASS_AWAY)).toBe(200 - PASS_AWAY);
   });
 
   it("takes another distance", () => {
