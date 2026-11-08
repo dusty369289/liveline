@@ -54,8 +54,13 @@ function row(r: BoardRow, res: BoardResult, here: string): Html {
     </li>`;
 }
 
-export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boolean, now: Ms): Html {
+/**
+ * A board. `problem` is why a refresh failed (busy, refused, offline): the answer shown is then the last one, and the
+ * older-answer note says so, how old it is, and why.
+ */
+export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boolean, now: Ms, problem: string | null = null): Html {
   const b = res.board;
+  const older = problem ? `Not updated: ${problem}` : res.fetched.stale ? `${res.fetched.note}.` : null;
   const arr = res.mode === "arr";
   const here = res.station?.crs ?? b.stationCrs ?? "";
   const other = res.to ? ` ${arr ? "from" : "calling at"} ${res.to.name}` : "";
@@ -82,7 +87,7 @@ export function boardView(res: BoardResult, q: Query, nav: BoardNav, live: boole
   </header>
   <div class="board__slot" data-board-body>
   ${sm ? html`<p class="banner" role="note">${sm}</p>` : ""}
-  ${res.fetched.stale ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${res.fetched.note}.</p>` : ""}
+  ${older ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${older}</p>` : ""}
   ${res.rows.length === 0
     ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in this hour${other}. Try <a href="${nav.later}">later</a>.</p>`
     : html`<ol class="trains" aria-label="Trains">${res.rows.map((r) => row(r, res, here))}</ol>`}

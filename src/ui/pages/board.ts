@@ -19,6 +19,7 @@ export class BoardPage extends Page {
   private query: Query = queryOf(this.route.params);
   private nav: BoardNav | null = null;
   private live = false;
+  private shown: BoardResult | null = null; // the answer on screen
 
   async load(stale: () => boolean): Promise<Html | null> {
     const q = this.query;
@@ -37,6 +38,7 @@ export class BoardPage extends Page {
     const res = await this.request({ when: at, force });
     if (stale()) return null;
     this.title = res.board.stationName;
+    this.shown = res;
     this.nav = this.links(res);
     this.live = !q.time;
     if (force) history.replaceState(null, "", boardHash(q)); // don't refetch on back
@@ -86,12 +88,21 @@ export class BoardPage extends Page {
   /**
    * Swap in the fresh answer without jumping to the top: the window line and its links, and everything below the
    * header (status, the older-answer note, rows or the empty line, footer), each slot whole. Only into this board: an
-   * answer that arrives after you've moved on to another board (the page root is shared) is dropped.
+   * answer that arrives after you've moved on to another board (the page root is shared) is dropped. A refresh that
+   * fails (busy, refused, offline) keeps the answer on screen and redraws the body to say how old it is and why.
    * Nothing is asked while the app is hidden; coming back asks at once if a round was missed meanwhile.
    */
   private keepFresh(board: HTMLElement): void {
     const opened = Date.now();
-    let last = opened; // when the answer on screen was asked for
+    let last = opened; // when we last asked
+    const draw = (res: BoardResult, problem: string | null, slots: string[]) => {
+      const fresh = fragment(boardView(res, this.query, this.nav!, true, this.ctx.rail.clock(), problem));
+      for (const sel of slots) {
+        const now = board.querySelector(sel);
+        const next = fresh.querySelector(sel);
+        if (now && next) now.replaceWith(next);
+      }
+    };
     let busy = false;
     let stopped = false;
     const due = () => Date.now() - last >= BOARD_REFRESH.every - BOARD_REFRESH.slack;
@@ -108,15 +119,13 @@ export class BoardPage extends Page {
       try {
         const res = await this.request({ background: true });
         if (!board.isConnected) return;
+        this.shown = res;
         this.nav = this.links(res); // a "now" board's window moves on, and Earlier/Later with it
-        const fresh = fragment(boardView(res, this.query, this.nav, true, this.ctx.rail.clock()));
-        for (const sel of ["[data-board-top]", "[data-board-body]"]) {
-          const now = board.querySelector(sel);
-          const next = fresh.querySelector(sel);
-          if (now && next) now.replaceWith(next);
-        }
-      } catch {
-        /* keep what's shown; the next round tries again */
+        draw(res, null, ["[data-board-top]", "[data-board-body]"]);
+      } catch (e) {
+        // Keep what's shown, and say it's older (the window line and links stay that answer's); the next round tries again
+        if (!board.isConnected || !this.shown) return;
+        draw(this.shown, e instanceof Error && e.message ? e.message : "Realtime Trains didn't answer.", ["[data-board-body]"]);
       } finally {
         busy = false;
       }

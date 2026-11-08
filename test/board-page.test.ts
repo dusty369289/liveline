@@ -2,7 +2,7 @@
 // stand-in DOM (support.ts): background board calls wait until the test lets them answer, so a slow one can be
 // overtaken by navigation.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type BoardResult, Rail } from "../src/core/rail";
+import { type BoardResult, BusyError, Rail } from "../src/core/rail";
 import { SimTransport } from "../src/core/simulator";
 import { fromLondon } from "../src/core/time";
 import { BOARD_REFRESH, BoardPage } from "../src/ui/pages/board";
@@ -39,7 +39,7 @@ async function setup() {
   const board = rail.board.bind(rail);
   rail.board = (o) => {
     if (!o.background) return board(o).then((r) => state.edit(r));
-    return new Promise((ok, no) => held.push(() => board(o).then((r) => ok(state.edit(r)), no)));
+    return new Promise((ok, no) => held.push(() => board(o).then((r) => state.edit(r)).then(ok, no)));
   };
   const ctx = { rail, stations: { remember() {} }, journeys: { has: () => false, toggle: () => false } } as unknown as AppContext;
   const root = new FakeElement();
@@ -116,6 +116,22 @@ describe("a refreshing board", () => {
     const stale = (r: BoardResult) => ({ ...r, fetched: { ...r.fetched, stale: true, note: "Realtime Trains is busy" } });
     const { body } = await refreshOnce(await setup(), stale);
     expect(body).toContain("Showing the answer from");
+  });
+
+  it("a refresh that fails keeps the answer and says how old it is and why", async () => {
+    const app = await setup();
+    const el = await app.open("#/board?station=PAD");
+    app.state.edit = () => {
+      throw new BusyError("Realtime Trains asked us to slow down. Try again shortly.");
+    };
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.every);
+    await app.release();
+    const body = el.parts["[data-board-body]"].replacedWith;
+    expect(body.length).toBe(1);
+    expect(body[0].markup).toContain("Showing the answer from 2 min ago");
+    expect(body[0].markup).toContain("Not updated: Realtime Trains asked us to slow down.");
+    expect(body[0].markup).toContain('class="trains"'); // the rows are still the last answer's
+    expect(el.parts["[data-board-top]"].replacedWith.length).toBe(0); // the window line is still that answer's
   });
 
   it("the body slot carries the status banner, the rows and the footer; the top slot none of them", async () => {

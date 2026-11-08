@@ -89,7 +89,11 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   waits for Refresh. Nothing is asked while the app is hidden; coming back refreshes at once if a round was missed.
   Both ask only when the answer on screen is 2 minutes old, so coming back and the next round never both ask. A
   refresh replaces the window line, its links and everything below the header, and only on its own board (an answer
-  arriving after you've moved on is dropped). Empty stock and staff-only rows are hidden unless "show all".
+  arriving after you've moved on is dropped). A refresh that fails (busy, refused, offline) keeps the rows on screen
+  and says so: "Showing the answer from N min ago. Not updated: <why>". Empty stock and staff-only rows are hidden
+  unless "show all". Each row's live cell reads its time as the train page does (the engine's `shownOf`, coloured by
+  `delayClass`): "Left/Arr hh:mm" once reported, "Exp hh:mm" for a forecast a minute or more off, early or late (an
+  early train is coloured early, not "On time"), "On time" when it matches, "No report" with no live time.
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or
@@ -258,7 +262,8 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
   moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
   plates, 44 px targets) and goes on the contact sheet. `keyed.spec.ts` runs with a dummy key against faked RTT
-  answers (a recording) and counts the calls a page makes.
+  answers (a recording, at the time it was made) and counts the calls a page makes; a check that nothing more was
+  asked waits a moment of real time first, as a call a round starts is asynchronous.
 - **Test review** (`test/harness/review.ts`, state in `.test-review/`): each test's time is kept against its baseline. A
   test clearly slower (over 2x and 100 ms, after allowing for the whole machine being slower) stays queued on every run
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that
