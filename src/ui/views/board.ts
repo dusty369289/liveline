@@ -38,6 +38,13 @@ function status(r: BoardRow, arr: boolean, now: Ms): [Html, string] {
 
 /** Who runs it. With a badge (shown by the Operator colour theme, which then hides the name but leaves it to screen
  *  readers), the badge stands in for the name. */
+/** How long an empty board looked, as its line above says it: "this hour", "these 6 hours", "these 90 minutes". */
+function span(ms: Ms): string {
+  const min = Math.round(ms / 60_000);
+  if (min === 60) return "this hour";
+  return min % 60 === 0 ? `these ${min / 60} hours` : `these ${min} minutes`;
+}
+
 function operator(r: BoardRow): unknown {
   const badge = operatorBadge(r.operatorCode, r.operatorName);
   return badge && r.operatorName ? html`${badge}<span class="trains__opname">${r.operatorName}</span>` : r.operatorName || "No operator";
@@ -118,7 +125,7 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
   ${sm ? html`<p class="banner" role="note">${sm}</p>` : ""}
   ${older ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${older}</p>` : ""}
   ${res.rows.length === 0
-    ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in this hour${other}. Try <a href="${nav.later}">later</a>.</p>`
+    ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in ${span(b.timeTo - b.timeFrom)}${other}. Try <a href="${nav.later}">later</a>.</p>`
     : html`<ol class="trains" aria-label="Trains">${res.rows.map((r) => row(r, res, here, now))}</ol>`}
   <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", and every 2 minutes while open" : ""}.${
     res.hidden ? html` ${res.hidden} empty or staff-only train${res.hidden !== 1 ? "s" : ""} hidden: <a href="${nav.all}">show all</a>.`
