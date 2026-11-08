@@ -1,13 +1,14 @@
-// The train page for a train on another day: it says the day, and the big number gives a day and time rather than
-// thousands of minutes. The simulator stands in for RTT.
+// The train page for a train on another day: it says the day once, and the big number gives the time rather than
+// thousands of minutes; the countdown keeps going between polls. The simulator stands in for RTT.
 import { describe, expect, it } from "vitest";
 import { stopSummary } from "../src/core/engine";
 import { Rail } from "../src/core/rail";
 import { SimTransport } from "../src/core/simulator";
 import { fromLondon, type Ms } from "../src/core/time";
 import { html } from "../src/ui/html";
+import { countText } from "../src/ui/views/live-region";
 import { trainView } from "../src/ui/views/train";
-import { MemStore, stations } from "./support";
+import { Clock, MemStore, stations } from "./support";
 
 const NOW = fromLondon(2026, 11, 7, 9, 20); // a Saturday
 
@@ -82,5 +83,30 @@ describe("a train on another day", () => {
     const page = await trainFrom("WAT", fromLondon(2026, 11, 7, 9, 40));
     expect(h1(page)).not.toContain("Sat 7 Nov");
     expect(heroOf(page)).toMatch(/live__hero-unit">min/);
+  });
+});
+
+describe("the countdown between polls (live-train.ts ticks it with countText)", () => {
+  it("each minute on with no new answer, the big number is one less", async () => {
+    const clock = new Clock(NOW);
+    const page = await trainFrom("WAT", fromLondon(2026, 11, 7, 10, 0), "WAT", clock.t);
+    const [, at, shown] = /live__hero-num" data-count-at="(\d+)">(\d+)</.exec(page)!;
+    expect(countText(Number(at), clock.now(), true)).toBe(shown);
+    clock.advance(60);
+    expect(countText(Number(at), clock.now(), true)).toBe(String(Number(shown) - 1));
+    clock.advance(60);
+    expect(countText(Number(at), clock.now(), true)).toBe(String(Number(shown) - 2));
+  });
+
+  it("the other stop's 'in N min' ticks too, and the clock form keeps to the hero's rules", async () => {
+    const page = await trainFrom("WAT", fromLondon(2026, 11, 7, 10, 0), "WAT", NOW, "last");
+    const [, at, shown] = /<span data-count-at="(\d+)">(, in \d+ min)<\/span>/.exec(page)!;
+    expect(countText(Number(at), NOW, false)).toBe(shown);
+    const t = NOW + 3 * 3_600_000;
+    expect(countText(t, NOW, true)).toBe("180");
+    expect(countText(t + 60_000, NOW, true)).toBe("12:21");
+    expect(countText(t + 60_000, NOW, false)).toBe("");
+    expect(countText(NOW + 59_000, NOW, true)).toBe("Due");
+    expect(countText(NOW + 59_000, NOW, false)).toBe(", due now");
   });
 });

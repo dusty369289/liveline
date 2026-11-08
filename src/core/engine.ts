@@ -337,6 +337,9 @@ export interface StopSummary {
   callsBetween: number; // stops between the train and this one
 }
 
+/** Whole minutes from `now` until `t`, rounded down, never below 0: the countdown everywhere ("N min"). */
+export const minutesUntil = (t: Ms, now: Ms): number => Math.max(Math.floor((t - now) / 60_000), 0);
+
 /** How things stand at one station on this train: where you get on (or off). */
 export function stopSummary(tl: Timeline, code: string, boarding = true): StopSummary | null {
   const c = code.trim().toUpperCase();
@@ -350,7 +353,7 @@ export function stopSummary(tl: Timeline, code: string, boarding = true): StopSu
   let minutes: number | null = null;
   let between = 0;
   if (status === "ahead") {
-    if (sh && sh.time != null) minutes = Math.max(Math.floor((sh.time - tl.now) / 60_000), 0);
+    if (sh && sh.time != null) minutes = minutesUntil(sh.time, tl.now);
     const start = pos.fromIndex ?? -1;
     between = tl.points.slice(start + 1, v.index).filter((w) => w.point.kind === "call" && !isCancelled(w.point)).length;
   }

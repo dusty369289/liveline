@@ -74,6 +74,17 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
+test("the big number counts down between polls", async ({ page, errors }) => {
+  // About an hour off: the next poll is 3 minutes away, so a change within 90 s is the page's own tick
+  await openTrain(page, "10:15");
+  const num = page.locator(".live__hero-num");
+  const before = Number(await num.textContent());
+  await page.clock.runFor(90_000);
+  await expect(num).toHaveText(String(before - 1));
+  await expect(page.locator("[data-age]")).toContainText("1 min ago"); // no fetch in between
+  void errors;
+});
+
 test("a train you opened is in Recent, and Recent can be cleared", async ({ page, errors }) => {
   await openTrain(page);
   await open(page, "/");

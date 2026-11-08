@@ -1,5 +1,5 @@
 // The part of the train page that refreshes: where the train is, your stops, and the route with every point.
-import { changed, type PointView, type StopSummary, type Timeline } from "../../core/engine";
+import { changed, minutesUntil, type PointView, type StopSummary, type Timeline } from "../../core/engine";
 import { isCancelled } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import { hm, isoDate, type Ms } from "../../core/time";
@@ -21,29 +21,44 @@ const farOff = (sm: StopSummary) => sm.status === "ahead" && (sm.minutes ?? 0) >
  */
 const dayBeside = (t: Ms | null, runDate: string) => (t != null && isoDate(t) !== runDate ? dayLabel(t) : "");
 
+/**
+ * A countdown to `t` as it reads at `now`: the big number (`big`) or a stop line's "in N min". "Due" under a minute;
+ * past HERO_COUNTDOWN_MAX the time instead (nothing, in a line). The page draws with it, and live-train.ts redraws
+ * every `data-count-at` with it each second between polls, so the two can't drift.
+ */
+export function countText(t: Ms, now: Ms, big: boolean): string {
+  const m = minutesUntil(t, now);
+  if (m > HERO_COUNTDOWN_MAX) return big ? hm(t) : "";
+  if (m < 1) return big ? "Due" : ", due now";
+  return big ? String(m) : `, in ${m} min`;
+}
+
 /** The one number you came for: minutes until it leaves your stop (or reaches where you get off). */
-function hero(stop: StopSummary | null, off: StopSummary | null, runDate: string): [Html | "", StopSummary | null] {
+function hero(stop: StopSummary | null, off: StopSummary | null, runDate: string, now: Ms): [Html | "", StopSummary | null] {
   const hs = stop && ["ahead", "here"].includes(stop.status) ? stop : off && off.status === "ahead" ? off : null;
   if (!hs) return ["", null];
   const isStop = hs === stop;
   const plat = hs.platform && isStop ? `, platform ${hs.platform}` : "";
   const t = hs.shown?.time ?? null;
   const day = dayBeside(t, runDate);
+  const dueWhat = `at ${hs.name}${plat}`;
   let inner: Html | "" = "";
   // Only a far-off train loses its countdown: one just past midnight still counts down
   if (t != null && farOff(hs)) {
     inner = html`<span class="live__hero-num">${hm(t)}</span>${day ? html`<span class="live__hero-unit">${day}</span>` : ""}
       <span class="live__hero-what">when it ${isStop ? "leaves" : "reaches"} ${hs.name}${plat}</span>`;
   } else if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
-  else if (hs.minutes != null && hs.minutes < 1) inner = html`<span class="live__hero-num">Due</span><span class="live__hero-what">at ${hs.name}${plat}</span>`;
-  else if (hs.minutes != null) {
-    inner = html`<span class="live__hero-num">${hs.minutes}</span><span class="live__hero-unit">min</span>
-      <span class="live__hero-what">until it ${isStop ? "leaves" : "reaches"} ${hs.name} · ${hm(hs.shown?.time ?? null)}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span>`;
+  else if (t != null && hs.minutes != null) {
+    const n = countText(t, now, true);
+    // The tick turns the number into "Due" on its own: it drops the unit and swaps in the shorter line it keeps here
+    inner = n === "Due" ? html`<span class="live__hero-num">Due</span><span class="live__hero-what">${dueWhat}</span>`
+      : html`<span class="live__hero-num" data-count-at="${t}">${n}</span><span class="live__hero-unit">min</span>
+      <span class="live__hero-what" data-due-what="${dueWhat}">until it ${isStop ? "leaves" : "reaches"} ${hs.name} · ${hm(t)}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span>`;
   }
   return [html`<p class="live__hero">${inner}</p>`, hs];
 }
 
-function stopLine(sm: StopSummary, verb: "leaves" | "reaches", runDate: string): Html {
+function stopLine(sm: StopSummary, verb: "leaves" | "reaches", runDate: string, now: Ms): Html {
   let body: Html;
   if (sm.status === "cancelled") body = html`<span class="problem">It no longer stops at ${sm.name}.</span>`;
   else if (sm.status === "here") body = html`<strong>It's at ${sm.name} now</strong>${sm.platform ? `, platform ${sm.platform}` : ""}.`;
@@ -53,7 +68,7 @@ function stopLine(sm: StopSummary, verb: "leaves" | "reaches", runDate: string):
     const t = sm.shown?.time ?? null;
     const day = dayBeside(t, runDate);
     body = html`It ${verb} <strong>${sm.name}</strong> at <strong class="tnum ${delayClass(sm.shown)}">${t != null ? hm(t) : "?"}</strong>${
-      day ? ` ${day}` : ""}${sm.minutes != null && !farOff(sm) ? `, in ${sm.minutes} min` : ""}${sm.callsBetween ? `, ${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away` : ""}${
+      day ? ` ${day}` : ""}${t != null && sm.minutes != null ? html`<span data-count-at="${t}">${countText(t, now, false)}</span>` : ""}${sm.callsBetween ? `, ${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away` : ""}${
       sm.platform && verb === "leaves" ? `, platform ${sm.platform}${sm.platformConfirmed ? "" : " (not confirmed)"}` : ""}.`;
   }
   return html`<p class="live__stop">${body}</p>`;
@@ -138,10 +153,10 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const tl = res.timeline;
   const p = tl.position;
   const runDate = tl.service.runDate;
-  const [heroHtml, hs] = hero(stop, off, runDate);
+  const [heroHtml, hs] = hero(stop, off, runDate, tl.now);
   // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
   const lines = p.state === "arrived" ? []
-    : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v, runDate));
+    : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v, runDate, tl.now));
   const { groupOf, size } = passGroups(tl);
   const route = tl.points.map((v) => {
     const g = groupOf.get(v.index);

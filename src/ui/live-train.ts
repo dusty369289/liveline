@@ -5,7 +5,7 @@ import { stopSummary } from "../core/engine";
 import { manualMinAge, nextWait } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
-import { liveRegion } from "./views/live-region";
+import { countText, liveRegion } from "./views/live-region";
 import { PassFolds } from "./widgets/pass-folds";
 
 const MIN_AWAY = 26; // px a departed train sits below the point it left, at least
@@ -56,6 +56,7 @@ export class LiveTrain {
     this.tick = setInterval(() => {
       this.place(false);
       this.age();
+      this.countdowns();
     }, 1000);
     const secs = this.refreshSecs();
     if (secs == null) this.finished();
@@ -196,6 +197,27 @@ export class LiveTrain {
     if (!this.jumped) {
       this.jumped = true;
       this.jump(false);
+    }
+  }
+
+  /**
+   * Keep "N min" counting between polls (one may be 3 minutes off), by the same rules the page was drawn with. Only a
+   * changed value is written, so the status region announces once a minute, not every second.
+   */
+  private countdowns(): void {
+    const now = Date.now();
+    for (const el of this.region.querySelectorAll<HTMLElement>("[data-count-at]")) {
+      const big = el.classList.contains("live__hero-num");
+      const text = countText(Number(el.dataset.countAt), now, big);
+      if (el.textContent === text) continue;
+      el.textContent = text;
+      if (big && text === "Due") {
+        // the hero's own "Due" form: no unit, and the shorter line it kept for this
+        el.parentElement?.querySelector(".live__hero-unit")?.remove();
+        const what = el.parentElement?.querySelector<HTMLElement>("[data-due-what]");
+        if (what) what.textContent = what.dataset.dueWhat ?? "";
+        el.removeAttribute("data-count-at");
+      }
     }
   }
 
