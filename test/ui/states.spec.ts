@@ -30,6 +30,7 @@ test("search, returning: a saved journey, a train to carry on with, recent stati
 test("board: arrivals", async ({ page, errors }, info) => {
   await open(page, "/board?station=PAD&mode=arr&time=09:00");
   await expect(page.locator(".board__sub")).toContainText("Arrivals");
+  await expect(page.locator(".trains__place").first()).toContainText(/^from \S/);
   await shot(page, info, "11-board-arrivals");
   void errors;
 });

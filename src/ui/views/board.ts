@@ -41,16 +41,18 @@ function row(r: BoardRow, res: BoardResult, here: string): Html {
   const cancelled = rowCancelled(r);
   const href = `#/train/${encodeURIComponent(r.uniqueId)}${qs({ at: here, to: res.to?.crs })}`;
   const platCls = `${r.platformChanged ? " is-changed" : ""}${r.platform && !r.platformConfirmed ? " is-unconfirmed" : ""}`;
-  const platLabel = r.platform ? `Platform ${r.platform}${r.platformConfirmed ? "" : ", not confirmed"}` : null;
+  // A plain span's aria-label isn't read reliably, so the plate's words are hidden text inside it: "Platform 5, changed"
+  const plate = r.platform ? html`<span class="visually-hidden">Platform </span><span class="trains__plat-label" aria-hidden="true">Plat</span>${
+    r.platform}<span class="visually-hidden">${r.platformConfirmed ? "" : ", not confirmed"}${r.platformChanged ? ", changed" : ""}</span>` : "";
   return html`
     <li class="trains__row${cancelled ? " is-cancelled" : ""}">
       <a class="trains__link" href="${href}">
         <span class="trains__when"><span class="trains__time tnum">${hm(booked(arr ? r.arrival : r.departure))}</span><span class="trains__live tnum ${liveCls}">${state}</span></span>
         <span class="trains__dest">
-          <span class="trains__place">${arr ? r.origin : r.destination}</span>
+          <span class="trains__place">${arr ? html`<span class="muted">from </span>${r.origin}` : r.destination}</span>
           <span class="trains__meta">${meta(r)}</span>
         </span>
-        <span class="trains__plat tnum${platCls}" aria-label="${platLabel}">${r.platform ? html`<span class="trains__plat-label" aria-hidden="true">Plat</span>${r.platform}` : ""}</span>
+        <span class="trains__plat tnum${platCls}">${plate}</span>
       </a>
     </li>`;
 }
