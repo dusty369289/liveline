@@ -12,11 +12,23 @@ import { qs } from "../routes";
 /** The board's own links: an hour either side, refresh, the other direction, show all, and the search filled in. */
 export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string; change: string }
 
+/**
+ * A row with no live time is the timetable until this long after its booked time; only then is the missing report
+ * worth saying. A report reaches RTT a little after the event (and RTT gives no forecast until a train is activated,
+ * nor for another day), so "No report" any sooner reads like a fault where there's none.
+ */
+const NO_REPORT_AFTER = 2 * 60_000;
+
 /** The live cell and its lateness class, read as the train page reads a time (the engine's Shown, delayClass). */
-function status(r: BoardRow, arr: boolean): [Html, string] {
+function status(r: BoardRow, arr: boolean, now: Ms): [Html, string] {
   if (rowCancelled(r)) return [html`Cancelled`, "is-cancelled"];
-  const s = shownOf(arr ? r.arrival : r.departure);
-  if (!s || s.time == null || s.source === "booked") return [html`<span class="muted">No report</span>`, ""];
+  const t = arr ? r.arrival : r.departure;
+  const s = shownOf(t);
+  if (!s || s.time == null || s.source === "booked") {
+    if (isBus(r)) return [html``, ""]; // buses aren't reported, and the row already says Bus
+    const bk = booked(t);
+    return [bk != null && now - bk > NO_REPORT_AFTER ? html`<span class="muted">No report</span>` : html`<span class="muted">Timetable</span>`, ""];
+  }
   const cls = delayClass(s);
   if (s.source === "actual") return [html`${timeMark(s.source)}${arr ? "Arr" : "Left"} ${hm(s.time)}`, cls];
   if (s.delayMin) return [html`${timeMark(s.source)}Exp ${hm(s.time)}`, cls];
@@ -37,9 +49,9 @@ function meta(r: BoardRow): unknown[] {
   ];
 }
 
-function row(r: BoardRow, res: BoardResult, here: string): Html {
+function row(r: BoardRow, res: BoardResult, here: string, now: Ms): Html {
   const arr = res.mode === "arr";
-  const [state, liveCls] = status(r, arr);
+  const [state, liveCls] = status(r, arr, now);
   const cancelled = rowCancelled(r);
   // On arrivals you meet the train here: this station is where it's followed to (you "get off" here), and the "from"
   // station, if any, is where it was boarded. The train page then counts down to it reaching you.
@@ -99,7 +111,7 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
   ${older ? html`<p class="hint">Showing the answer from ${ago((now - res.fetched.fetchedAt) / 1000)}. ${older}</p>` : ""}
   ${res.rows.length === 0
     ? html`<p class="empty">No ${arr ? "arrivals" : "departures"} in this hour${other}. Try <a href="${nav.later}">later</a>.</p>`
-    : html`<ol class="trains" aria-label="Trains">${res.rows.map((r) => row(r, res, here))}</ol>`}
+    : html`<ol class="trains" aria-label="Trains">${res.rows.map((r) => row(r, res, here, now))}</ol>`}
   <p class="hint board__foot">Updated ${hm(res.fetched.fetchedAt)}${live ? ", and every 2 minutes while open" : ""}.${
     res.hidden ? html` ${res.hidden} empty or staff-only train${res.hidden !== 1 ? "s" : ""} hidden: <a href="${nav.all}">show all</a>.`
       : res.showAll ? html` <a href="${nav.all}">Passenger trains only</a>.` : ""}</p>

@@ -20,13 +20,16 @@ function board(mode: "dep" | "arr"): Promise<BoardResult> {
   return boards.get(mode)!;
 }
 
-/** The first row's live cell, with that row's arriving or departing times replaced. */
-async function live(mode: "dep" | "arr", t: Partial<Times>): Promise<{ cls: string; text: string }> {
+/**
+ * The first row's live cell, with that row's arriving or departing times replaced (booked at T0), drawn at `now`,
+ * as a bus if `bus`.
+ */
+async function live(mode: "dep" | "arr", t: Partial<Times>, now = T0, bus = false): Promise<{ cls: string; text: string }> {
   const res = { ...(await board(mode)) };
-  const r = res.rows[0];
+  const r = { ...res.rows[0], ...(bus ? { mode: "BUS" } : {}) };
   const times = { ...emptyTimes(), advertised: T0, internal: T0, ...t };
   res.rows = [mode === "arr" ? { ...r, arrival: times } : { ...r, departure: times }];
-  const view = String(boardView(res, NAV, false, T0));
+  const view = String(boardView(res, NAV, false, now));
   const m = /<span class="trains__live tnum ([^"]*)">([\s\S]*?)<\/span><\/span>/.exec(view)!;
   const text = m[2].replace(/<span class="visually-hidden">[^<]*<\/span>/g, "").replace(/<[^>]+>/g, "").trim(); // what's seen
   return { cls: m[1].trim(), text };
@@ -54,9 +57,37 @@ describe("a board row's live state", () => {
     expect(await live("arr", { forecast: T0 - 2 * 60_000 })).toEqual({ cls: "is-early", text: "Exp 08:58" });
   });
 
-  it("an on-time forecast says On time; no live time says No report, uncoloured", async () => {
+  it("an on-time forecast says On time", async () => {
     expect((await live("dep", { forecast: T0 + 30_000 })).text).toBe("On time");
-    expect(await live("dep", {})).toEqual({ cls: "", text: "No report" });
+  });
+});
+
+// No live time isn't a fault until the train should have been reported: before then it's simply the timetable.
+describe("a board row with no live time", () => {
+  it("at its booked time says Timetable, uncoloured", async () => {
+    expect(await live("dep", {})).toEqual({ cls: "", text: "Timetable" });
+  });
+
+  it("30 minutes ahead says Timetable", async () => {
+    expect(await live("dep", {}, T0 - 30 * 60_000)).toEqual({ cls: "", text: "Timetable" });
+  });
+
+  it("still Timetable 2 minutes past booked, a report can lag that much", async () => {
+    expect((await live("arr", {}, T0 + 2 * 60_000)).text).toBe("Timetable");
+  });
+
+  it("5 minutes past booked says No report, uncoloured", async () => {
+    expect(await live("dep", {}, T0 + 5 * 60_000)).toEqual({ cls: "", text: "No report" });
+    expect((await live("arr", {}, T0 + 5 * 60_000)).text).toBe("No report");
+  });
+
+  it("a bus says neither: buses aren't reported, and the row already says Bus", async () => {
+    expect(await live("dep", {}, T0 - 30 * 60_000, true)).toEqual({ cls: "", text: "" });
+    expect(await live("dep", {}, T0 + 5 * 60_000, true)).toEqual({ cls: "", text: "" });
+  });
+
+  it("a bus with a live time still shows it", async () => {
+    expect((await live("dep", { forecast: T0 + 5 * 60_000 }, T0, true)).text).toBe("Exp 09:05");
   });
 });
 
