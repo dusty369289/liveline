@@ -278,7 +278,9 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that
   fails then passes on the same code is flaky and stays listed until `npm run review -- explain "<id>" --reason "..."`.
   Never re-run until green. Every failure's message goes to `.test-review/failures.log`. Warnings never fail a run;
-  CI keeps no baselines (its machines are thrown away) and prints the slowest tests.
+  CI keeps no baselines (its machines are thrown away) and prints the slowest tests. `TEST_REVIEW_DIR` moves the
+  folder: pre-commit's snapshot check sets it to the real checkout's `.test-review/`, so nothing is lost with the
+  throwaway worktree.
 - `test/golden/` is frozen (see its README): a change that alters a golden answer updates it in the same PR and says why.
 - Run output goes to a file before you read it (`npm test > out.txt 2>&1`), and you read the real error.
 

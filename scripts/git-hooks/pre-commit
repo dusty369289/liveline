@@ -54,6 +54,8 @@ if ! git diff --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; t
   # Installed packages and the local leak words aren't in git: share this checkout's
   [ -e "$top/node_modules" ] && ln -s "$top/node_modules" "$here/node_modules"
   [ -e "$top/notes" ] && ln -s "$top/notes" "$here/notes"
+  # The test review's state (baselines, the flaky record, failures.log) belongs to this checkout, not the throwaway
+  export TEST_REVIEW_DIR="$top/.test-review"
   echo "pre-commit: checking the staged snapshot (unstaged or untracked files are about)." >&2
 fi
 

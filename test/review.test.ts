@@ -88,6 +88,18 @@ describe("flaky review", () => {
     review.record([{ id: "f", state: "failed", ms: 10, error: "expected 3 to be 4" }], "fp");
     expect(readFileSync(join(dir, "failures.log"), "utf8")).toContain("f\nexpected 3 to be 4");
   });
+
+  it("keeps its state where TEST_REVIEW_DIR says (pre-commit's snapshot points it back at the real checkout)", () => {
+    const was = process.env.TEST_REVIEW_DIR; // set for real while pre-commit checks a snapshot
+    process.env.TEST_REVIEW_DIR = dir;
+    try {
+      new TestReview().record([{ id: "f", state: "failed", ms: 10, error: "boom" }], "fp");
+    } finally {
+      if (was === undefined) delete process.env.TEST_REVIEW_DIR;
+      else process.env.TEST_REVIEW_DIR = was;
+    }
+    expect(readFileSync(join(dir, "failures.log"), "utf8")).toContain("f\nboom");
+  });
 });
 
 describe("on CI", () => {

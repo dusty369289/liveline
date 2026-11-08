@@ -68,7 +68,9 @@ export class TestReview {
   private readonly dir: string;
   private readonly clock: () => Date;
 
-  constructor(dir = ".test-review", clock: () => Date = () => new Date()) {
+  // TEST_REVIEW_DIR: pre-commit checks a snapshot in a throwaway worktree, and points this back at the real checkout's
+  // folder so the baselines, the flaky record and failures.log outlive it
+  constructor(dir = process.env.TEST_REVIEW_DIR || ".test-review", clock: () => Date = () => new Date()) {
     this.dir = dir;
     this.clock = clock;
   }

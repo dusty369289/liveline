@@ -134,6 +134,15 @@ describe("pre-commit", () => {
     expect(repo.git("worktree", "list").stdout.trim().split("\n")).toHaveLength(1); // the snapshot is cleaned away
   });
 
+  it("keeps the test review's state in this checkout, not in the throwaway snapshot", () => {
+    repo.write("u.txt", "untracked"); // so the snapshot path runs
+    stubNpm(`d="\${TEST_REVIEW_DIR:-.test-review}"; mkdir -p "$d"; echo seen >> "$d/failures.log"`);
+    const run = preCommit();
+    expect(run.status, run.stderr).toBe(0);
+    expect(run.stderr).toMatch(/staged snapshot/);
+    expect(repo.run("cat", [".test-review/failures.log"]).stdout).toBe("seen\n");
+  });
+
   it("checks a clean tree where it stands (the fast path), and leaves no log behind", () => {
     stubNpm(`pwd > "${repo.dir}/.git/where"`);
     expect(preCommit().status).toBe(0);
