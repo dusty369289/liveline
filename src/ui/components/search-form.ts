@@ -31,7 +31,7 @@ export function searchForm(q: Query = {}): Html {
   </fieldset>
   ${stationBox("to", otherLabel(arr), "Any station", q.to ?? "", "")}
   <div class="search__go">
-  <details class="search__when disclosure"${later ? html`open` : ""}>
+  <details class="search__when disclosure"${later ? html` open` : ""}>
     <summary>Another time or day</summary>
     <div class="cluster search__row">
       <div class="field field--time">

@@ -26,3 +26,14 @@ describe.each(["station", "to"])("the %s box", (id) => {
     expect(tag(new RegExp(`<[^>]*data-suggest-status="${id}"[^>]*>`))).toContain('role="status"');
   });
 });
+
+describe("Another time or day", () => {
+  it("is open, with a space before the open attribute, when a time is set", () => {
+    const details = searchForm({ time: "09:00" }).value.match(/<details[^>]*>/)?.[0];
+    expect(details).toBe('<details class="search__when disclosure" open>');
+  });
+
+  it("is folded away with no time or day", () => {
+    expect(tag(/<details[^>]*>/)).toBe('<details class="search__when disclosure">');
+  });
+});
