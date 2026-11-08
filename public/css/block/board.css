@@ -14,8 +14,10 @@
 .board__star[aria-pressed="true"] .icon--star { fill: var(--train); stroke: var(--train); }
 .board__star:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
 .board__sub { color: var(--muted); }
+/* The whole line is a link (it changes the search), so it gets a full tap target; its own height spaces the header */
+.board__sub a { display: inline-flex; align-items: center; min-height: var(--tap); }
 /* Few controls, in plain words rather than a row of underlines; refresh is an icon at the end */
-.board__nav { display: flex; align-items: center; gap: 0 var(--s-4); margin-top: var(--s-1); font-size: var(--t-sm); }
+.board__nav { display: flex; align-items: center; gap: 0 var(--s-4); font-size: var(--t-sm); }
 .board__nav a { min-height: var(--tap); display: inline-flex; align-items: center; }
 .board__nav .board__step { font-weight: 600; text-decoration: none; color: var(--ink); }
 .board__nav .board__refresh { margin-left: auto; min-width: var(--tap); justify-content: center; color: var(--ink); }

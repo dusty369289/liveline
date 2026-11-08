@@ -45,7 +45,8 @@ export async function openTrain(page: Page, time = "09:00"): Promise<void> {
 
 /**
  * What a person would call broken at phone width: sideways scrolling, text cut off, a sign plate split over two
- * lines, a tap target under 44 px (links inside sentences are exempt: their line is the target).
+ * lines, a tap target under 44 px (links inside sentences are exempt: their line is the target; a link that is the whole line
+ * is a control, and isn't).
  */
 export async function audit(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -68,7 +69,10 @@ export async function audit(page: Page): Promise<string[]> {
     }
     for (const el of document.querySelectorAll<HTMLElement>("a, button, input, summary, select")) {
       const b = el.getBoundingClientRect();
-      if (!b.width || el.closest("[hidden], .skip-link, p, dd, .steps li, .bullets li, li.trains__row .trains__meta, .legend__list, footer")) continue;
+      if (!b.width || el.closest("[hidden], .skip-link, .legend__list, footer")) continue;
+      // A link inside a sentence is exempt, but one that is the whole line is a control of its own and needs 44 px
+      const line = el.closest("p, dd, .steps li, .bullets li, li.trains__row .trains__meta");
+      if (line && line.textContent?.trim() !== el.textContent?.trim()) continue;
       if (el instanceof HTMLInputElement && (el.type === "radio" || el.type === "checkbox")) continue; // the label is the target
       if (b.height < 44) out.push(`small target ${Math.round(b.width)}x${Math.round(b.height)}: ${el.tagName.toLowerCase()} "${(el.textContent || "").trim().slice(0, 25)}"`);
     }

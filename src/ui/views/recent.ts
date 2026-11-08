@@ -19,6 +19,6 @@ export function recentView(list: RecentTrain[], now: Ms): Html {
       <p><button type="button" class="linkish" data-clear-recent>Clear this list</button></p>
       <p class="hint">Kept on this device only. The newest ${RecentTrains.MAX} trains you've opened.</p>`
     : html`<p class="empty">Trains you open show up here, newest first, so you can get back to them in one tap.</p>
-      <p><a href="#/">Search for a train</a></p>`}
+      <p><a class="recents__search" href="#/">Search for a train</a></p>`}
 </div>`;
 }

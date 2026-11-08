@@ -75,6 +75,7 @@
 .recents__link { display: grid; gap: .15rem; min-height: 3.5rem; align-content: center; padding-block: var(--s-2); text-decoration: none; }
 .recents__title { font: 600 var(--t-md)/1.2 var(--sign-font); }
 .recents__when { font-size: var(--t-sm); color: var(--muted); }
+.recents__search { display: inline-flex; align-items: center; min-height: var(--tap); } /* a line of its own: a control */
 .recents__item.is-running .recents__when { color: var(--ink); }
 .recents__item.is-running .recents__when::before {
   content: ""; display: inline-block; width: .6em; height: .6em; margin-right: .4em; vertical-align: .02em;
