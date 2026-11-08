@@ -164,7 +164,7 @@ function asRun(p: Point): Point {
 }
 
 /** `feed` is RTT's own state (models.feedOf): with no live data, a missing report is the feed, not the train. */
-export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE, feed: Feed = "ok"): Timeline {
+export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE, feed: Feed = "ok", stale = false): Timeline {
   const pts = service.points.map(asRun);
   const usable = pts.map((p, i) => (isCancelled(p) ? -1 : i)).filter((i) => i >= 0);
 
@@ -281,7 +281,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   });
 
   const followed = viewsOf(false);
-  const pos = position(pts, followed, usable, last, now, cfg, plannedArr, feed, service.mode);
+  const pos = position(pts, followed, usable, last, now, cfg, plannedArr, feed, service.mode, stale);
   return {
     service,
     points: timetableOnly({ service, position: pos }) ? viewsOf(true) : followed,
@@ -326,6 +326,7 @@ function expectedAt(v: PointView): Ms | null {
 
 /** Why a report is missing when RTT itself says it has no live data: never blame a signal for that. */
 const NO_FEED = "Realtime Trains has no live data right now, so no reports are coming in.";
+const NO_ANSWER = "Couldn't get a new answer from Realtime Trains, so this is an older one. Trying again.";
 
 function lateText(d: number | null): string {
   if (d == null) return "";
@@ -352,13 +353,10 @@ function dueAtEnd(pts: Point[], endIx: number, last: number | null): Ms | null {
 }
 
 function position(
-  pts: Point[],
-  views: PointView[],
-  usable: number[],
-  last: number | null,
-  now: Ms, cfg: EngineConfig,
-  plannedArr: Map<number, Ms>,
-  feed: Feed, mode: string, // the service's mode: a bus or ship is never reported
+  pts: Point[], views: PointView[], usable: number[], last: number | null, now: Ms, cfg: EngineConfig,
+  plannedArr: Map<number, Ms>, feed: Feed,
+  mode: string, // the service's mode: a bus or ship is never reported
+  stale: boolean, // an old answer served again (RTT down, calls kept back): giving up is ours to say, not news
 ): Position {
   const P = (state: State, fromIndex: number | null, toIndex: number | null, since: Ms | null, expected: Ms | null,
     fraction: number, delayMin: number | null, headline: string): Position => ({ state, fromIndex, toIndex, since, expected, fraction, delayMin, headline });
@@ -376,8 +374,8 @@ function position(
 
   if (last == null) {
     if (pastEnd) {
-      return P("no-data", null, null, null, null, 0, null,
-        `No reports for this ${it}: it was due at ${end.name} at ${hm(dueIn)}. The times shown are the timetable.`);
+      return P("no-data", null, null, null, null, 0, null, `${stale ? `${NO_ANSWER} The last one had no reports` : `No reports for this ${it}`}` +
+        `: it was due at ${end.name} at ${hm(dueIn)}. The times shown are the timetable.`);
     }
     const first = usable[0];
     const p = pts[first];
@@ -411,8 +409,8 @@ function position(
   }
   const nxt = usable[nxtK];
   if (pastEnd) {
-    return P("unreported", last, null, act, null, 0, delay,
-      `Last reported: ${verb.toLowerCase()} ${where}. Its arrival at ${end.name} was not reported, so this is all we know.`);
+    return P("unreported", last, null, act, null, 0, delay, `Last reported: ${verb.toLowerCase()} ${where}. ` +
+      (stale ? `${NO_ANSWER} It may have reached ${end.name} since.` : `Its arrival at ${end.name} was not reported, so this is all we know.`));
   }
 
   if (lp.kind === "call" && ev === lp.arrival && !isEmpty(lp.departure)) {

@@ -2,12 +2,12 @@
 // on the simulator (demo); with one, it talks to RTT itself.
 import { Budget } from "./budget";
 import { STORE } from "./keys";
-import { build, DEFAULT_ENGINE, type Timeline } from "./engine";
+import { build, DEFAULT_ENGINE, GIVEN_UP, type Timeline } from "./engine";
 import type { Http } from "./http";
 import { type Board, type BoardRow, booked, feedOf, forPassengers, isEmpty, type SystemStatus, type Times } from "./models";
 import { type Formation, formationFor, parseFormations } from "./formation";
 import { parseBoard, parseService, parseSystemStatus } from "./parse";
-import { pollAfter } from "./poll";
+import { POLL, pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
 import { SimTransport } from "./simulator";
 import type { Station, StationIndex } from "./stations";
@@ -223,8 +223,13 @@ export class Rail {
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
     const now = this.clock();
     const status = parseSystemStatus(f.body);
-    const tl = build(parseService(f.body, this.clock), now, DEFAULT_ENGINE, feedOf(status));
+    const tl = build(parseService(f.body, this.clock), now, DEFAULT_ENGINE, feedOf(status), f.stale);
     const formation = formationFor(parseFormations(f.body, tl.service.vehicles), tl.position.fromIndex);
-    return { timeline: tl, formation, status, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at, to) };
+    // An old answer judged against the clock now can look given up when the next real one would say Arrived: keep
+    // asking, at the allowance's pace. Arrived and cancelled still end it from an old answer, since RTT reported them.
+    const refreshAfter = f.stale && GIVEN_UP.includes(tl.position.state)
+      ? Math.max(POLL.overdue, this.budget.refreshInterval())
+      : pollAfter(tl, now, this.budget.refreshInterval(), at, to);
+    return { timeline: tl, formation, status, fetched: f, refreshAfter };
   }
 }
