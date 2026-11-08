@@ -100,8 +100,11 @@
   content: ""; position: absolute; right: 0; top: 5px; width: 10px; height: 10px; box-sizing: border-box;
   border-radius: 50%; border: 2px solid var(--ink); background: var(--page);
 }
+/* --at (0 to 1, by the clock, train-scene.ts) from the line's start (4 px in) to the next station: at 1 the dot's edge
+   meets the ring's (10 px wide, at the line's end), so a train overdue there waits at it, never on or past it */
 .scene__dot {
-  position: absolute; top: 3px; left: 0; width: 14px; height: 14px; margin-left: -7px; box-sizing: border-box; z-index: 1;
+  position: absolute; top: 3px; left: calc(4px + var(--at, 0) * (100% - 21px));
+  width: 14px; height: 14px; margin-left: -7px; box-sizing: border-box; z-index: 1;
   border-radius: 50%; background: var(--train); border: 2px solid var(--train-edge);
 }
 .scene__headline { font-size: var(--t-base); }
