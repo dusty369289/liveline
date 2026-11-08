@@ -184,3 +184,13 @@ describe("a changed platform on the board", () => {
     }
   });
 });
+
+describe("an empty board", () => {
+  it("says how long it looked, as its line above does, not 'this hour'", async () => {
+    const res = { ...(await board("dep")), rows: [] };
+    res.board = { ...res.board, timeFrom: T0, timeTo: T0 + 6 * 3_600_000 };
+    expect(String(boardView(res, NAV, false, T0))).toContain("No departures in these 6 hours.");
+    res.board = { ...res.board, timeTo: T0 + 3_600_000 };
+    expect(String(boardView(res, NAV, false, T0))).toContain("No departures in this hour.");
+  });
+});
