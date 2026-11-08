@@ -46,6 +46,8 @@ export const DEFAULT_ENGINE: EngineConfig = {
  */
 export type State = "not-started" | "at-origin" | "at-station" | "running" | "overdue" | "arrived" | "cancelled" | "no-data"
   | "unreported";
+/** States where we've stopped following the train: what it hasn't reached shows the timetable, never our estimate. */
+export const GIVEN_UP: readonly State[] = ["no-data", "unreported"];
 
 export interface Shown {
   time: Ms | null;
@@ -238,8 +240,10 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     prev = i;
   }
 
-  const views: PointView[] = pts.map((p, i) => {
+  // `givenUp`: what it hasn't reached shows the timetable alone, since the headline says that's all we have
+  const viewsOf = (givenUp: boolean): PointView[] => pts.map((p, i) => {
     const reported = last != null && i <= last;
+    const show = (t: Times, ours: Ms | null, floor: Ms) => (givenUp && !reported ? timetable(t) : shown(t, ours, floor, !reported));
     const oa = oursArr.get(i) ?? null;
     if (p.kind === "pass") {
       return {
@@ -247,7 +251,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
         point: p,
         arrival: null,
         departure: null,
-        passing: shown(p.passing, oa, floorArr.get(i) ?? now, !reported),
+        passing: show(p.passing, oa, floorArr.get(i) ?? now),
         reported,
         oursArrival: oa,
         oursDeparture: null,
@@ -257,8 +261,8 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     return {
       index: i,
       point: p,
-      arrival: isEmpty(p.arrival) ? null : shown(p.arrival, oa, floorArr.get(i) ?? now, !reported),
-      departure: isEmpty(p.departure) ? null : shown(p.departure, od, floorDep.get(i) ?? now, !reported),
+      arrival: isEmpty(p.arrival) ? null : show(p.arrival, oa, floorArr.get(i) ?? now),
+      departure: isEmpty(p.departure) ? null : show(p.departure, od, floorDep.get(i) ?? now),
       passing: null,
       reported,
       oursArrival: oa,
@@ -266,13 +270,22 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
     };
   });
 
+  const followed = viewsOf(false);
+  const pos = position(pts, followed, usable, last, now, cfg, plannedArr, feed);
   return {
     service,
-    points: views,
-    position: position(pts, views, usable, last, now, cfg, plannedArr, feed),
+    points: GIVEN_UP.includes(pos.state) ? viewsOf(true) : followed,
+    position: pos,
     now,
     worst: worst(pts, usable, last),
   };
+}
+
+/** The booked time alone, as `shown` gives it when there's nothing else. */
+function timetable(t: Times): Shown | null {
+  if (isEmpty(t)) return null;
+  const booked = bookedOf(t);
+  return { time: booked, source: "booked", booked, delayMin: booked != null ? 0 : null };
 }
 
 /** The section where lateness grew most. Timing points make this finer than station-to-station. */
@@ -422,8 +435,9 @@ export interface StopSummary {
   platform: string | null;
   platformConfirmed: boolean;
   status: "ahead" | "here" | "gone" | "cancelled";
-  minutes: number | null; // from now until the train is due there (ahead only)
+  minutes: number | null; // from now until the train is due there (ahead and still followed only)
   callsBetween: number; // stops between the train and this one
+  timetableOnly: boolean; // ahead, but we've given up on the train (GIVEN_UP): `shown` is the timetable, no countdown
 }
 
 export interface YourStops {
@@ -473,12 +487,14 @@ export function stopSummary(tl: Timeline, code: string, boarding = true, index?:
   const sent = tl.service.points[v.index];
   const cancelled = isCancelled(p) || (boarding ? sent.departure.cancelled : sent.arrival.cancelled);
   const status = cancelled ? "cancelled" : pos.state === "at-station" && pos.fromIndex === v.index ? "here" : v.reported ? "gone" : "ahead";
+  const timetableOnly = status === "ahead" && GIVEN_UP.includes(pos.state);
   let minutes: number | null = null;
   let between = 0;
-  if (status === "ahead") {
+  if (status === "ahead" && !timetableOnly) {
     if (sh && sh.time != null) minutes = Math.max(Math.floor((sh.time - tl.now) / 60_000), 0);
     const start = pos.fromIndex ?? -1;
     between = tl.points.slice(start + 1, v.index).filter((w) => w.point.kind === "call" && !isCancelled(w.point)).length;
   }
-  return { name: p.name, index: v.index, shown: sh, platform: p.platform, platformConfirmed: p.platformConfirmed, status, minutes, callsBetween: between };
+  return { name: p.name, index: v.index, shown: sh, platform: p.platform, platformConfirmed: p.platformConfirmed, status, minutes,
+    callsBetween: between, timetableOnly };
 }

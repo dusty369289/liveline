@@ -14,3 +14,6 @@ never "fixed" by regenerating from the new code without saying why the old answe
   coach letters and facilities, for the Train view (`src/core/sim-stock.ts`). The old answers had only a coach count
   there. `test/simulator.test.ts` still compares every service answer exactly, except `allocationData`, where it
   holds the coach count to the golden; the stock itself has its own tests. The file was not regenerated.
+- **2026-11-08, stop summaries say when they're the timetable.** A stop summary has a new field, `timetableOnly`, true
+  only once the train is given up on (`no-data` or `unreported`). No golden moment is given up on, so
+  `test/parity.test.ts` checks it is false there and compares the rest exactly. The file was not regenerated.

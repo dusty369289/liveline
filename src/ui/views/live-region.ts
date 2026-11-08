@@ -16,7 +16,11 @@ function hero(stop: StopSummary | null, off: StopSummary | null): [Html | "", St
   const isStop = hs === stop;
   const plat = hs.platform && isStop ? `, platform ${hs.platform}` : "";
   let inner: Html | "" = "";
-  if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
+  if (hs.timetableOnly) {
+    // Given up on: our estimate would be a guess passed off as live, so no number, just the timetable, said plainly
+    inner = html`<span class="live__hero-what">No live time for ${hs.name}. The timetable has it ${isStop ? "leaving" : "arriving"} at ${
+      hm(hs.shown?.time ?? null)}${plat}.</span>`;
+  } else if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
   else if (hs.minutes != null && hs.minutes < 1) inner = html`<span class="live__hero-num">Due</span><span class="live__hero-what">at ${hs.name}${plat}</span>`;
   else if (hs.minutes != null) {
     inner = html`<span class="live__hero-num">${hs.minutes}</span><span class="live__hero-unit">min</span>
@@ -31,6 +35,9 @@ function stopLine(sm: StopSummary, verb: "leaves" | "reaches"): Html {
   else if (sm.status === "here") body = html`<strong>It's at ${sm.name} now</strong>${sm.platform ? `, platform ${sm.platform}` : ""}.`;
   else if (sm.status === "gone") {
     body = html`It has ${verb === "leaves" ? "left" : "reached"} ${sm.name}${sm.shown && sm.shown.source === "actual" ? ` (${hm(sm.shown.time)})` : ""}.`;
+  } else if (sm.timetableOnly) {
+    body = html`The timetable has it ${verb === "leaves" ? "leaving" : "arriving at"} <strong>${sm.name}</strong> at <strong class="tnum">${
+      sm.shown ? hm(sm.shown.time) : "?"}</strong>${sm.platform && verb === "leaves" ? `, platform ${sm.platform}${sm.platformConfirmed ? "" : " (not confirmed)"}` : ""}. No live time.`;
   } else {
     body = html`It ${verb} <strong>${sm.name}</strong> at <strong class="tnum ${delayClass(sm.shown)}">${sm.shown ? hm(sm.shown.time) : "?"}</strong>${
       sm.minutes != null ? `, in ${sm.minutes} min` : ""}${sm.callsBetween ? `, ${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away` : ""}${

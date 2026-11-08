@@ -28,7 +28,11 @@ describe("parity with the golden answers", () => {
             expect(timelineJson(tl)).toEqual(t.timeline);
             for (const [key, want] of Object.entries(t.stops)) {
               const [code, off] = key.split(":");
-              expect(plain(stopSummary(tl, code, off !== "off")) ?? null).toEqual(want);
+              // timetableOnly came after the goldens (see their README): no golden moment is given up on
+              const got = plain(stopSummary(tl, code, off !== "off")) ?? null;
+              if (got) expect(got.timetableOnly).toBe(false);
+              if (got) delete got.timetableOnly;
+              expect(got).toEqual(want);
             }
           });
         }

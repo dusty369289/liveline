@@ -8,7 +8,7 @@ import { pollAfter } from "../src/core/poll";
 import type { ServiceResult } from "../src/core/rail";
 import { fromLondon } from "../src/core/time";
 import { liveRegion } from "../src/ui/views/live-region";
-import { fixture } from "./support";
+import { fakeService, type FakeLocation, fixture } from "./support";
 
 const clone = <T>(o: T): T => JSON.parse(JSON.stringify(o));
 
@@ -150,5 +150,59 @@ describe("a fully cancelled train (spec_service_reading_paddington.json, every s
   it("is cancelled at your stop", () => {
     expect(stopSummary(tl, "SLO")!.status).toBe("cancelled");
     expect(stopSummary(tl, "MAI")!.status).toBe("cancelled");
+  });
+});
+
+describe("once it's given up on, your stops show the timetable, not our estimate", () => {
+  const route = (): FakeLocation[] => [
+    { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00" } },
+    { name: "Beta", crs: "BBB", arr: { gbtt: "10:20", wtt: "10:20" }, dep: { gbtt: "10:21", wtt: "10:21" } },
+    { name: "Omega", crs: "OOO", arr: { gbtt: "10:40", wtt: "10:40" } },
+  ];
+  const at = (locs: FakeLocation[], now: number) => build(parseService(fakeService(locs), () => now), now);
+  const timetable = (h: string) => {
+    expect(h).not.toContain("live__hero-num");
+    expect(h).not.toMatch(/in \d+ min/);
+    expect(h).toContain("timetable");
+  };
+
+  it("never reported: no countdown, and the times are the timetable's", () => {
+    const now = fromLondon(2026, 11, 7, 13, 40);
+    const tl = at(route(), now);
+    expect(tl.position.state).toBe("no-data");
+    const [on, off] = yourStops(tl, "BBB", "OOO");
+    for (const sm of [on!, off!]) {
+      expect(sm.minutes).toBeNull();
+      expect(sm.timetableOnly).toBe(true);
+      expect(sm.shown?.source).toBe("booked");
+    }
+    expect(on!.shown?.time).toBe(fromLondon(2026, 11, 7, 10, 21));
+    expect(tl.points[2].arrival?.source).toBe("booked"); // the row too: the headline says these are the timetable
+    timetable(region(tl, "BBB", "OOO"));
+  });
+
+  it("reported on the way, not at the end: no countdown to where you get off", () => {
+    const locs = route();
+    locs[0].dep!.actual = "10:01";
+    locs[1].arr!.actual = "10:22";
+    locs[1].dep!.actual = "10:23";
+    const now = fromLondon(2026, 11, 7, 11, 40);
+    const tl = at(locs, now);
+    expect(tl.position.state).toBe("unreported");
+    const off = yourStops(tl, "", "OOO")[1]!;
+    expect(off.minutes).toBeNull();
+    expect(off.timetableOnly).toBe(true);
+    expect(off.shown?.source).toBe("booked");
+    timetable(region(tl, "", "OOO"));
+    timetable(region(tl, "BBB", "OOO"));
+  });
+
+  it("while it's still followed, the countdown stays", () => {
+    const now = fromLondon(2026, 11, 7, 10, 10);
+    const tl = at(route(), now);
+    const off = yourStops(tl, "", "OOO")[1]!;
+    expect(off.timetableOnly).toBe(false);
+    expect(off.minutes).not.toBeNull();
+    expect(region(tl, "", "OOO")).toContain("live__hero-num");
   });
 });
