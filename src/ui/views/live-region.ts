@@ -2,21 +2,29 @@
 import { changed, type PointView, type StopSummary, type Timeline } from "../../core/engine";
 import { isCancelled } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
-import { hm } from "../../core/time";
+import { hm, isoDate, type Ms } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
-import { delayClass, hmh, plural } from "../format";
+import { dayLabel, delayClass, hmh, plural, runDay } from "../format";
 import { type Html, html, raw } from "../html";
 
 const CHEVRON = raw('<svg class="route__fold-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
 
+/** Past this many minutes a countdown stops helping ("2805 min"): the big number gives the time (and day) instead. */
+const HERO_COUNTDOWN_MAX = 180;
+
 /** The one number you came for: minutes until it leaves your stop (or reaches where you get off). */
-function hero(stop: StopSummary | null, off: StopSummary | null): [Html | "", StopSummary | null] {
+function hero(stop: StopSummary | null, off: StopSummary | null, now: Ms): [Html | "", StopSummary | null] {
   const hs = stop && ["ahead", "here"].includes(stop.status) ? stop : off && off.status === "ahead" ? off : null;
   if (!hs) return ["", null];
   const isStop = hs === stop;
   const plat = hs.platform && isStop ? `, platform ${hs.platform}` : "";
+  const t = hs.shown?.time ?? null;
+  const otherDay = t != null && isoDate(t) !== isoDate(now);
   let inner: Html | "" = "";
-  if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
+  if (t != null && hs.status === "ahead" && (otherDay || (hs.minutes ?? 0) > HERO_COUNTDOWN_MAX)) {
+    inner = html`<span class="live__hero-num">${hm(t)}</span>${otherDay ? html`<span class="live__hero-unit">${dayLabel(t)}</span>` : ""}
+      <span class="live__hero-what">when it ${isStop ? "leaves" : "reaches"} ${hs.name}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span>`;
+  } else if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
   else if (hs.minutes != null && hs.minutes < 1) inner = html`<span class="live__hero-num">Due</span><span class="live__hero-what">at ${hs.name}${plat}</span>`;
   else if (hs.minutes != null) {
     inner = html`<span class="live__hero-num">${hs.minutes}</span><span class="live__hero-unit">min</span>
@@ -114,10 +122,12 @@ function pointRow(v: PointView, at: string, to: string, group: number | undefine
     </li>`;
 }
 
-export function liveRegion(res: ServiceResult, at: string, to: string, stop: StopSummary | null, off: StopSummary | null): Html {
+export function liveRegion(res: ServiceResult, at: string, to: string, stop: StopSummary | null, off: StopSummary | null,
+  now: Ms): Html {
   const tl = res.timeline;
   const p = tl.position;
-  const [heroHtml, hs] = hero(stop, off);
+  const [heroHtml, hs] = hero(stop, off, now);
+  const day = p.state === "not-started" ? runDay(tl.service.runDate, now) : "";
   // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
   const lines = p.state === "arrived" ? []
     : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
@@ -134,7 +144,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     <h2 id="live-h" class="visually-hidden">Where the train is</h2>
     ${heroHtml}
     ${hs && hs.index === p.toIndex && p.state === "not-started" ? "" /* the big number already says when it leaves */
-      : html`<p class="live__headline state-${p.state}">${p.headline}</p>`}
+      : html`<p class="live__headline state-${p.state}">${day ? `Runs ${day}. ` : ""}${p.headline}</p>`}
     ${lines}
     ${tl.worst ? html`<p class="live__stop hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
     ${res.fetched.stale ? html`<p class="live__age hint">Showing an older answer: ${res.fetched.note}.</p>` : ""}

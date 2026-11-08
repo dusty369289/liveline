@@ -32,7 +32,7 @@ export class TrainPage extends Page {
     const tab = this.ctx.trainTab.get();
     const sc = sceneOf(tl);
     const scene = scenePanel(sc, res.formation, tl.position.headline, skyFor(sc, this.ctx.rail.stations, Date.now()), tab === "scene");
-    return trainView(res, this.uid, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false), { tab, scene });
+    return trainView(res, this.uid, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false), { tab, scene, now: Date.now() });
   }
 
   mount(root: HTMLElement): void {

@@ -1,6 +1,6 @@
 // Small text formatting shared by the views. Pure: no DOM, no state.
 import type { Shown } from "../core/engine";
-import { hm, isoDate, type Ms } from "../core/time";
+import { hm, isoDate, type Ms, parseDate } from "../core/time";
 
 export function ago(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
@@ -35,6 +35,12 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export function dayLabel(t: Ms): string {
   const [y, m, d] = isoDate(t).split("-").map(Number);
   return `${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} ${MONTHS[m - 1]}`;
+}
+
+/** "Mon 9 Nov" for a train that runs on another day than `now` (its runDate, "2026-11-09"), "" for one today. */
+export function runDay(runDate: string, now: Ms): string {
+  const day = parseDate(runDate);
+  return day == null || runDate === isoDate(now) ? "" : dayLabel(day);
 }
 
 /** "14:30" today, "Sat 7 Nov, 14:30" another day. */

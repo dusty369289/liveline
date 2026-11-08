@@ -1,5 +1,5 @@
 // Every state a person meets, on the contact sheet, so a review sees them all: returning search, boards (arrivals,
-// empty, another day), a train before, during and after its run, Recent empty. The clock is fixed at 09:20
+// empty, another day), a train on another day, a train before, during and after its run, Recent empty. The clock is fixed at 09:20
 // (support.ts), so each board time below picks a train in a known state.
 import type { Page, TestInfo } from "@playwright/test";
 import { audit, expect, open, snap, test } from "./support";
@@ -45,6 +45,15 @@ test("board: another day", async ({ page, errors }, info) => {
   await open(page, "/board?station=WAT&time=08:00&day=2026-11-09");
   await expect(page.locator(".board__sub")).toContainText("Mon 9 Nov");
   await shot(page, info, "13-board-another-day");
+  void errors;
+});
+
+test("train: another day, opened from that board", async ({ page, errors }, info) => {
+  await firstTrain(page, "/board?station=WAT&time=08:00&day=2026-11-09");
+  await expect(page.locator(".train__head h1")).toContainText("Mon 9 Nov");
+  await expect(page.locator(".live__hero")).toContainText("Mon 9 Nov");
+  await expect(page.locator(".live__hero")).not.toContainText("min");
+  await shot(page, info, "13b-train-another-day");
   void errors;
 });
 
