@@ -69,6 +69,20 @@ describe("workflows", () => {
     expect(steps.some((s) => s.uses?.startsWith("docker://rhysd/actionlint@"))).toBe(true);
   });
 
+  it("fetches Gradle with retries before any build, so one slow download doesn't fail CI or a release", () => {
+    // Seen twice on 2026-11-08: a 504 from GitHub, then a 10 s timeout from services.gradle.org, each failing Checks
+    for (const [file, job, build] of [["ci.yml", "checks", "npm run android:test"], ["release.yml", "apk", "Build"]] as const) {
+      const steps: Step[] = load(file).jobs[job].steps;
+      const fetch = steps.findIndex((s) => s.name === "Fetch Gradle");
+      const built = steps.findIndex((s) => s.run === build || s.name === build);
+      expect(fetch, `${file}: a Fetch Gradle step`).toBeGreaterThanOrEqual(0);
+      expect(fetch, `${file}: Fetch Gradle comes before the build`).toBeLessThan(built);
+      expect(steps[fetch].run, file).toMatch(/for attempt in 1 2 3/);
+    }
+    const props = readFileSync("android/gradle/wrapper/gradle-wrapper.properties", "utf8");
+    expect(Number(props.match(/^networkTimeout=(\d+)$/m)?.[1])).toBeGreaterThanOrEqual(60_000);
+  });
+
   it("CI cancels only an older run of the same PR, never a release's tests or a run by hand", () => {
     const { concurrency } = load("ci.yml");
     // Called from release.yml, github.workflow is "Release": its tests get a group of their own.

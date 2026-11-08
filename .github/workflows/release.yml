@@ -72,6 +72,11 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
+      # Gradle's ~150 MB download is the step most likely to hit a passing GitHub or Gradle hiccup (a 504 and a 10 s
+      # timeout, 2026-11-08): fetch it on its own, three tries, before anything depends on it. A real outage still fails.
+      - name: Fetch Gradle
+        working-directory: android
+        run: for attempt in 1 2 3; do ./gradlew --version --quiet && exit 0; echo "Gradle download failed (try $attempt)"; sleep 20; done; exit 1
 
       - name: Build as this version
         run: npm version "$VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
