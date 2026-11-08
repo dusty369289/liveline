@@ -2,7 +2,7 @@
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
 import { stopSummary } from "../core/engine";
-import { manualMinAge } from "../core/poll";
+import { manualMinAge, nextWait } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { fragment } from "./html";
 import { liveRegion } from "./views/live-region";
@@ -245,7 +245,7 @@ export class LiveTrain {
     }
     const secs = this.refreshSecs();
     if (secs == null) return this.finished();
-    this.schedule(Math.min(secs * (1 + this.failures), 300));
+    this.schedule(nextWait(secs, this.failures));
   }
 
   /** Faster than the automatic polls, but scaled to what's left of the hour (poll.ts, manualMinAge). */

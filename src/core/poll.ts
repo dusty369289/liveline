@@ -16,6 +16,7 @@ export const POLL = {
   overdue: 60, // no report where one was expected: check every minute
   farAway: 120, // your stop is over 40 minutes off: no need to be quicker than this
   farMinutes: 40,
+  retryMax: 300, // after failed fetches the wait grows, but a short one never past 5 minutes, so it recovers soon
 };
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(Math.max(x, lo), hi);
@@ -65,4 +66,12 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
   const mine = at ? stopSummary(tl, at) : null;
   if (mine && mine.status === "ahead" && mine.minutes != null && mine.minutes > POLL.farMinutes) s = Math.max(s, POLL.farAway);
   return Math.round(Math.max(s, budgetSecs, POLL.min));
+}
+
+/**
+ * The wait the train page actually schedules: the planned poll, stretched after failed fetches (each failure adds
+ * another planned wait) up to `POLL.retryMax`. The cap only limits the stretch: it never shortens a planned wait.
+ */
+export function nextWait(secs: number, failures: number): number {
+  return Math.max(secs, Math.min(secs * (1 + failures), POLL.retryMax));
 }

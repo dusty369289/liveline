@@ -107,7 +107,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   while it's over 2 hours off, waking in time to be on the 3-minute beat at 2 hours); every minute when
   overdue; every 2 minutes while your stop is over 40 minutes off. Stops when the train arrives or is cancelled
   (passing your stop doesn't stop it). The allowance's own floor, `3600 / (calls left this hour - 10)`, can only slow
-  it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
+  it. A failed fetch stretches the wait (`nextWait`), to at most 5 minutes, but never cuts a longer planned wait short.
+  Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that

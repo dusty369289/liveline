@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { build, type Timeline } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
-import { manualMinAge, POLL, pollAfter } from "../src/core/poll";
+import { manualMinAge, nextWait, POLL, pollAfter } from "../src/core/poll";
 import { SimTransport, Timetable } from "../src/core/simulator";
 import { fromLondon, isoLocal, type Ms } from "../src/core/time";
 
@@ -99,6 +99,26 @@ describe("polling a train", () => {
     const due = tl.position.expected!;
     expect(pollAfter(tl, due - 30_000, 30)).toBe(POLL.running);
     expect(pollAfter(tl, due - 90_000, 30)).toBe(90 + POLL.afterDue);
+  });
+
+  it("the train page keeps a half-hour wait: a train 3 hours off costs one call in 25 minutes", () => {
+    // live-train.ts schedules nextWait(refreshAfter, failures) after every answer
+    const start = dep - 3 * 3_600_000;
+    let now = start;
+    let calls = 0;
+    while (now < start + 25 * 60_000) {
+      calls += 1;
+      now += nextWait(pollAfter(at(now), now, 30, "PAD")!, 0) * 1000;
+    }
+    expect(calls).toBe(1);
+  });
+
+  it("after failures the wait grows to at most 5 minutes, and never shrinks", () => {
+    expect(nextWait(60, 0)).toBe(60);
+    expect(nextWait(60, 2)).toBe(180);
+    expect(nextWait(200, 1)).toBe(POLL.retryMax);
+    expect(nextWait(POLL.notStartedFar, 0)).toBe(POLL.notStartedFar);
+    expect(nextWait(POLL.notStartedFar, 3)).toBe(POLL.notStartedFar);
   });
 
   it("never polls faster than the allowance allows", () => {
