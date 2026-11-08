@@ -174,7 +174,8 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   planned wait short. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an
   hour per train.
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
-  over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
+  over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule, and after
+  a give-up, a tap that brings a live answer starts polling again.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch; once polling stops,
   "Finished · updated …" for a train arrived or cancelled, "No reports · updated …" for one given up on), a refresh
   icon that spins during any fetch, Jump to train (hidden while there's no marker to jump to). It sits below the
