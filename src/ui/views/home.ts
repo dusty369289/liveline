@@ -1,5 +1,6 @@
 // The search page, and the page shown when something can't be shown.
 import { searchForm } from "../components/search-form";
+import { plural } from "../format";
 import { type Html, html } from "../html";
 import { type Query, qs } from "../routes";
 import type { Journey } from "../store/lists";
@@ -29,12 +30,14 @@ export function homeView(d: HomeData): Html {
 </div>`;
 }
 
-export function problemView(title: string, message: string, busy: boolean, q: Query | null = null): Html {
+/** `retrySecs`: when the page tries again by itself, or null when it won't. */
+export function problemView(title: string, message: string, retrySecs: number | null, q: Query | null = null): Html {
+  const wait = retrySecs == null ? "" : retrySecs < 60 ? `${retrySecs} seconds` : plural(Math.round(retrySecs / 60), "minute");
   return html`
 <div class="stack">
   <h1>${title}</h1>
   <p class="problem" role="alert">${message}</p>
-  ${busy ? html`<p class="hint">This page tries again by itself in 30 seconds.</p>` : ""}
+  ${wait ? html`<p class="hint">This page tries again by itself in ${wait}.</p>` : ""}
   ${q ? searchForm(q) : html`<p><a href="#/">Search again</a></p>`}
 </div>`;
 }

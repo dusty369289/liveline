@@ -7,7 +7,7 @@ import { render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
 import { SettingsPage } from "./pages/settings";
-import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage } from "./pages/simple";
+import { AboutPage, HomePage, NotFoundPage, ProblemPage, RecentPage, retryDelay } from "./pages/simple";
 import { TrainPage } from "./pages/train";
 import { parseHash, queryOf, type Route, type RouteName } from "./routes";
 import { Appearance } from "./store/appearance";
@@ -45,7 +45,8 @@ export class App {
       stations: new RecentStations(),
       trainTab: new TrainTab(),
       flash: { message: null, error: null },
-      rerender: () => void this.render(),
+      problems: new Map(),
+      rerender: (opts) => void this.render(opts?.background ?? false),
     };
   }
 
@@ -57,15 +58,18 @@ export class App {
     void this.ctx.updates.daily();
   }
 
-  async render(): Promise<void> {
+  /** `background`: nobody asked (an automatic retry), so the page's calls are background ones. */
+  async render(background = false): Promise<void> {
     this.page?.dispose();
     const mine = ++this.seq;
     const stale = () => mine !== this.seq;
     const route = parseHash(location.hash);
     let page: Page = new PAGES[route.name](this.ctx, route);
+    page.automatic = background;
     let view;
     try {
       view = await page.load(stale);
+      this.ctx.problems.delete(route.path);
     } catch (e) {
       if (stale() || !(e instanceof RttError)) throw e;
       page = this.problem(route, e);
@@ -79,11 +83,17 @@ export class App {
     page.mount(this.root);
   }
 
-  /** A page that couldn't load says why, plainly; "busy" tries again by itself. */
+  /** A page that couldn't load says why, plainly; busy or offline tries again by itself, less often each time. */
   private problem(route: Route, e: RttError): Page {
-    const busy = e instanceof BusyError;
+    const busy = e instanceof BusyError; // (offline is a kind of busy: waiting may help)
     const title = e instanceof OfflineError ? "No connection" : busy ? "Realtime Trains is busy" : "Couldn't show that";
-    return new ProblemPage(this.ctx, route, problemView(title, e.message, busy, route.name === "board" ? queryOf(route.params) : null), busy);
+    let retry: number | null = null;
+    if (busy) {
+      const failures = this.ctx.problems.get(route.path) ?? 0;
+      this.ctx.problems.set(route.path, failures + 1);
+      retry = retryDelay(failures);
+    }
+    return new ProblemPage(this.ctx, route, problemView(title, e.message, retry, route.name === "board" ? queryOf(route.params) : null), retry);
   }
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */

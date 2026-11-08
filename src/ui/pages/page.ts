@@ -22,8 +22,13 @@ export interface AppContext {
   stations: RecentStations;
   trainTab: TrainTab;
   flash: Flash;
-  /** Draw the current route again (after a change only a fresh page shows). */
-  rerender(): void;
+  /** Failures in a row by route path, so a page that keeps failing tries again less often (ProblemPage). */
+  problems: Map<string, number>;
+  /**
+   * Draw the current route again (after a change only a fresh page shows). `background`: nobody asked (an automatic
+   * retry), so the page's calls are background ones.
+   */
+  rerender(opts?: { background?: boolean }): void;
 }
 
 export abstract class Page {
@@ -31,6 +36,8 @@ export abstract class Page {
   abstract readonly tab: RouteName;
   /** The browser/app title; "" for the plain app name. */
   title = "";
+  /** Set by App when this page is drawn by an automatic retry: its calls are background ones. */
+  automatic = false;
   private timers: Array<() => void> = [];
 
   constructor(protected readonly ctx: AppContext, protected readonly route: Route) {}

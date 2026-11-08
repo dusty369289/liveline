@@ -86,7 +86,7 @@ export function pageContext(rail: Rail): AppContext {
   return {
     rail, updates: {} as AppContext["updates"], appearance: new Appearance(), trains: new RecentTrains(),
     journeys: new Journeys(), stations: new RecentStations(), trainTab: new TrainTab(), flash: { message: null, error: null },
-    rerender: () => {},
+    problems: new Map(), rerender: () => {},
   };
 }
 

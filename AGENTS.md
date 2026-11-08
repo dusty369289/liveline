@@ -123,6 +123,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   Reduced motion: the scene stands still. Layers move by CSS transforms (composited), and it sleeps while standing.
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
   (solid plate confirmed, outlined expected).
+- **Problem pages** (`ProblemPage`): a page that couldn't load says why. Busy or offline tries again by itself after
+  30 s, doubling after each failure on the same route up to 5 minutes (`PROBLEM_RETRY`), only while on screen
+  (coming back after the time it said tries at once), and as a background call, so it never spends the search
+  reserve. A key refusal is kept and shown in Settings; a busy or offline key check isn't, and the next call tries again.
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds

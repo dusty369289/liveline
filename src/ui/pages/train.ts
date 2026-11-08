@@ -21,7 +21,7 @@ export class TrainPage extends Page {
   private res: ServiceResult | null = null;
 
   async load(stale: () => boolean): Promise<Html | null> {
-    const res = await this.ctx.rail.service(this.uid, { at: this.at, to: this.to });
+    const res = await this.ctx.rail.service(this.uid, { at: this.at, to: this.to, background: this.automatic });
     if (stale()) return null;
     this.res = res;
     const tl = res.timeline;
