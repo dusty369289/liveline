@@ -78,6 +78,15 @@ describe(`giving up ${DEFAULT_ENGINE.giveUpAfter / M} min after the booked arriv
     expect(pollAfter(tl, now, 30)).toBeNull();
   });
 
+  it("a train last reported two stops before its end is still given up on (our estimate moves with now)", () => {
+    const locs = route({ gbtt: "10:40", wtt: "10:40" });
+    locs[0].dep!.actual = "10:01";
+    const now = clock(11, 40);
+    const tl = timeline(locs, now);
+    expect(tl.position.state).toBe("unreported");
+    expect(pollAfter(tl, now, 30)).toBeNull();
+  });
+
   // The cut-off runs from the latest time it's expected at its end, never from the booked arrival alone
   const late = (forecast?: string): FakeLocation[] => {
     const locs = route({ gbtt: "10:40", wtt: "10:40", forecast });

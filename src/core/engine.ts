@@ -325,10 +325,10 @@ function lateText(d: number | null): string {
 
 /**
  * The latest time the train is expected at its end: booked, RTT's forecast or estimate there, and, once reported, the
- * last report plus the booked running time from there, or our estimate from the last report. Our estimate never
- * counts before a report, nor with the hold: both start from now, so it would never fall behind and we'd wait for ever.
+ * last report plus the booked running time from there. Our own estimate never counts: past the first unreported
+ * point it is pushed on by now (it can't be anywhere sooner), so it would never fall behind and we'd wait for ever.
  */
-function dueAtEnd(pts: Point[], endIx: number, last: number | null, plannedArr: Map<number, Ms>): Ms | null {
+function dueAtEnd(pts: Point[], endIx: number, last: number | null): Ms | null {
   const fe = firstEvent(pts[endIx]);
   const times = [bookedOf(fe), fe.forecast, fe.estimate];
   if (last != null) {
@@ -336,7 +336,6 @@ function dueAtEnd(pts: Point[], endIx: number, last: number | null, plannedArr: 
     const from = ev ? planned(ev) : null;
     const to = planned(fe);
     if (act != null && from != null && to != null) times.push(act + Math.max(to - from, 0));
-    times.push(plannedArr.get(endIx) ?? null);
   }
   const known = times.filter((t): t is Ms => t != null);
   return known.length ? max(...known) : null;
@@ -363,7 +362,7 @@ function position(
   const endIx = usable[usable.length - 1];
   const end = pts[endIx];
   const dueIn = bookedOf(firstEvent(end));
-  const latest = dueAtEnd(pts, endIx, last, plannedArr);
+  const latest = dueAtEnd(pts, endIx, last);
   const pastEnd = latest != null && now > latest + cfg.giveUpAfter;
 
   if (last == null) {
