@@ -256,7 +256,8 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 - `test/*.test.ts` (Vitest): logic, with injected clocks and fakes. 10 s hard limit per test: a hang is a bug.
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
   moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
-  plates, 44 px targets) and goes on the contact sheet.
+  plates, 44 px targets) and goes on the contact sheet. `keyedRtt` (`test/ui/support.ts`) gives the app a made-up key
+  answered by the simulator, to run the keyed paths and count the calls a page makes (`calls.spec.ts`).
 - **Test review** (`test/harness/review.ts`, state in `.test-review/`): each test's time is kept against its baseline. A
   test clearly slower (over 2x and 100 ms, after allowing for the whole machine being slower) stays queued on every run
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that

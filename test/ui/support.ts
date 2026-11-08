@@ -1,6 +1,8 @@
 // Shared set-up for the browser tests: a fixed moment on the simulated railway, no network, and the layout audit.
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 import { mkdirSync } from "node:fs";
+import { STORE } from "../../src/core/keys";
+import { SimTransport } from "../../src/core/simulator";
 
 /** 09:20 on a Saturday in November (UK time = UTC): the simulator's trains are deterministic from here. */
 export const MOMENT = new Date("2026-11-07T09:20:00Z");
@@ -28,6 +30,43 @@ export const test = base.extend<Fixtures>({
   },
 });
 export { expect };
+
+/**
+ * The app with a key: a made-up one (never a real key), answered by the simulator through the /rtt relay, so the page
+ * runs the keyed code paths (budget, background calls) and the test can count what it asks. `advance` moves the
+ * page's clock and the simulator's together.
+ */
+export async function keyedRtt(page: Page): Promise<{ count: (path: string) => number; advance: (ms: number) => Promise<void> }> {
+  let now = MOMENT.getTime();
+  const sim = new SimTransport(() => now);
+  const seen: string[] = [];
+  await page.addInitScript((name) => localStorage.setItem(name, "made-up-key-for-the-simulator"), STORE.key);
+  await page.route("**/rtt/**", async (r) => {
+    const url = new URL(r.request().url());
+    const path = url.pathname.replace(/^\/rtt/, "");
+    seen.push(path);
+    const res = sim.getSync(path, Object.fromEntries(url.searchParams));
+    await r.fulfill({ status: res.status, headers: res.headers, contentType: "application/json", body: res.body == null ? "" : JSON.stringify(res.body) });
+  });
+  return {
+    count: (path) => seen.filter((p) => p === path).length,
+    // A jump, firing each due timer once (as a phone does after a while asleep), not every 1 s tick on the way. Then
+    // a moment of real time, so a request a timer started has reached the count before anyone says "nothing asked"
+    advance: async (ms) => {
+      now += ms;
+      await page.clock.fastForward(ms);
+      await page.waitForTimeout(300);
+    },
+  };
+}
+
+/** Send the app to the background (or bring it back), as a phone does: visibilityState and its event. */
+export async function setVisible(page: Page, visible: boolean): Promise<void> {
+  await page.evaluate((v) => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (v ? "visible" : "hidden") });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, visible);
+}
 
 /** Open a hash route and wait for its main heading. */
 export async function open(page: Page, hash: string): Promise<void> {
