@@ -7,6 +7,7 @@ import type { Html } from "../html";
 import { LiveTrain } from "../live-train";
 import type { RouteName } from "../routes";
 import { skyFor, TrainScene } from "../train-scene";
+import { glanceOf } from "../views/live-region";
 import { scenePanel } from "../views/train-scene";
 import { trainTitle, trainView } from "../views/train";
 import { Tabs } from "../widgets/tabs";
@@ -47,7 +48,17 @@ export class TrainPage extends Page {
       live.stop();
       scene.stop();
     });
-    live.onAnswer((res) => scene.update(res));
+    // The search page shows the big number as of the last answer (store/recent-trains.ts): kept on opening and after
+    // each answer, so it never costs a call of its own
+    const keepGlance = (res: ServiceResult) => {
+      const g = glanceOf(...yourStops(res.timeline, this.at, this.to), res.fetched.fetchedAt);
+      if (g) this.ctx.trains.glance(location.hash, g);
+    };
+    keepGlance(this.res!);
+    live.onAnswer((res) => {
+      scene.update(res);
+      keepGlance(res);
+    });
     const tabs = new Tabs(page.querySelector<HTMLElement>("[data-train-tabs]")!, (name) => {
       this.ctx.trainTab.set(name);
       page.dataset.tab = name;

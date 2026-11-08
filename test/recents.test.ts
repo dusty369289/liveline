@@ -75,6 +75,28 @@ describe("recent trains", () => {
     expect(String(recentView([later], t0 + 3 * H + 60_000))).toContain("Running now");
   });
 
+  // Owner, 2026-11-08: browsing trains for the sake of it, the search page shouldn't keep one you aren't on
+  it("a running train dismissed from the search page stays in Recent, and comes back when you open it again", () => {
+    const live = train("LIVE:2026-11-07", t0 + H, t0 - H);
+    trains.remember(live);
+    trains.dismiss(live.href);
+    expect(trains.carryOn(t0)).toBeNull();
+    expect(trains.all().map((t) => t.href)).toEqual([live.href]);
+    trains.remember({ ...live, seen: t0 });
+    expect(trains.carryOn(t0)?.href).toBe(live.href);
+  });
+
+  it("keeps the latest glance at a train, and a newer one replaces it, without moving it in the list", () => {
+    trains.remember(train("A:2026-11-07", t0 + H, t0, "?at=PAD"));
+    trains.remember(train("B:2026-11-07", t0 + H, t0 + 1000));
+    const glance = { verb: "reaches" as const, stop: "Oxford", due: t0 + 42 * 60_000, late: 7, asOf: t0 };
+    trains.glance("#/train/A:2026-11-07?at=PAD&to=OXF", glance);
+    expect(trains.all()[1].glance).toEqual(glance);
+    expect(trains.all()[0].href).toBe("#/train/B:2026-11-07"); // still second: glancing isn't opening
+    trains.glance("#/train/A:2026-11-07", { ...glance, late: 9 });
+    expect(trains.all()[1].glance?.late).toBe(9);
+  });
+
   it("can be cleared", () => {
     trains.remember(train("A:2026-11-07", t0 + H, t0));
     trains.clear();

@@ -5,7 +5,11 @@
   min-height: var(--tap); padding: 0 0 var(--s-1); background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
   font: 600 var(--t-md)/1.1 var(--sign-font); text-align: start; color: var(--muted); cursor: pointer;
 }
-.tabs__tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs__tab[aria-selected="true"], .tabs__tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+/* The same switch made of links (a board: Departures or Arrivals), so it reads as one control with both choices */
+a.tabs__tab { display: inline-flex; align-items: flex-end; text-decoration: none; }
+/* A board's Departures | Arrivals: one word each, so at large text the two take a line each rather than overflow */
+.board__mode { flex-wrap: wrap; }
 .tabs__tab:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }
 /* The Train view is always on the train; gone rather than hidden, so the bar's age has the room at large text */
 .train[data-tab="scene"] .trainbar__jump { display: none; }

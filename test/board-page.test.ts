@@ -162,6 +162,26 @@ describe("a board's links", () => {
     expect(arr).toContain('href="#/board?station=PAD">Departures'); // the switch back has no mode=dep either
   });
 
+  // Owner, 2026-11-08: a lone "Arrivals" link didn't read as a switch. Both choices show, the one showing marked.
+  it("Departures and Arrivals are one switch, with the board you're on marked", async () => {
+    const app = await setup();
+    const view = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD&to=OXF")).load(() => false));
+    const sw = view.match(/<nav class="tabs board__mode"[^>]*>[\s\S]*?<\/nav>/)?.[0] ?? "";
+    expect(sw).toContain('aria-label="Show"');
+    expect(sw).toMatch(/<a class="tabs__tab" href="#\/board\?station=PAD&amp;to=OXF" aria-current="page">Departures<\/a>/);
+    expect(sw).toMatch(/<a class="tabs__tab" href="#\/board\?station=PAD&amp;to=OXF&amp;mode=arr">Arrivals<\/a>/);
+    expect(view).not.toContain('class="board__step" href="#/board?station=PAD&amp;to=OXF&amp;mode=arr"'); // not twice
+  });
+
+  it("the summary line leaves the direction to the switch, saying it once (owner, 2026-11-08)", async () => {
+    const app = await setup();
+    const sub = async (hash: string) => String(await new BoardPage(app.ctx, parseHash(hash)).load(() => false))
+      .match(/<p class="board__sub"><a[^>]*>([^<]*)/)?.[1] ?? "";
+    expect(await sub("#/board?station=PAD&to=OXF&time=09:00")).toMatch(/^Calling at Oxford · 09:00 to /);
+    expect(await sub("#/board?station=PAD&to=OXF&time=09:00&mode=arr")).toMatch(/^From Oxford · 09:00 to /);
+    expect(await sub("#/board?station=PAD&time=09:00")).toMatch(/^09:00 to /);
+  });
+
   it("Flip swaps the two stations, keeping the time and the mode (owner, 2026-11-08: in place of Return)", async () => {
     const app = await setup();
     const view = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD&to=OXF&time=09:00&mode=arr")).load(() => false));

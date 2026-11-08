@@ -12,7 +12,8 @@ import { qs } from "../routes";
 
 /** The board's own links: an hour either side, refresh, the other direction, show all, and the search filled in. */
 /** `flip`: the board with its two stations swapped, or null with only one. */
-export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string; change: string; flip: string | null }
+/** `here`: this board as it is; `switch`: the same in the other direction (arrivals or departures). */
+export interface BoardNav { here: string; earlier: string; later: string; refresh: string; switch: string; all: string; change: string; flip: string | null }
 
 /**
  * A row with no live time is the timetable until this long after its booked time; only then is the missing report
@@ -93,6 +94,8 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
   const arr = res.mode === "arr";
   const here = res.station?.crs ?? b.stationCrs ?? "";
   const other = res.to ? ` ${arr ? "from" : "calling at"} ${res.to.name}` : "";
+  // The summary line: the direction is the switch under it, so the line starts with the other station, if any
+  const lead = res.to ? `${arr ? "From" : "Calling at"} ${res.to.name} · ` : "";
   const sm = statusMessage(b.status);
   const otherDay = isoDate(b.timeFrom) !== isoDate(now);
   return html`
@@ -105,11 +108,14 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
       ${res.to && res.station ? html`<button type="button" class="board__star" data-save-journey aria-label="Save this journey" aria-pressed="false">${STAR_ICON}</button>` : ""}
     </div>
     <div class="board__slot" data-board-top>
-    <p class="board__sub"><a href="${nav.change}">${arr ? "Arrivals" : "Departures"}${other} · ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}<span class="visually-hidden">. Change this search</span></a></p>
+    <p class="board__sub"><a href="${nav.change}">${lead}${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}<span class="visually-hidden">. Change this search</span></a></p>
+    <nav class="tabs board__mode" aria-label="Show">
+      <a class="tabs__tab" href="${arr ? nav.switch : nav.here}"${arr ? "" : html` aria-current="page"`}>Departures</a>
+      <a class="tabs__tab" href="${arr ? nav.here : nav.switch}"${arr ? html` aria-current="page"` : ""}>Arrivals</a>
+    </nav>
     <nav class="board__nav" aria-label="This board">
       <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
       <a class="board__step" href="${nav.later}">Later<span aria-hidden="true">\u00a0›</span></a>
-      <a class="board__step" href="${nav.switch}">${arr ? "Departures" : "Arrivals"}</a>
       ${nav.flip && res.to ? html`<a class="board__flip" href="${nav.flip}" aria-label="Flip: ${arr ? `${b.stationName} to ${res.to.name}` : `${res.to.name} to ${b.stationName}`}" title="Flip">${FLIP_ICON}</a>` : ""}
       <a class="board__refresh" href="${nav.refresh}" data-board-refresh aria-label="Refresh" title="Refresh">${REFRESH_ICON}</a>
     </nav>

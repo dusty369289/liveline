@@ -9,7 +9,7 @@ import { journeysView } from "../src/ui/views/journeys";
 const J = (from: string, fromName: string, to: string, toName: string): Journey => ({ from, fromName, to, toName });
 const SAVED = [J("PAD", "London Paddington", "OXF", "Oxford"), J("RDG", "Reading", "PAD", "London Paddington"),
   J("WAT", "London Waterloo", "WOK", "Woking")];
-const home = (journeys: Journey[]) => String(homeView({ query: {}, carry: null, journeys }));
+const home = (journeys: Journey[]) => String(homeView({ query: {}, carry: null, journeys, now: 0 }));
 
 describe("the search page", () => {
   it("has one line to the saved journeys, not the list", () => {

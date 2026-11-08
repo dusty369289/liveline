@@ -9,4 +9,5 @@
 :root[data-theme="quiet"] .route__done { width: 2px; left: calc(1.125rem - 1px); }
 :root[data-theme="quiet"] .is-call .route__mark::after { border-width: 2px; }
 :root[data-theme="quiet"] #station { font-size: 1.75rem; font-weight: 300; }
-:root[data-theme="quiet"] .tabs__tab[aria-selected="true"] { border-bottom-color: var(--train); }
+:root[data-theme="quiet"] .tabs__tab[aria-selected="true"],
+:root[data-theme="quiet"] .tabs__tab[aria-current="page"] { border-bottom-color: var(--train); }
