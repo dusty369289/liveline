@@ -335,7 +335,7 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   checkout may also carry the old one), and any pushed commit that isn't the owner's or whose message fails those
   checks (`scripts/history-check.mjs`). It checks only the branch's own commits, the ones no remote branch has yet,
   so a branch rebased onto a moved `main` pushes (main's commits carry the committer GitHub's merge sets). Tested in
-  `test/git-hooks.test.ts` and `test/history-check.test.ts`. Never `--no-verify`: fix what the hook found.
+  `test/git-hooks.test.ts`, `test/pre-commit.test.ts` and `test/history-check.test.ts`. Never `--no-verify`: fix what the hook found.
 - CI's Checks job runs `history-check.mjs` over the PR's own commits and its title and body (re-run when they're
   edited): hooks can be skipped, and PR text is public the moment it's saved.
 - The hook is what makes every commit pass on its own, so there's no second pass over a branch's commits. After a
