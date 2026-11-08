@@ -201,7 +201,9 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
   runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
   a picture of what RTT reported, not a simulation. Along the bottom: the station it left (or leaves) and when, and
-  the next one it's due at, with marks as on the route; passing points don't count as ends. The coaches scroll
+  the next one it's due at, with marks as on the route; passing points don't count as ends. A dot between them moves
+  by the clock and stops with its edge at the next station's ring, never on or past it, however overdue (owner,
+  2026-11-08). The coaches scroll
   sideways, front first, as long as the train. Coach letters and facility icons show only when RTT sends Know Your
   Train data (most keys don't); otherwise coaches are numbered from the front, and it says so. The sky is dawn, day,
   dusk or night by the sun where the train is (`core/daylight.ts`), each tuned for the light and dark themes.

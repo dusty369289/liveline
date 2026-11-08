@@ -2,7 +2,8 @@
 // These run with reduced motion (the scene stands still: nothing to wait for, and that path is tested too), except
 // the ones about movement, which say so.
 import type { Page, TestInfo } from "@playwright/test";
-import { audit, expect, largeText, open, openTrain, snap, test } from "./support";
+import { fakeService, type FakeLocation } from "../support";
+import { audit, expect, largeText, open, openTrain, seedKey, snap, test } from "./support";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -74,6 +75,32 @@ test("pulls away from the platform once it's reported gone", async ({ page, erro
   const first = await at();
   await page.clock.runFor(1000);
   expect(await at()).toBeLessThan(first); // the platform slides back as the train picks up speed
+  void errors;
+});
+
+test("the dot between the two ends stops at the next station's ring, however overdue the train", async ({ page, errors }) => {
+  // 2026-11-08: with no new report the dot ran on by the clock onto and past the station's ring. Made-up answer:
+  // left Walsall at 09:10, due at Bescot 09:15 and not reported there; the clock is 09:20.
+  const stops: FakeLocation[] = [
+    { name: "Walsall", crs: "WSL", dep: { gbtt: "09:10", wtt: "09:10", actual: "09:10" } },
+    { name: "Bescot Stadium", crs: "BSC", arr: { gbtt: "09:15", wtt: "09:15" }, dep: { gbtt: "09:16", wtt: "09:16" } },
+    { name: "Birmingham New Street", crs: "BHM", arr: { gbtt: "09:35", wtt: "09:35" } },
+  ];
+  await seedKey(page);
+  await page.route("**/rtt/api/info**", (r) => r.fulfill({ json: { api_version: "2026-07-25", credentials: { entitlements: [] } } }));
+  await page.route("**/rtt/gb-nr/service**", (r) => r.fulfill({ json: fakeService(stops) }));
+  await page.goto("/#/train/X12345:2026-11-07?at=WSL&to=BHM");
+  await page.locator("[data-trainbar]").waitFor();
+  await trainView(page);
+  for (const wait of [0, 120_000]) { // now, and two minutes on with no answer that says more
+    await page.clock.fastForward(wait); // a jump, not two minutes of frames one by one
+    await page.clock.runFor(100);
+    const line = (await page.locator("[data-scene-panel] .scene__line").first().boundingBox())!;
+    const dot = (await page.locator("[data-scene-panel] [data-dot]").first().boundingBox())!;
+    const ringLeft = line.x + line.width - 10; // the next station's ring: 10 px wide, at the line's end
+    expect(dot.x + dot.width, `the dot's right edge against the ring, ${wait} ms on`).toBeLessThanOrEqual(ringLeft + 0.5);
+    expect(dot.x + dot.width).toBeGreaterThan(ringLeft - 2); // right up to it: overdue, at the station
+  }
   void errors;
 });
 });
