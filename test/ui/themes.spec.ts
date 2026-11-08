@@ -3,7 +3,8 @@
 import type { Page } from "@playwright/test";
 import { THEMES } from "../../src/ui/store/appearance";
 import { KEYS } from "../../src/ui/store/keys";
-import { audit, expect, open, openTrain, snap, test } from "./support";
+import { fakeService } from "../support";
+import { audit, expect, open, openTrain, seedKey, snap, test } from "./support";
 
 async function useTheme(page: Page, id: string): Promise<void> {
   await page.addInitScript(([name, value]) => localStorage.setItem(name, JSON.stringify(value)), [KEYS.theme, id]);
@@ -34,6 +35,30 @@ test("a theme chosen in Settings shows at once, is kept, and each choice is pict
   await page.locator("main h1").waitFor();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "swiss");
   await expect(page.locator("input[name=theme][value=swiss]")).toBeChecked();
+  void errors;
+});
+
+test("Operator colour: a train's header is its operator's colour made calm, not the brand at full strength", async ({ page, errors }, info) => {
+  // TfW's brand is pure red, which glared across a whole header (owner, 2026-11-08). The simulator has no TfW
+  // trains, so a made-up answer behind a made-up key.
+  const answer = fakeService([
+    { name: "Cardiff Central", crs: "CDF", dep: { gbtt: "09:00", wtt: "09:00", actual: "09:01" } },
+    { name: "Newport (South Wales)", crs: "NWP", arr: { gbtt: "09:30", wtt: "09:30" }, dep: { gbtt: "09:31", wtt: "09:31" } },
+    { name: "Abergavenny", crs: "AGV", arr: { gbtt: "09:55", wtt: "09:55" } },
+  ]) as { service: { scheduleMetadata: { operator: { code: string; name: string } } } };
+  answer.service.scheduleMetadata.operator = { code: "AW", name: "Transport for Wales" };
+  await seedKey(page);
+  await page.route("**/rtt/api/info**", (r) => r.fulfill({ json: { api_version: "2026-07-25", credentials: { entitlements: [] } } }));
+  await page.route("**/rtt/gb-nr/service**", (r) => r.fulfill({ json: answer }));
+  await page.goto("/#/train/X12345:2026-11-07?at=CDF&to=AGV");
+  await page.locator("[data-trainbar]").waitFor();
+  const head = await page.locator(".train__head").evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return { bg: cs.backgroundColor, ink: cs.color };
+  });
+  expect(head).toEqual({ bg: "rgb(168, 55, 44)", ink: "rgb(255, 255, 255)" }); // operators.css: --op-head, not #ff0000
+  expect(await audit(page)).toEqual([]);
+  await snap(page, info, "45-operator-tfw-train");
   void errors;
 });
 

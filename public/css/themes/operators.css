@@ -1,36 +1,38 @@
 /* Operators' brand colours, for their badges and the train page's header in the Operator colour theme. Keyed as
    components/operators.ts keys them (the code Realtime Trains gives; LM split into its two brands). The colours are
    Wikipedia's National Rail colour set, the one UK station pages use (operators' own sites disagree with it and with
-   each other), except the Elizabeth line, from TfL's own design idiom. Text on each is white or black, whichever
-   reads (4.5:1, test/operators.test.ts). An operator not listed is a neutral grey. */
-[data-op] { --op-bg: #545862; --op-ink: #ffffff; }
-[data-op="AW"] { --op-bg: #ff0000; --op-ink: #000000; }
-[data-op="CC"] { --op-bg: #b7007c; --op-ink: #ffffff; }
-[data-op="CH"] { --op-bg: #00bfff; --op-ink: #000000; }
-[data-op="CS"] { --op-bg: #1d2e35; --op-ink: #ffffff; }
-[data-op="EM"] { --op-bg: #703e69; --op-ink: #ffffff; }
-[data-op="ES"] { --op-bg: #086bfe; --op-ink: #ffffff; }
-[data-op="GC"] { --op-bg: #1d1d1b; --op-ink: #ffffff; }
-[data-op="GN"] { --op-bg: #0099ff; --op-ink: #000000; }
-[data-op="GR"] { --op-bg: #d70e35; --op-ink: #ffffff; }
-[data-op="GW"] { --op-bg: #0a493e; --op-ink: #ffffff; }
-[data-op="GX"] { --op-bg: #eb1e2d; --op-ink: #000000; }
-[data-op="HT"] { --op-bg: #de005c; --op-ink: #ffffff; }
-[data-op="HX"] { --op-bg: #532e63; --op-ink: #ffffff; }
-[data-op="IL"] { --op-bg: #1e90ff; --op-ink: #000000; }
-[data-op="LD"] { --op-bg: #2b6ef5; --op-ink: #ffffff; }
-[data-op="LE"] { --op-bg: #d70428; --op-ink: #ffffff; }
-[data-op="LM-LNR"] { --op-bg: #00bf6f; --op-ink: #000000; }
-[data-op="LM-WMR"] { --op-bg: #ff8300; --op-ink: #000000; }
-[data-op="LO"] { --op-bg: #ff7518; --op-ink: #000000; }
-[data-op="ME"] { --op-bg: #fff200; --op-ink: #000000; }
-[data-op="NT"] { --op-bg: #262262; --op-ink: #ffffff; }
-[data-op="SE"] { --op-bg: #389cff; --op-ink: #000000; }
-[data-op="SN"] { --op-bg: #8cc63e; --op-ink: #000000; }
-[data-op="SR"] { --op-bg: #1e467d; --op-ink: #ffffff; }
-[data-op="SW"] { --op-bg: #24398c; --op-ink: #ffffff; }
-[data-op="TL"] { --op-bg: #ff5aa4; --op-ink: #000000; }
-[data-op="TP"] { --op-bg: #09a4ec; --op-ink: #000000; }
-[data-op="VT"] { --op-bg: #004354; --op-ink: #ffffff; }
-[data-op="XC"] { --op-bg: #660f21; --op-ink: #ffffff; }
-[data-op="XR"] { --op-bg: #6950a1; --op-ink: #ffffff; }
+   each other), except the Elizabeth line, from TfL's own design idiom. Badge text is white or black, whichever reads
+   (4.5:1). The header is a big block, where a brand at full strength glares (TfW's pure red), so --op-head is the
+   same hue made deep and calm (OKLCH lightness at most 0.5, chroma at most 0.15), always with white text; a brand
+   already that calm is used as it is. All checked by test/operators.test.ts. An operator not listed is a neutral grey. */
+[data-op] { --op-bg: #545862; --op-ink: #ffffff; --op-head: #545862; --op-head-ink: #ffffff; }
+[data-op="AW"] { --op-bg: #ff0000; --op-ink: #000000; --op-head: #a8372c; }
+[data-op="CC"] { --op-bg: #b7007c; --op-ink: #ffffff; --op-head: #9d3771; }
+[data-op="CH"] { --op-bg: #00bfff; --op-ink: #000000; --op-head: #006ea8; }
+[data-op="CS"] { --op-bg: #1d2e35; --op-ink: #ffffff; --op-head: #1d2e35; }
+[data-op="EM"] { --op-bg: #703e69; --op-ink: #ffffff; --op-head: #703e69; }
+[data-op="ES"] { --op-bg: #086bfe; --op-ink: #ffffff; --op-head: #2c5fb7; }
+[data-op="GC"] { --op-bg: #1d1d1b; --op-ink: #ffffff; --op-head: #1d1d1b; }
+[data-op="GN"] { --op-bg: #0099ff; --op-ink: #000000; --op-head: #0066b4; }
+[data-op="GR"] { --op-bg: #d70e35; --op-ink: #ffffff; --op-head: #a8353c; }
+[data-op="GW"] { --op-bg: #0a493e; --op-ink: #ffffff; --op-head: #0a493e; }
+[data-op="GX"] { --op-bg: #eb1e2d; --op-ink: #000000; --op-head: #a83634; }
+[data-op="HT"] { --op-bg: #de005c; --op-ink: #ffffff; --op-head: #a63451; }
+[data-op="HX"] { --op-bg: #532e63; --op-ink: #ffffff; --op-head: #532e63; }
+[data-op="IL"] { --op-bg: #1e90ff; --op-ink: #000000; --op-head: #0b63b5; }
+[data-op="LD"] { --op-bg: #2b6ef5; --op-ink: #ffffff; --op-head: #315eb7; }
+[data-op="LE"] { --op-bg: #d70428; --op-ink: #ffffff; --op-head: #a83636; }
+[data-op="LM-LNR"] { --op-bg: #00bf6f; --op-ink: #000000; --op-head: #007b3b; }
+[data-op="LM-WMR"] { --op-bg: #ff8300; --op-ink: #000000; --op-head: #a14400; }
+[data-op="LO"] { --op-bg: #ff7518; --op-ink: #000000; --op-head: #a43f00; }
+[data-op="ME"] { --op-bg: #fff200; --op-ink: #000000; --op-head: #706600; }
+[data-op="NT"] { --op-bg: #262262; --op-ink: #ffffff; --op-head: #262262; }
+[data-op="SE"] { --op-bg: #389cff; --op-ink: #000000; --op-head: #0064b5; }
+[data-op="SN"] { --op-bg: #8cc63e; --op-ink: #000000; --op-head: #467200; }
+[data-op="SR"] { --op-bg: #1e467d; --op-ink: #ffffff; --op-head: #1e467d; }
+[data-op="SW"] { --op-bg: #24398c; --op-ink: #ffffff; --op-head: #24398c; }
+[data-op="TL"] { --op-bg: #ff5aa4; --op-ink: #000000; --op-head: #a13566; }
+[data-op="TP"] { --op-bg: #09a4ec; --op-ink: #000000; --op-head: #006bae; }
+[data-op="VT"] { --op-bg: #004354; --op-ink: #ffffff; --op-head: #004354; }
+[data-op="XC"] { --op-bg: #660f21; --op-ink: #ffffff; --op-head: #660f21; }
+[data-op="XR"] { --op-bg: #6950a1; --op-ink: #ffffff; --op-head: #6950a1; }

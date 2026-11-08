@@ -262,7 +262,8 @@ light and a dark set that follow the phone (owner, 2026-11-08; mock-ups in `note
 - **Operator colour** (`operator`, the default): a grey page, white panels with round corners (board rows, the
   train's status and route, journeys), Figtree, a yellow main button and train. Each board row has its operator's
   badge in place of its name (the name stays for screen readers), and a train page's header wears its operator's
-  colour. Badges and colours: `components/operators.ts` (the operators' real short forms, or the brand as written;
+  colour, made deep and calm for a block that size (`--op-head`: the brand's hue at OKLCH lightness 0.5 and chroma
+  0.15 at most, white text; owner, 2026-11-08: TfW's pure red glared). Badges and colours: `components/operators.ts` (the operators' real short forms, or the brand as written;
   LM split into LNR and WMR by name; no badge rather than a guess) and `themes/operators.css` (Wikipedia's National
   Rail colours, TfL's for the Elizabeth line; white or black text, whichever reads; `test/operators.test.ts`).
 - **Swiss timetable** (`swiss`): white, black and one red, square corners, Inter Tight, rules instead of boxes, the
