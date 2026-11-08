@@ -2,7 +2,7 @@
 // ("Calling at" or "Coming from", following the mode), and only then, folded away, another time or day: most
 // searches are "this station, now". Its station boxes are wired by StationSuggest; SearchForm handles the rest.
 import { type Html, html, render } from "../html";
-import { type Query, qs } from "../routes";
+import { boardHash, type Query } from "../routes";
 
 const stationBox = (id: string, label: Html, placeholder: string, value: string, extra: Html | "") => html`
   <div class="field">
@@ -57,7 +57,7 @@ export class SearchForm {
       ev.preventDefault();
       const f = new FormData(form);
       const get = (k: string) => String(f.get(k) ?? "");
-      location.hash = `#/board${qs({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "" })}`;
+      location.hash = boardHash({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "dep" });
     });
     const label = form.querySelector('[data-label-for="to"]');
     form.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach((r) => r.addEventListener("change", () => {

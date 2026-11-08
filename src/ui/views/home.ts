@@ -1,7 +1,7 @@
 // The search page, and the page shown when something can't be shown.
 import { searchForm } from "../components/search-form";
 import { type Html, html } from "../html";
-import { type Query, qs } from "../routes";
+import { boardHash, type Query } from "../routes";
 import type { Journey } from "../store/lists";
 import type { RecentTrain } from "../store/recent-trains";
 
@@ -19,8 +19,8 @@ export function homeView(d: HomeData): Html {
     <h2 id="journeys-h" class="label">My journeys</h2>
     <ul class="journeys__list">${d.journeys.map((j) => html`
       <li class="journeys__item">
-        <a class="journeys__go" href="#/board${qs({ station: j.from, to: j.to })}">${j.fromName} → ${j.toName}</a>
-        <a class="journeys__back" href="#/board${qs({ station: j.to, to: j.from })}" aria-label="Return: ${j.toName} to ${j.fromName}">Return</a>
+        <a class="journeys__go" href="${boardHash({ station: j.from, to: j.to })}">${j.fromName} → ${j.toName}</a>
+        <a class="journeys__back" href="${boardHash({ station: j.to, to: j.from })}" aria-label="Return: ${j.toName} to ${j.fromName}">Return</a>
       </li>`)}</ul>
   </section>` : ""}
   <h1>Find your train</h1>

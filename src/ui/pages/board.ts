@@ -1,7 +1,7 @@
 // A board page: fetch the board, remember the station, save the journey, and keep a "now" board fresh (gently).
 import type { BoardResult } from "../../core/rail";
 import { fragment, type Html } from "../html";
-import { type Query, queryOf, qs, type RouteName, timeParams, when } from "../routes";
+import { boardHash, type Query, queryOf, type RouteName, timeParams, when } from "../routes";
 import { type BoardNav, boardView } from "../views/board";
 import { problemView } from "../views/home";
 import { Page } from "./page";
@@ -38,7 +38,7 @@ export class BoardPage extends Page {
     this.title = res.board.stationName;
     this.nav = this.links(res);
     this.live = !q.time;
-    if (force) history.replaceState(null, "", this.nav.refresh.replace(/&refresh=1|refresh=1&?/, "")); // don't refetch on back
+    if (force) history.replaceState(null, "", boardHash(q)); // don't refetch on back
     return boardView(res, q, this.nav, this.live, this.ctx.rail.clock());
   }
 
@@ -53,20 +53,18 @@ export class BoardPage extends Page {
 
   private request(o: { when?: number | null; force?: boolean; background?: boolean }): Promise<BoardResult> {
     const q = this.query;
-    return this.ctx.rail.board({ station: q.station!, to: q.to || null, mode: q.mode === "arr" ? "arr" : "dep", showAll: !!q.all, ...o });
+    return this.ctx.rail.board({ station: q.station!, to: q.to || null, mode: q.mode, showAll: !!q.all, ...o });
   }
 
   private links(res: BoardResult): BoardNav {
     const q = this.query;
-    const base = { station: q.station, to: q.to, mode: q.mode, all: q.all };
     const t0 = res.board.timeFrom;
-    const same = { time: q.time, day: q.day };
     return {
-      earlier: `#/board${qs({ ...base, ...timeParams(t0 - 3_600_000) })}`,
-      later: `#/board${qs({ ...base, ...timeParams(t0 + 3_600_000) })}`,
-      refresh: `#/board${qs({ ...base, ...same, refresh: 1 })}`,
-      switch: `#/board${qs({ ...base, ...same, mode: q.mode === "arr" ? "dep" : "arr" })}`,
-      all: `#/board${qs({ ...base, ...same, all: q.all ? "" : 1 })}`,
+      earlier: boardHash({ ...q, ...timeParams(t0 - 3_600_000) }),
+      later: boardHash({ ...q, ...timeParams(t0 + 3_600_000) }),
+      refresh: boardHash(q, { refresh: 1 }),
+      switch: boardHash({ ...q, mode: q.mode === "arr" ? "dep" : "arr" }),
+      all: boardHash({ ...q, all: q.all ? "" : "1" }),
     };
   }
 

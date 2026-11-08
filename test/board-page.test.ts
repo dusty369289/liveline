@@ -45,6 +45,7 @@ async function setup() {
   const root = new FakeElement();
   let page: BoardPage | null = null;
   return {
+    ctx,
     held,
     state,
     async open(hash: string) {
@@ -121,6 +122,17 @@ describe("a refreshing board", () => {
     const { top } = await refreshOnce(await setup(), (r) => r);
     expect(top).toContain("09:02 to 10:02"); // a "now" board moved on two minutes
     expect(top).toContain("time=10%3A02"); // Later is an hour after the new start
+  });
+});
+
+describe("a board's links", () => {
+  it("Refresh is the board's own URL (as the search form sends it) plus refresh=1", async () => {
+    const app = await setup();
+    const view = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD")).load(() => false));
+    expect(view).toContain('href="#/board?station=PAD&amp;refresh=1"');
+    const arr = String(await new BoardPage(app.ctx, parseHash("#/board?station=PAD&mode=arr")).load(() => false));
+    expect(arr).toContain('href="#/board?station=PAD&amp;mode=arr&amp;refresh=1"');
+    expect(arr).toContain('href="#/board?station=PAD">Departures'); // the switch back has no mode=dep either
   });
 });
 
