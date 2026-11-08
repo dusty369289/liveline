@@ -107,7 +107,7 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
 ## Product behaviour
 
 - **Board:** departures or arrivals at a station from a time (default now), 60 minutes shown, optional second station
-  ("calling at", or "from" for arrivals). RTT charges one call however wide the window, so each call fetches three
+  ("calling at", or "from" for arrivals). RTT charges one call however wide the window, so each call fetches six
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. A quiet board fills up from the rest of
   that answer to `BOARD_FILL` (6) trains, with every train booked the same minute as the sixth (`Rail.board`, owner

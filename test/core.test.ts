@@ -23,6 +23,9 @@ describe("budget", () => {
     clock.advance(61);
     expect(b.canSpend(true)).toBe(true);
   });
+  it("before any headers, assumes the limits RTT sends free keys (seen 2026-11-08)", () => {
+    expect(new Budget(clock.now).limits).toEqual({ minute: 10, hour: 100, day: 1000, week: 10000 });
+  });
   it("trusts headers and keeps a reserve for searches", () => {
     const b = new Budget(clock.now);
     b.observe(200, { "x-ratelimit-limit-hour": "100", "x-ratelimit-remaining-hour": "10" });

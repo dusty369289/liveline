@@ -7,8 +7,12 @@ import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
 import { isoLocal, type Ms } from "./time";
 
-/** Minutes of board asked for in one call (RTT allows up to 1439). Three hours covers now, Later and Later again. */
-export const FETCH_WINDOW = 180;
+/**
+ * Minutes of board asked for in one call. RTT charges one call however wide, and allows up to 1439 (a 1440 is refused,
+ * and still costs a call). Six hours covers now and Later five times over. A busy board (Paddington, daytime: 408
+ * rows) is 56 KB gzipped (417 KB parsed) at six hours, against 30 KB at three (measured 2026-11-08).
+ */
+export const FETCH_WINDOW = 360;
 /** Seconds a board starting an hour or more ahead is kept. */
 export const FUTURE_BOARD_TTL = 300;
 
