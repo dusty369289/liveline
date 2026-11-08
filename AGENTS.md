@@ -86,16 +86,20 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all".
+  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all". Arrivals say "from" before the
+  origin. The platform plate carries hidden words ("Platform 5, not confirmed, changed"), not an aria-label.
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to
   match), and a folded "Another time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
-  empty station box as soon as it's tapped. The page fits a 360 × 700 app screen with no scrolling, first visit or
+  empty station box as soon as it's tapped; each station box is an ARIA combobox with a status line saying how many
+  match. The page fits a 360 × 700 app screen with no scrolling, first visit or
   coming back (`test/ui/fit.spec.ts`).
 - **Train page:** every location RTT returns. Calls are full rows; passing points fold into one "N passing points" row
   between two stops (tap to open, "Fold away" closes; both survive refreshes). The group the train is in opens by
   itself unless you folded it. Passed stops are filled in. Each
   live time has a circle before it (`components/marks.ts`): **filled** = reported, **ring** = RTT's forecast or own
-  estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle.
+  estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle. A row
+  shows the departure, with "arr hh:mm" when the shown arrival is a minute or more earlier; where you get off it shows
+  the arrival, as the summary does.
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. It
   never passes an unreported point (holds at 95%), says "No report at X yet" 2 minutes after expected, and once
   departed sits at least 26 px clear of the station it left.
@@ -110,7 +114,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that
-  spins during any fetch, Jump to train. It sits below the status bar on edge-to-edge phones.
+  spins during any fetch, Jump to train. It sits below the status bar on edge-to-edge phones. A message in place of the
+  age ("Saving calls: refresh in 40 s") is short and wraps to two lines; a fuller sentence (an error's detail) goes only
+  to the screen-reader status line.
 - **Train view** (the train page's second tab, remembered): the same answers drawn as the train in countryside. It
   stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
   runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
