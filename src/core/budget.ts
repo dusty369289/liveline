@@ -104,6 +104,13 @@ export class Budget {
     this.total += 1;
   }
 
+  /** Take back the last call spent: RTT didn't charge for it (a refusal). */
+  refund(): void {
+    if (this.unlimited || !this.calls.length) return;
+    this.calls.pop();
+    this.total -= 1;
+  }
+
   observe(status: number, headers: Record<string, string>): void {
     if (this.unlimited) return; // the simulator's pretend limits don't apply to the demo
     const now = this.clock();

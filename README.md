@@ -72,7 +72,7 @@ your own free key. There's no server and no account, and without a key it runs a
 
 1. Sign in at <https://api-portal.rtt.io> (the API portal, not the RTT+ subscriptions page) and request a token. The
    free plan works. The Hobbyist plan (£4 a month) adds detailed mode, which the app uses by itself.
-2. In the app, **Settings**: paste the key. It's checked with Realtime Trains (1 to 3 calls) and kept only on your
+2. In the app, **Settings**: paste the key. It's checked with Realtime Trains (one call) and kept only on your
    phone, in the app's private storage, with backups off. It's never shown again in full.
 
 > [!NOTE]

@@ -113,7 +113,7 @@ export class Rail {
 
   async tokenInfo(): Promise<TokenInfo | null> {
     if (this.demo) return null;
-    // the saved access token and entitlements first: opening the app shouldn't cost 3 calls
+    // the saved access token and entitlements first: opening the app shouldn't cost a call
     if (this.client.info) this.tokenError = null; // a later call checked the key after all
     if (!this.client.info) await this.client.restore();
     if (!this.client.info && !this.tokenError) {
@@ -143,7 +143,7 @@ export class Rail {
     return { name, detailed, allocations, perMinute: lim.minute, perHour: lim.hour };
   }
 
-  /** Check a new key with RTT (1 to 3 calls), and only then keep it on this device. */
+  /** Check a new key with RTT (one call), and only then keep it on this device. */
   async setKey(raw: string): Promise<TokenInfo> {
     const token = cleanToken(raw);
     const budget = new Budget(this.clock);
