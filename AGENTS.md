@@ -158,8 +158,10 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   RTT's forecast, unless RTT still gives it an estimate (then it's still ahead); only actuals count for lateness. Our
   reading of that flag is untested against a real answer, so only a report at its end makes a train "arrived": a
   flag there leaves it heading for its end, polled, until the cut-off below says its arrival wasn't reported. It
-  never passes an unreported point (holds at 95%), says "No report at X yet" 2 minutes after expected, and once
-  departed sits at least 26 px clear of the station it left. When RTT's answer says it has no live data
+  never passes an unreported point (holds at 95%), though a report further on moves it past one that never
+  reported; says "No report at X yet" 2 minutes after expected; and once departed sits 26 px clear of a station (6 of
+  a passing point's tick), the clear space shrinking on a short section so it always has a third of it to move along
+  (`route-place.ts`; owner, 2026-11-08: it sat still between passing points). When RTT's answer says it has no live data
   (`SCHEDULE_ONLY` or `REALTIME_DATA_NONE`, `feedOf` in `core/models.ts`), a missing report is put down to that,
   never to a signal, and the page says times are the timetable only. The feed's state rides on `ServiceResult.status`,
   beside `Service` (which the goldens pin).
