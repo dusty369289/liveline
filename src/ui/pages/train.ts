@@ -18,6 +18,7 @@ export class TrainPage extends Page {
   private readonly at = (this.route.params.get("at") ?? "").toUpperCase();
   private readonly to = (this.route.params.get("to") ?? "").toUpperCase();
   private ends = 0;
+  private starts = 0;
   private res: ServiceResult | null = null;
 
   async load(stale: () => boolean): Promise<Html | null> {
@@ -27,6 +28,7 @@ export class TrainPage extends Page {
     const tl = res.timeline;
     this.title = trainTitle(res);
     this.ends = tl.service.destinations[0]?.time ?? 0;
+    this.starts = tl.service.origins[0]?.time ?? 0;
     const tab = this.ctx.trainTab.get();
     const sc = sceneOf(tl);
     const scene = scenePanel(sc, res.formation, tl.position.headline, skyFor(sc, this.ctx.rail.stations, Date.now()), tab === "scene");
@@ -34,7 +36,7 @@ export class TrainPage extends Page {
   }
 
   mount(root: HTMLElement): void {
-    this.ctx.trains.remember({ href: location.hash, title: this.title, ends: this.ends, seen: Date.now() });
+    this.ctx.trains.remember({ href: location.hash, title: this.title, ends: this.ends, starts: this.starts, seen: Date.now() });
     const page = root.querySelector<HTMLElement>("[data-train]")!;
     const live = new LiveTrain(page, this.ctx.rail, this.uid, this.at, this.to);
     const scene = new TrainScene(page.querySelector<HTMLElement>("[data-scene-panel]")!, this.ctx.rail.stations);

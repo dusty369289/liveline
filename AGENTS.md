@@ -124,7 +124,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
   (solid plate confirmed, outlined expected).
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
-  shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
+  shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
+  it's due in). A train that hasn't set off yet says when it runs ("Runs Mon 9 Nov, 08:05"), not "Running now".
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
   the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
   for Settings (named "Settings" for screen readers).

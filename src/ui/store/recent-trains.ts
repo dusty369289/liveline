@@ -10,12 +10,14 @@ export interface RecentTrain {
   title: string; // "19:00 London Paddington to Oxford"
   ends: Ms; // when it's due at its destination (0 if unknown)
   seen: Ms; // last opened
+  starts?: Ms; // when it's due away from its origin; entries saved by older versions lack it and count as started
 }
 
 export class RecentTrains {
   static readonly MAX = 30;
   static readonly RUNNING_FOR = 30 * 60_000; // "running" until half an hour after it's due in
   static readonly FALLBACK = 3 * 3_600_000; // no end time known: three hours after it was opened
+  static readonly STARTS_WITHIN = 30 * 60_000; // and from half an hour before it sets off, when you'd be heading for it
 
   private readonly list = new Pref<RecentTrain[]>(KEYS.trains, []);
   private readonly legacy = new Pref<RecentTrain | null>(KEYS.tracking, null);
@@ -31,7 +33,8 @@ export class RecentTrains {
   }
 
   static isRunning(t: RecentTrain, now: Ms): boolean {
-    return now <= (t.ends ? t.ends + RecentTrains.RUNNING_FOR : t.seen + RecentTrains.FALLBACK);
+    if (t.starts && t.starts - RecentTrains.STARTS_WITHIN > now) return false;
+    return now <=(t.ends ? t.ends + RecentTrains.RUNNING_FOR : t.seen + RecentTrains.FALLBACK);
   }
 
   all(): RecentTrain[] {

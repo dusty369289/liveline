@@ -7,7 +7,7 @@ import { type RecentTrain, RecentTrains } from "../store/recent-trains";
 export function recentView(list: RecentTrain[], now: Ms): Html {
   const items = list.map((t) => {
     const running = RecentTrains.isRunning(t, now);
-    const when = running ? "Running now" : t.ends ? `Finished ${dayOrTime(t.ends, now)}` : `Seen ${ago((now - t.seen) / 1000)}`;
+    const when = running ? "Running now" : t.starts && t.starts > now ? `Runs ${dayOrTime(t.starts, now)}` : t.ends ? `Finished ${dayOrTime(t.ends, now)}` : `Seen ${ago((now - t.seen) / 1000)}`;
     return html`<li class="recents__item${running ? " is-running" : ""}"><a class="recents__link" href="${t.href}">
       <span class="recents__title">${t.title}</span><span class="recents__when">${when}</span></a></li>`;
   });
