@@ -237,6 +237,7 @@ export class TrainScene {
     const a = this.sc?.left?.shown?.time;
     const b = this.sc?.right?.shown?.time;
     if (!dot || a == null || b == null || b <= a) return;
-    dot.style.left = `${Math.min(Math.max((this.clock() - a) / (b - a), 0), 1) * 100}%`;
+    // capped at 1, the next station's ring (scene.css places it): with no report it waits there, however late
+    dot.style.setProperty("--at", String(Math.min(Math.max((this.clock() - a) / (b - a), 0), 1)));
   }
 }
