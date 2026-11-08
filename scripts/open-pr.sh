@@ -3,6 +3,8 @@
 # A PR's title and body are public the moment it's opened, before CI or the merge script can check them. So they go
 # through history-check.mjs first (no AI attribution, nothing personal), and gh gets the very file that was checked.
 # --body, --draft and --fill are refused: text that didn't come from the checked file, or a draft (CI skips its jobs).
+# So is a branch not rebased onto liveline/main, or not pushed as it stands: the PR's one CI run must be the one
+# that counts.
 set -eu
 usage() {
   echo 'usage: npm run pr -- --title "<title>" --body-file <file.md>' >&2
@@ -28,6 +30,20 @@ fi
 
 if ! PR_TITLE="$title" PR_BODY="$(cat "$file")" node "$(dirname "$0")/history-check.mjs"; then
   echo "pr: not opened: fix the title or the body file first." >&2
+  exit 1
+fi
+
+# Opening the PR is its one CI run, so it must test what will merge: the branch on top of today's main, as pushed.
+# (A branch that falls behind later is the "main" ruleset's to refuse, and merge-pr.sh's run of the checks.)
+git fetch -q liveline main
+if ! git merge-base --is-ancestor refs/remotes/liveline/main HEAD; then
+  echo "pr: not opened: main has moved on since this branch started: rebase onto main first" \
+    "(git rebase liveline/main), check each commit, then push." >&2
+  exit 1
+fi
+branch=$(git symbolic-ref --short HEAD)
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse -q --verify "refs/remotes/liveline/$branch" || true)" ]; then
+  echo "pr: not opened: liveline/$branch isn't this commit: push first (git push -u liveline $branch)." >&2
   exit 1
 fi
 gh pr create -R dusty369289/liveline --base main --title "$title" --body-file "$file"

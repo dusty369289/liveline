@@ -17,7 +17,21 @@ beforeEach(() => {
   repo = new TempRepo();
   repo.write(".git/stub-bin/gh", GH, true);
   Object.assign(repo.env, { PATH: `${repo.dir}/.git/stub-bin:${repo.env.PATH}`, STUB_LOG: `${repo.dir}/.git/gh.log` });
+  // A branch made from main and pushed to a stand-in "liveline" remote: what a PR is opened from
+  repo.init();
+  repo.git("init", "-q", "--bare", "-b", "main", ".git/remote.git");
+  repo.git("remote", "add", "liveline", `${repo.dir}/.git/remote.git`);
+  repo.git("push", "-q", "liveline", "main");
+  repo.git("switch", "-q", "-c", "fix/board-late-trains");
+  commit("Board shows late trains");
+  repo.git("push", "-q", "-u", "liveline", "fix/board-late-trains");
 });
+const commit = (message: string) => {
+  const file = `f${Math.random()}.txt`;
+  repo.write(file, "x");
+  repo.git("add", file);
+  repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", message);
+};
 afterEach(() => repo.remove());
 
 const pr = (...args: string[]) => repo.run("sh", [script("open-pr.sh"), ...args]);
@@ -60,6 +74,32 @@ describe("npm run pr", () => {
       expect(run.status, extra[0]).not.toBe(0);
       expect(run.stderr, extra[0]).toContain(extra[0]);
     }
+    expect(ghArgs()).toEqual([]);
+  });
+
+  it("refuses a branch behind main, so its one CI run is the run that counts", () => {
+    repo.write("body.md", "What changed.\n");
+    repo.git("switch", "-q", "main");
+    commit("Another PR, merged");
+    repo.git("push", "-q", "liveline", "main");
+    repo.git("switch", "-q", "fix/board-late-trains");
+    repo.git("update-ref", "-d", "refs/remotes/liveline/main"); // the script fetches main itself
+    const run = pr("--title", "Board shows late trains", "--body-file", "body.md");
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("rebase onto main first");
+    expect(ghArgs()).toEqual([]);
+  });
+
+  it("refuses a branch with a commit not pushed yet, or never pushed", () => {
+    repo.write("body.md", "What changed.\n");
+    commit("Fold the passing points");
+    let run = pr("--title", "Board shows late trains", "--body-file", "body.md");
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("push first");
+    repo.git("switch", "-q", "-c", "fix/never-pushed");
+    run = pr("--title", "Board shows late trains", "--body-file", "body.md");
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("push first");
     expect(ghArgs()).toEqual([]);
   });
 
