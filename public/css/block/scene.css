@@ -1,8 +1,9 @@
 /* The train page's tabs: plain words with an underline for the one showing, like the top bar. No pills. */
-.tabs { display: flex; gap: var(--s-5); border-bottom: 1px solid var(--line); }
+/* At large text "Train view" wraps: the tabs sit on one foot, so its last line shares Route's line and underline */
+.tabs { display: flex; align-items: flex-end; gap: var(--s-5); border-bottom: 1px solid var(--line); }
 .tabs__tab {
-  min-height: var(--tap); padding: 0; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
-  font: 600 var(--t-md)/1 var(--sign-font); color: var(--muted); cursor: pointer;
+  min-height: var(--tap); padding: 0 0 var(--s-1); background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px;
+  font: 600 var(--t-md)/1.1 var(--sign-font); text-align: start; color: var(--muted); cursor: pointer;
 }
 .tabs__tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
 .tabs__tab:focus-visible { outline: 3px solid var(--train); outline-offset: 2px; }

@@ -61,6 +61,15 @@ test("route at large system text (200%): names and times fit the screen", async 
   const narrow = await page.locator(".is-call .route__place").evaluateAll((els) =>
     els.map((el) => el.getBoundingClientRect().width).filter((w) => w < 80));
   expect(narrow).toEqual([]);
+  // "Train view" wraps here: its last line sits on Route's line, and both underlines along the same foot
+  const tabs = await page.getByRole("tab").evaluateAll((els) => els.map((el) => {
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const lines = r.getClientRects();
+    return { text: Math.round(lines[lines.length - 1].bottom), foot: Math.round(el.getBoundingClientRect().bottom) };
+  }));
+  expect(new Set(tabs.map((t) => t.text)).size, JSON.stringify(tabs)).toBe(1);
+  expect(new Set(tabs.map((t) => t.foot)).size, JSON.stringify(tabs)).toBe(1);
   await snap(page, info, "26-route-large-text");
   void errors;
 });
