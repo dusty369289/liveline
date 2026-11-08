@@ -39,8 +39,11 @@
 .trains__row + .trains__row { border-top: 1px solid var(--line); }
 .trains__link {
   display: grid; grid-template-columns: 6.25rem 1fr auto; gap: 0 var(--s-3); /* fits "● Left 09:00" on one line */
-  align-items: center; padding: var(--s-3) 0; text-decoration: none; min-height: 4rem;
+  /* The time and the destination share a baseline however many lines the destination takes (test/ui/align.spec.ts);
+     the platform plate stays in the row's middle */
+  align-items: baseline; padding: var(--s-3) 0; text-decoration: none; min-height: 4rem;
 }
+.trains__link > .trains__plat { align-self: center; }
 @media (hover: hover) { .trains__link:hover .trains__place { text-decoration: underline; text-decoration-thickness: 2px; } }
 .trains__when { display: grid; }
 .trains__time { font: 700 1.5rem/1 var(--sign-font); }

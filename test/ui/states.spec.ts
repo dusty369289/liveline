@@ -141,9 +141,11 @@ test("train: not left yet, so none of the line is inked as travelled", async ({ 
 test("train: the travelled ink starts at the first stop and sits on the line's centre", async ({ page, errors }) => {
   await firstTrain(page, "/board?station=PAD&to=OXF&time=09:00");
   const done = (await page.locator(".route__done").boundingBox())!;
-  const mark = (await page.locator(".route__pt").first().locator(".route__mark").boundingBox())!;
-  expect(Math.abs(done.x + done.width / 2 - (mark.x + mark.width / 2))).toBeLessThan(0.5);
-  expect(Math.abs(done.y - (mark.y + mark.height / 2))).toBeLessThan(1);
+  const mark = page.locator(".route__pt").first().locator(".route__mark");
+  const box = (await mark.boundingBox())!;
+  const ring = box.y + await mark.evaluate((el) => parseFloat(getComputedStyle(el, "::after").top)); // the ring's centre
+  expect(Math.abs(done.x + done.width / 2 - (box.x + box.width / 2))).toBeLessThan(0.5);
+  expect(Math.abs(done.y - ring)).toBeLessThan(1);
   void errors;
 });
 

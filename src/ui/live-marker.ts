@@ -10,10 +10,17 @@ export class LiveMarker {
   /** `jumpButton` is "Jump to train": hidden while there's no marker to jump to. */
   constructor(private region: HTMLElement, private clock: () => Ms, private jumpButton: HTMLElement | null) {}
 
+  /**
+   * Where a stop's ring is, from the top of the route: the ring is CSS (route.css puts it on the name's first line,
+   * --line-mid), so it's read from there rather than worked out again. A row with no mark: its middle.
+   */
   private rowCentre(row: Element | null | undefined, wrap: Element): number | null {
     if (!row) return null;
-    const r = row.getBoundingClientRect();
     const w = wrap.getBoundingClientRect();
+    const mark = row.querySelector(".route__mark");
+    const ring = mark ? parseFloat(getComputedStyle(mark, "::after").top) : NaN;
+    if (mark && Number.isFinite(ring)) return mark.getBoundingClientRect().top - w.top + ring;
+    const r = row.getBoundingClientRect();
     return r.top - w.top + r.height / 2;
   }
 
