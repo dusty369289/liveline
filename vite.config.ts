@@ -40,6 +40,9 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     testTimeout: 10_000, // a hang is a bug, not a limit to raise
-    reporters: ["default", "./test/harness/review-reporter.ts"], // timing and flaky review, failures.log
+    // Locally a dot per test, failures in full and the summary: a passing run is a few lines, not one per file, which
+    // is what an agent reads back each time. CI keeps the per-file list in its log. `--reporter=default` for it here.
+    // The review reporter keeps the timing and flaky review, and failures.log, either way.
+    reporters: [process.env.CI ? "default" : "dot", "./test/harness/review-reporter.ts"],
   },
 });

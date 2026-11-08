@@ -13,7 +13,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // the review reporter records outcomes and times, so a fail then a pass is listed as flaky (test/harness/review.ts)
-  reporter: [["list"], ["./test/ui/contact-sheet.ts"], ["./test/harness/review-playwright.ts"]],
+  // Locally a dot per test, failures in full and the summary (a passing run is a few lines, which is what an agent
+  // reads back); CI keeps the per-test list in its log. `--reporter=list` for it here.
+  reporter: [[process.env.CI ? "list" : "dot"], ["./test/ui/contact-sheet.ts"], ["./test/harness/review-playwright.ts"]],
   use: {
     baseURL: `http://localhost:${PORT}`,
     locale: "en-GB",

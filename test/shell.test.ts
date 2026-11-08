@@ -22,6 +22,9 @@ async function platformOn(native: boolean) {
     ...(await real<typeof import("@capacitor/core")>()),
     Capacitor: { isNativePlatform: () => native, getPlatform: () => (native ? "android" : "web") },
     SystemBars: bars,
+    // The real one keeps a registry on the global object, which outlives resetModules, so each fresh load warned
+    // that "Updater" was already registered. These tests never use the updater.
+    registerPlugin: () => ({}),
   }));
   const platform = await import("../src/platform");
   return { platform, app, bars, listeners };
