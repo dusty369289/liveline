@@ -3,7 +3,7 @@
 # - Each required check (REQUIRED, the job names in ci.yml and the "main" ruleset) ran on the PR's current head and
 #   passed. "Skipped" is not passed (GitHub would accept it), and a check that never reported is not passed either.
 # - The PR's title and body are clean (history-check.mjs: no AI attribution, nothing personal). CI checks them too;
-#   this catches an edit made since.
+#   this catches an edit made since. A Dependabot PR's body (the upstream changelog) isn't checked; its title is.
 # - The merge is pinned to that head commit, so a push that lands meanwhile makes the merge fail, not slip through.
 # - Process work (chore/, ci/, test/, docs/, refactor/ branches) is labelled "process" first, out of release notes.
 # Merging happens only when the owner says so (AGENTS.md). This script makes sure it's safe when they do.
@@ -28,7 +28,9 @@ fi
 
 title=$(gh pr view "$n" -R "$repo" --json title --jq .title)
 body=$(gh pr view "$n" -R "$repo" --json body --jq .body)
-if ! PR_TITLE="$title" PR_BODY="$body" node "$(dirname "$0")/history-check.mjs"; then
+# history-check.mjs skips the body of a Dependabot PR (the upstream changelog), and only that
+author=$(gh pr view "$n" -R "$repo" --json author --jq .author.login)
+if ! PR_AUTHOR="$author" PR_TITLE="$title" PR_BODY="$body" node "$(dirname "$0")/history-check.mjs"; then
   echo "merge: refusing PR #$n: edit its title or body first." >&2
   exit 1
 fi
