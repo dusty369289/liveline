@@ -71,10 +71,13 @@ describe("one place for each thing", () => {
 });
 
 describe("small files", () => {
-  // A file past this has two jobs: split it (pages/, views/, components/, widgets/, store/).
+  // A file past this has two jobs: split it (pages/, views/, components/, widgets/, store/). The Android shell's own
+  // Java counts too: Capacitor's generated files live elsewhere, so everything under java/ is ours.
   const LIMIT = 300;
+  const java = files(join(ROOT, "android/app/src/main/java"), /\.java$/);
+  it("counts the Android shell's Java", () => expect(java.length).toBeGreaterThan(0));
   it(`no source file over ${LIMIT} lines`, () => {
-    const big = [...source, ...files(join(ROOT, "test"), /\.ts$/).filter((p) => !p.includes("/golden/"))]
+    const big = [...source, ...java, ...files(join(ROOT, "test"), /\.ts$/).filter((p) => !p.includes("/golden/"))]
       .map((p) => [rel(p), text(p).split("\n").length] as const).filter(([, n]) => n > LIMIT)
       .filter(([p]) => !EXEMPT[p]);
     expect(big).toEqual([]);

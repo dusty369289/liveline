@@ -41,7 +41,8 @@ src/
     html.ts, routes.ts, format.ts   the escaping template, hash routes, text formatting
   data/        bundled station list (ODbL, see its README)
 public/css/    CUBE layers; the only raw colours are in themes/platform.css
-android/       Capacitor's Android project (committed), including UpdaterPlugin.java
+android/       Capacitor's Android project (committed), including UpdaterPlugin.java (the install) and ApkDownload.java
+               (fetching the APK and checking its SHA-256)
 test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt/ (RTT recordings), golden/ (frozen
                answers), harness/ (the test review), ui/ (Playwright: *.spec.ts)
                readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
@@ -57,8 +58,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   `core/keys.ts` and `ui/store/keys.ts`. `localStorage` only through `Pref` (and the platform's browser key store).
   Markup reaches the page only through `html.ts` (`render`, `fragment`), so everything is escaped. Raw colours only in
   the theme.
-- **Small files:** none over 300 lines. Three core files are exempt, each with its reason in the test; a new exemption
-  needs a reason a reviewer would accept, not "it grew".
+- **Small files:** none over 300 lines, counting the Android shell's own Java (`android/app/src/main/java`). Three
+  core files are exempt, each with its reason in the test; a new exemption needs a reason a reviewer would accept, not
+  "it grew".
 - Clock and transport are injected (`Rail`, `RttClient`, `SimTransport`, `TestReview`), so tests control time and
   never touch the network.
 
