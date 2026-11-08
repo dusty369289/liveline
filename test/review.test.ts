@@ -44,6 +44,13 @@ describe("timing review", () => {
     expect(review.record([...steady(), passed("tiny", 120)], "fp").newlySlow).toEqual([]); // 3.4x, but only 85 ms
   });
 
+  it("ignores a small test slowed by its neighbours in a parallel run", () => {
+    // 2026-11-08: whole files of 10 ms tests ran at about 250 ms beside the tests that spawn git and sh, and went on the
+    // queue every run, a different file each time: noise, not a regression
+    for (let i = 0; i < 3; i++) review.record([...steady(), passed("small", 30)], "fp");
+    expect(review.record([...steady(), passed("small", 270)], "fp").newlySlow).toEqual([]);
+  });
+
   it("a fast test that suddenly takes far longer is queued, not taken as its new normal", () => {
     for (let i = 0; i < 3; i++) review.record([...steady(), passed("tiny", 5)], "fp");
     expect(review.record([...steady(), passed("tiny", 900)], "fp").newlySlow).toEqual(["tiny"]);
