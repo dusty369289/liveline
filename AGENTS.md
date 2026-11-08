@@ -109,7 +109,10 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
 - **Board:** departures or arrivals at a station from a time (default now), 60 minutes shown, optional second station
   ("calling at", or "from" for arrivals). RTT charges one call however wide the window, so each call fetches three
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
-  shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
+  shown: booked in the window, plus earlier ones still running late into it. A quiet board fills up from the rest of
+  that answer to `BOARD_FILL` (6) trains, with every train booked the same minute as the sixth (`Rail.board`, owner
+  2026-11-08: a two-an-hour route showed two): it then runs to its last train ("09:00 to 11:30") and Later starts just
+  after it (`BoardResult.next`), or, with fewer in the whole answer, to the answer's end. Earlier is an hour back. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board (no time, and no day or today's) refreshes itself every 2 minutes while on screen for 15
   minutes (`BOARD_REFRESH`), then waits for Refresh. Nothing is asked while the app is hidden; coming back refreshes at once if a round was missed.
   Both ask only when the answer on screen is 2 minutes old, so coming back and the next round never both ask. A
@@ -471,7 +474,7 @@ for attribution and personal details.
 - **Test review** (`test/harness/review.ts`, state in `.test-review/`): both suites feed it, Vitest through
   `review-reporter.ts` and Playwright through `review-playwright.ts` (browser ids are `file > project > title`; a
   timeout counts as a failure). Each test's time is kept against its baseline. A
-  test clearly slower (over 2x and 100 ms, after allowing for the whole machine being slower) stays queued on every run
+  test clearly slower (over 2x and 250 ms, after allowing for the whole machine being slower) stays queued on every run
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that
   fails then passes on the same code is flaky and stays listed until `npm run review -- explain "<id>" --reason "..."`.
   Never re-run until green. Every failure's message goes to `.test-review/failures.log`. Warnings never fail a run;

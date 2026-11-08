@@ -94,7 +94,7 @@ const T1 = fromLondon(2026, 7, 6, 15, 0); // the platform-changed recording's af
 
 function platformBoard(mode: "dep" | "arr"): BoardResult {
   const b = parseBoard(fixture("spec_location_platform_changed.json"), { fallbackName: "Reading", timeFrom: T1, timeTo: T1 + 3_600_000, today: () => T1 });
-  return { board: b, rows: b.rows, station: undefined, fetched: { body: null, fetchedAt: T1, stale: false, note: null }, mode, to: undefined, hidden: 0, showAll: false };
+  return { board: b, rows: b.rows, station: undefined, fetched: { body: null, fetchedAt: T1, stale: false, note: null }, mode, to: undefined, hidden: 0, showAll: false, next: b.timeTo };
 }
 
 /** Each row's text as a screen reader meets it: aria-hidden parts dropped, tags removed, spaces squeezed. */
@@ -140,7 +140,7 @@ function rendered(): Map<string, string> {
   const board = parseBoard(fixture("spec_location_platform_states.json"),
     { fallbackName: "Reading", timeFrom: t0, timeTo: t0 + 3_600_000, today: () => NOW });
   const res: BoardResult = {
-    board, rows: board.rows, station: undefined, mode: "dep", to: undefined, hidden: 0, showAll: false,
+    board, rows: board.rows, station: undefined, mode: "dep", to: undefined, hidden: 0, showAll: false, next: board.timeTo,
     fetched: { body: null, fetchedAt: NOW, stale: false, note: null },
   };
   const out = boardView(res, NAV, false, NOW).value;

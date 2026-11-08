@@ -26,7 +26,14 @@ export interface BoardResult {
   to: Station | undefined;
   hidden: number; // empty stock and staff-only calls left out
   showAll: boolean;
+  next: Ms; // where Later starts: the end of the hour, or just after the last train when the board filled up
 }
+
+/**
+ * A board shows at least this many trains when the answer already fetched has them: the hour alone on a quiet route
+ * (two an hour) looks empty. Six fills a phone's screen without scrolling at normal text, and costs no call.
+ */
+export const BOARD_FILL = 6;
 
 export interface ServiceResult {
   timeline: Timeline;
@@ -187,28 +194,53 @@ export class Rail {
       }
       throw e;
     }
-    const parsed = parseBoard(f.body, { fallbackName: st ? st.name : code, timeFrom: when, timeTo: when + window * 60_000, today: this.clock });
-    // the answer may have been fetched for a wider, earlier window: the board shown is this one
-    const b: Board = { ...parsed, timeFrom: when, timeTo: when + window * 60_000 };
+    const until = when + window * 60_000;
+    const parsed = parseBoard(f.body, { fallbackName: st ? st.name : code, timeFrom: when, timeTo: until, today: this.clock });
     // The answer may cover more than is shown (one call fetches FETCH_WINDOW). Keep this window: booked inside it, or
     // booked a little earlier but not gone yet (a late train mustn't vanish because the answer was fetched earlier).
-    const until = when + window * 60_000;
     const inWindow = (t: Times) => {
       const bk = booked(t);
       const live = t.actual ?? t.forecast ?? t.estimate ?? bk;
       if (bk == null) return live == null || (live >= when && live < until);
       return bk < until && (bk >= when || (live != null && live >= when && t.actual == null));
     };
-    let rows = mode === "arr"
-      ? b.rows.filter((r) => !isEmpty(r.arrival) && r.callType !== "ADVERTISED_PICK_UP" && inWindow(r.arrival))
-      : b.rows.filter((r) => !isEmpty(r.departure) && r.callType !== "ADVERTISED_SET_DOWN" && inWindow(r.departure));
+    const times = (r: BoardRow) => (mode === "arr" ? r.arrival : r.departure);
+    const calls = (r: BoardRow) => !isEmpty(times(r))
+      && r.callType !== (mode === "arr" ? "ADVERTISED_PICK_UP" : "ADVERTISED_SET_DOWN");
+    let rows = parsed.rows.filter((r) => calls(r) && inWindow(times(r)));
     let hidden = 0;
     if (!showAll) {
       const before = rows.length;
       rows = rows.filter(forPassengers);
       hidden = before - rows.length;
     }
-    return { board: b, rows, station: st, fetched: f, mode, to: toSt, hidden, showAll };
+    // A quiet board (two trains an hour) fills up from the rest of the answer already fetched, so it costs nothing:
+    // the next trains in time order until there are BOARD_FILL, and every train booked the same minute as the last.
+    // The board then runs to its last train (Later starts after it), or to the end of the answer if even that has
+    // fewer, so the summary line says plainly what's shown.
+    let timeTo = until;
+    let next = until;
+    const end = f.until ?? until;
+    if (rows.length < BOARD_FILL && end > until) {
+      const after = parsed.rows
+        .filter((r) => calls(r) && (showAll || forPassengers(r)))
+        .filter((r) => { const bk = booked(times(r)); return bk != null && bk >= until && bk < end; })
+        .sort((a, b) => booked(times(a))! - booked(times(b))!);
+      const cut = after[BOARD_FILL - rows.length - 1];
+      if (cut) {
+        const last = booked(times(cut))!;
+        rows = [...rows, ...after.filter((r) => booked(times(r))! <= last)];
+        timeTo = last;
+        next = last + 60_000;
+      } else {
+        rows = [...rows, ...after];
+        timeTo = end;
+        next = end;
+      }
+    }
+    // the answer may have been fetched for a wider, earlier window: the board shown is this one
+    const b: Board = { ...parsed, timeFrom: when, timeTo };
+    return { board: b, rows, station: st, fetched: f, mode, to: toSt, hidden, showAll, next };
   }
 
   async service(uniqueId: string, opts: { background?: boolean; force?: boolean; at?: string; to?: string } = {}): Promise<ServiceResult> {

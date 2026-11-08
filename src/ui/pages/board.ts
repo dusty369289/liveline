@@ -67,7 +67,7 @@ export class BoardPage extends Page {
     const t0 = res.board.timeFrom;
     return {
       earlier: boardHash({ ...q, ...timeParams(t0 - 3_600_000) }),
-      later: boardHash({ ...q, ...timeParams(t0 + 3_600_000) }),
+      later: boardHash({ ...q, ...timeParams(res.next) }), // after the last train shown: an hour on, or more if it filled up
       refresh: boardHash(q, { refresh: 1 }),
       switch: boardHash({ ...q, mode: q.mode === "arr" ? "dep" : "arr" }),
       all: boardHash({ ...q, all: q.all ? "" : "1" }),
