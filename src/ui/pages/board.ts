@@ -9,9 +9,10 @@ import { Page } from "./page";
 /**
  * A "now" board updates itself every 2 minutes while on screen, as a background call (it never spends the calls kept
  * for searches), for its first 15 minutes; then it waits for Refresh. Left open on a table it would otherwise cost
- * 30 calls an hour.
+ * 30 calls an hour. A round asks only if the answer on screen is at least `every` old (less `slack`, as a timer can
+ * fire a moment early against the wall clock), so coming back and the next round never both ask.
  */
-export const BOARD_REFRESH = { every: 120_000, for: 15 * 60_000 };
+export const BOARD_REFRESH = { every: 120_000, for: 15 * 60_000, slack: 500 };
 
 export class BoardPage extends Page {
   readonly tab: RouteName = "unknown"; // no tab lit, as before: a board is a result, not a tab
@@ -93,8 +94,9 @@ export class BoardPage extends Page {
     let last = opened; // when the answer on screen was asked for
     let busy = false;
     let stopped = false;
+    const due = () => Date.now() - last >= BOARD_REFRESH.every - BOARD_REFRESH.slack;
     const refresh = async () => {
-      if (stopped || busy || document.visibilityState !== "visible") return;
+      if (stopped || busy || document.visibilityState !== "visible" || !due()) return;
       if (Date.now() - opened > BOARD_REFRESH.for) {
         stopped = true;
         stop();
@@ -120,9 +122,7 @@ export class BoardPage extends Page {
       }
     };
     const stop = this.every(BOARD_REFRESH.every, refresh);
-    const back = () => {
-      if (Date.now() - last >= BOARD_REFRESH.every) void refresh();
-    };
+    const back = () => void refresh();
     document.addEventListener("visibilitychange", back);
     this.onDispose(() => document.removeEventListener("visibilitychange", back));
   }

@@ -86,7 +86,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Nothing is asked while the app is hidden; coming back refreshes at once if a round was missed. A
+  waits for Refresh. Nothing is asked while the app is hidden; coming back refreshes at once if a round was missed.
+  Both ask only when the answer on screen is 2 minutes old, so coming back and the next round never both ask. A
   refresh replaces the window line, its links and everything below the header, and only on its own board (an answer
   arriving after you've moved on is dropped). Empty stock and staff-only rows are hidden unless "show all".
 - **Search:** station, Departures or Arrivals, an optional second station (labelled "Calling at" or "Coming from" to

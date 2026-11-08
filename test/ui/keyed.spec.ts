@@ -26,29 +26,54 @@ const hide = (page: Page, hidden: boolean) => page.evaluate((h) => {
   document.dispatchEvent(new Event("visibilitychange"));
 }, hidden);
 
+/**
+ * Move the page's clock on, then wait a moment of real time: a call the round started is asynchronous, so counting at
+ * once would miss it, and "nothing more was asked" can only be seen after giving it the chance.
+ */
+async function after(page: Page, ms: number): Promise<void> {
+  await page.clock.runFor(ms);
+  await page.waitForTimeout(SETTLE);
+}
+const SETTLE = 400;
+
+/**
+ * Run a step that refreshes the board, and wait until the page has drawn the answer: until then the refresh is still
+ * busy, and a round the clock reaches meanwhile is skipped. A refresh replaces the body, so the marked foot goes.
+ */
+async function redrawn(page: Page, step: () => Promise<void>): Promise<void> {
+  await page.locator(".board__foot").evaluate((e) => e.setAttribute("data-drawn-before", ""));
+  await step();
+  await expect(page.locator(".board__foot:not([data-drawn-before])")).toHaveCount(1);
+}
+
 test("a now board asks again each round once its answer is old, and stops after 15 minutes", async ({ page, errors }) => {
   const rtt = await keyed(page);
   await open(page, "/board?station=RDG");
   expect(rtt.calls()).toBe(1);
   for (let round = 1; round * ROUND <= FOR; round++) {
-    await page.clock.runFor(ROUND);
-    await expect.poll(rtt.calls).toBe(round + 1);
+    await redrawn(page, () => page.clock.runFor(ROUND));
+    expect(rtt.calls()).toBe(round + 1);
   }
   await page.clock.runFor(ROUND);
   await expect(page.locator(".board__foot")).toContainText("Stopped updating");
-  await page.clock.runFor(5 * ROUND);
+  await after(page, 5 * ROUND); // settled: an extra call in any round above would show here
   expect(rtt.calls()).toBe(Math.floor(FOR / ROUND) + 1); // the first answer, then 7 rounds
   void errors;
 });
 
-test("a now board asks nothing while hidden, and once on coming back", async ({ page, errors }) => {
+test("a now board asks nothing while hidden, and once on coming back, even just before a round", async ({ page, errors }) => {
   const rtt = await keyed(page);
   await open(page, "/board?station=RDG");
   await hide(page, true);
-  for (let i = 0; i < 3; i++) await page.clock.runFor(ROUND);
+  // Back 90 s before a round: older than the client keeps a board (a minute), so a second ask would reach RTT
+  await after(page, 3 * ROUND - 90_000);
   expect(rtt.calls()).toBe(1);
-  await hide(page, false);
-  await expect.poll(rtt.calls).toBe(2);
+  await redrawn(page, () => hide(page, false));
+  expect(rtt.calls()).toBe(2);
+  await after(page, 100_000); // the round comes 90 s after that answer: too soon to ask again
+  expect(rtt.calls()).toBe(2);
+  await after(page, ROUND); // the next round: the answer is old again
+  expect(rtt.calls()).toBe(3);
   void errors;
 });
 

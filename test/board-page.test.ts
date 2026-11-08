@@ -169,6 +169,20 @@ describe("coming back to a board", () => {
     expect(app.held.length).toBe(0);
   });
 
+  it("coming back just before a round never makes that round ask again", async () => {
+    const app = await setup();
+    await app.open("#/board?station=PAD");
+    doc.visibilityState = "hidden";
+    await vi.advanceTimersByTimeAsync(3 * BOARD_REFRESH.every - 10_000);
+    doc.visibilityState = "visible";
+    doc.fire("visibilitychange");
+    await app.release(); // the refresh on coming back
+    await vi.advanceTimersByTimeAsync(20_000); // past the round, 10 s after that refresh
+    expect(app.held.length).toBe(0);
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.every); // the next round: the answer is old again
+    expect(app.held.length).toBe(1);
+  });
+
   it("stops listening when you leave, and after its 15 minutes", async () => {
     const app = await setup();
     await app.open("#/board?station=PAD");
