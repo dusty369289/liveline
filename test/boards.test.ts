@@ -2,7 +2,8 @@
 // minute ticking over cost nothing. The simulator stands in for RTT and counts the calls. Which rows a board shows is
 // checked over a real recording and a spec-derived fixture.
 import { describe, expect, it } from "vitest";
-import { Rail } from "../src/core/rail";
+import { booked } from "../src/core/models";
+import { BOARD_FILL, Rail } from "../src/core/rail";
 import { FETCH_WINDOW, FUTURE_BOARD_TTL } from "../src/core/rtt";
 import { fromLondon, type Ms } from "../src/core/time";
 import { FakeRtt, fixture, GOOD, MemStore, simulator, stations } from "./support";
@@ -48,6 +49,44 @@ describe("wide board fetches", () => {
     expect(ids(fromWide)).toEqual(ids(fromNarrow));
     expect(fromWide.rows.length).toBeGreaterThan(0);
     expect(fromWide.board.timeFrom).toBe(later);
+  });
+
+  it("a quiet board fills up to BOARD_FILL trains from the three hours already fetched, with no more calls", async () => {
+    // Paddington calling at Oxford: two an hour, so the hour alone shows two (owner, 2026-11-08: "looks stupid")
+    const t = fromLondon(2026, 11, 7, 9, 0);
+    const { rail, boards } = await setup(t);
+    const res = await rail.board({ station: "PAD", to: "OXF" });
+    expect(boards().length).toBe(1);
+    expect(res.rows.length).toBeGreaterThanOrEqual(BOARD_FILL);
+    const times = res.rows.map((r) => booked(r.departure)!);
+    expect(times.filter((x) => x >= t + 60 * 60_000).length).toBeGreaterThan(0); // some from past the hour
+    expect(times.every((x) => x < t + FETCH_WINDOW * 60_000)).toBe(true); // all from what was fetched
+    // the board says what it shows: from its start to its last train, and Later starts after that train
+    const last = Math.max(...times);
+    expect(res.board.timeTo).toBe(last);
+    expect(res.next).toBe(last + 60_000);
+    // and Later from there is served from the same answer, without repeating a train
+    const later = await rail.board({ station: "PAD", to: "OXF", when: res.next });
+    expect(later.rows.some((r) => res.rows.some((x) => x.uniqueId === r.uniqueId))).toBe(false);
+  });
+
+  it("a board with BOARD_FILL trains already shows just its window, as before", async () => {
+    const t = fromLondon(2026, 11, 7, 9, 0);
+    const { rail } = await setup(t);
+    const res = await rail.board({ station: "PAD", window: 120 }); // the demo's Paddington: two hours is plenty
+    expect(res.rows.length).toBeGreaterThanOrEqual(BOARD_FILL);
+    expect(res.board.timeTo).toBe(t + 120 * 60_000);
+    expect(res.next).toBe(t + 120 * 60_000);
+  });
+
+  it("with fewer than BOARD_FILL in the whole three hours, shows them all and says the board runs to the end", async () => {
+    const t = fromLondon(2026, 11, 7, 23, 0); // late: the railway is closing
+    const { rail, boards } = await setup(t);
+    const res = await rail.board({ station: "PAD", to: "OXF" });
+    expect(boards().length).toBe(1);
+    expect(res.rows.length).toBeLessThan(BOARD_FILL);
+    expect(res.board.timeTo).toBe(t + FETCH_WINDOW * 60_000);
+    expect(res.next).toBe(t + FETCH_WINDOW * 60_000);
   });
 
   it("a different filter or mode is a different question", async () => {

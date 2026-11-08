@@ -19,6 +19,7 @@ export interface Fetched {
   fetchedAt: Ms;
   stale: boolean; // served from cache because we couldn't (or shouldn't) refetch
   note: string | null; // why it's stale
+  until?: Ms; // a board: where the fetched answer ends (it may run past the board asked for, to FETCH_WINDOW)
 }
 
 export interface TokenInfo {
@@ -283,7 +284,7 @@ export class RttClient {
       for (const [key, seg] of this.segments) {
         if (seg.code !== c || seg.ft !== ft || seg.ff !== ff || seg.from > timeFrom || seg.until < until) continue;
         const hit = this.cache.get(key);
-        if (hit && (this.clock() - hit.fetchedAt) / 1000 < ttl) return hit;
+        if (hit && (this.clock() - hit.fetchedAt) / 1000 < ttl) return { ...hit, until: seg.until };
       }
     }
     const fetchMin = Math.max(windowMin, FETCH_WINDOW);
@@ -296,7 +297,7 @@ export class RttClient {
     const f = await this.get(key, "/gb-nr/location", params, ttl, !background, force);
     this.segments.set(key, { code: c, ft, ff, from: timeFrom, until: timeFrom + fetchMin * 60_000 });
     for (const k of this.segments.keys()) if (!this.cache.has(k)) this.segments.delete(k); // dropped from the cache
-    return f;
+    return { ...f, until: timeFrom + fetchMin * 60_000 };
   }
 
   /** Boards near now change by the minute; one starting an hour or more ahead barely changes, so keep it longer. */

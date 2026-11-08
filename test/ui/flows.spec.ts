@@ -58,12 +58,16 @@ test("tabbing onto the checked radio keeps the dark focus ring, not just the yel
   void errors;
 });
 
-test("Later and Earlier step the board by an hour", ONCE, async ({ page, errors }) => {
-  await open(page, "/board?station=PAD&time=09:00");
+test("a quiet board fills up from what's fetched, Later carries on after its last train, Earlier steps back an hour", ONCE, async ({ page, errors }) => {
+  // Paddington calling at Oxford runs twice an hour: the hour alone was two trains (BOARD_FILL in core/rail.ts)
+  await open(page, "/board?station=PAD&to=OXF&time=09:00");
+  await expect(page.locator(".trains__row")).toHaveCount(6);
+  await expect(page.locator(".board__sub")).toContainText("09:00 to 11:30"); // to its last train
   await page.getByRole("link", { name: "Later", exact: true }).click();
-  await expect(page.locator(".board__sub")).toContainText("10:00 to 11:00");
+  await expect(page.locator(".board__sub")).toContainText("11:31 to");
+  await expect(page.locator(".trains__time").first()).toHaveText("12:00"); // the next train, none repeated
   await page.getByRole("link", { name: "Earlier", exact: true }).click();
-  await expect(page.locator(".board__sub")).toContainText("09:00 to 10:00");
+  await expect(page.locator(".board__sub")).toContainText("10:31 to");
   void errors;
 });
 

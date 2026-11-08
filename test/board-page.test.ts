@@ -144,8 +144,10 @@ describe("a refreshing board", () => {
 
   it("the window line and Earlier/Later follow the fresh answer, in the top slot only", async () => {
     const { top, body } = await refreshOnce(await setup(), (r) => r);
-    expect(top).toContain("09:02 to 10:02"); // a "now" board moved on two minutes
-    expect(top).toContain("time=10%3A02"); // Later is an hour after the new start
+    // A "now" board moved on two minutes. The demo's Paddington has fewer than BOARD_FILL trains an hour, so it runs
+    // on to its sixth train (10:30), and Later starts just after it
+    expect(top).toContain("09:02 to 10:30");
+    expect(top).toContain("time=10%3A31");
     expect(body).not.toContain("board__nav");
   });
 });
