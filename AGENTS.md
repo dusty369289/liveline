@@ -87,7 +87,8 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   kept for searches: background work never spends them. Running out shows the last answer, never "not found"; with
   nothing kept, "Allowance used up" when this key's calls are spent (`AllowanceError`: ours, not RTT's), or "busy" when
   RTT asked us to wait. That page names one wait: its own (Problem pages, below), or the time RTT gave when that is
-  later (`BusyError.retryAt`).
+  later (`BusyError.retryAt`). "Allowance used up" says when searches work again (`Budget.freeAt`, as the oldest
+  calls leave the window), and its retry, a background call, waits until 11 calls are free so it can succeed.
 - **Be plain about limits.** Say when data is simulated, stale, estimated by us, or missing. Never pass our estimate off
   as RTT's forecast. RTT has no signal or berth data: never claim signals.
 - **Tests never touch the network.** Unit tests use the simulator or fakes; browser tests fake RTT and GitHub and fail on

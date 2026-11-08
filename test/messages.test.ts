@@ -20,7 +20,7 @@ const text = (h: { value: string }) => h.value.replace(/<[^>]+>/g, " ").replace(
 describe("when the allowance stops a call", () => {
   const clock = new Clock(fromLondon(2026, 11, 7, 9, 20));
 
-  it("blames this key's hourly allowance, not Realtime Trains, and gives no wait of its own", async () => {
+  it("blames this key's hourly allowance, not Realtime Trains, and says when searches work again", async () => {
     const b = new Budget(clock.now);
     const c = new RttClient(ok, ACCESS, b, clock.now);
     await c.checkToken();
@@ -28,8 +28,23 @@ describe("when the allowance stops a call", () => {
     const e = await c.service("X1:2026-11-07").catch((x: unknown) => x);
     expect(e).toBeInstanceOf(AllowanceError);
     expect(e).toBeInstanceOf(BusyError); // still retried like any busy answer
-    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again as the hour's calls free up.");
-    expect((e as BusyError).retryAt).toBeNull();
+    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 10:20.");
+  });
+
+  it("an hour spent by its own calls names the time, and tries again only once a background call can go", async () => {
+    const own = new Clock(fromLondon(2026, 11, 7, 8, 30));
+    const b = new Budget(own.now);
+    const c = new RttClient(ok, ACCESS, b, own.now);
+    for (let i = 0; i < 100; i++) {
+      b.spend();
+      own.advance(30); // the last at 09:19:30
+    }
+    const e = await c.service("X4:2026-11-07").catch((x: unknown) => x);
+    expect((e as Error).message).toBe("This key's calls for this hour are used up. Searches work again at 09:30.");
+    // The page's retry is a background call, which can't use the 10 kept for searches: not before 11 are free
+    const at = (e as BusyError).retryAt!;
+    expect(at).toBeGreaterThanOrEqual(b.freeAt("hour", 11)!);
+    expect(text(problemView("Allowance used up", (e as Error).message, { secs: 30, at }))).toMatch(/tries again by itself at 09:35/);
   });
 
   it("names the minute when only the minute's calls are gone", async () => {
@@ -39,7 +54,7 @@ describe("when the allowance stops a call", () => {
     for (let i = 0; i < 10; i++) b.spend();
     const e = await c.service("X2:2026-11-07").catch((x: unknown) => x);
     expect(e).toBeInstanceOf(AllowanceError);
-    expect((e as Error).message).toMatch(/this minute/);
+    expect((e as Error).message).toBe("This key's calls for this minute are used up. Searches work again at 09:21.");
   });
 
   it("when Realtime Trains says wait, the wait is the error's, not the message's", async () => {
