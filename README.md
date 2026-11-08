@@ -58,7 +58,7 @@ your own free key. There's no server and no account, and without a key it runs a
 | **Your journeys** | Save a commute once, then it's one tap, and **Return** gives the way home. Recent trains, and "Carry on" for one still running |
 | **Gentle on your allowance** | Every call is counted, cached and paced to fit Realtime Trains' free 100 an hour |
 | **Updates itself** | One tap downloads the next release, checks it and installs it over this one, keeping your key and journeys |
-| **Light and dark** | Warm paper by day, deep navy at night, styled after British station signs |
+| **Three themes, light and dark** | **Operator colour** (each train in its operator's colours, the default), **Swiss timetable** or **Quiet**, picked in Settings from a picture of each. All follow your phone's light or dark setting |
 
 ## Install
 
@@ -146,6 +146,10 @@ use a simulator and recordings of real Realtime Trains answers, and the browser 
 - Train data: [Realtime Trains](https://www.realtimetrains.co.uk/). LiveLine isn't affiliated with them.
 - Station list: [uk-railway-stations](https://github.com/davwheat/uk-railway-stations) by David Wheatley, from
   [Trainline EU](https://github.com/trainline-eu/stations), under the ODbL.
-- Typefaces: Barlow and Barlow Semi Condensed by Jeremy Tribby, under the
-  [SIL Open Font License](public/fonts/OFL-barlow.txt).
+- Typefaces, all under the SIL Open Font License: [Figtree](public/fonts/OFL-figtree.txt) by Erik Kennedy,
+  [Inter Tight](public/fonts/OFL-inter-tight.txt) by Rasmus Andersson, and
+  [Atkinson Hyperlegible Next](public/fonts/OFL-atkinson-hyperlegible-next.txt) by the Braille Institute.
+- Operator colours: Wikipedia's [National Rail colours](https://en.wikipedia.org/wiki/Template:National_Rail_colour),
+  and the Elizabeth line's from TfL's own design idiom. Operator names and colours identify the trains; LiveLine isn't
+  connected with any operator.
 - [MIT licence](LICENSE).

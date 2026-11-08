@@ -32,10 +32,12 @@ src/
     app.ts       the router: a route name -> a Page class; draws it inside the chrome; problem pages
     pages/       one class per page (extends Page): load() data + markup, mount() wiring, dispose() timers
     views/       pure markup functions, data in, Html out (no DOM, no state)
-    components/  markup shared by views (chrome, search form, time marks, facility icons)
+    components/  markup shared by views (chrome, search form, time marks, facility icons, operator badges, a theme's
+                 miniature)
     widgets/     DOM behaviour as classes: shared by pages, or split out of one (station suggestions, passing-point
                  folds, tabs, the train page's announcer)
-    store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists
+    store/       everything kept on the device: Pref (one stored value), KEYS (every storage name), the lists,
+                 appearance (the theme and the train marker)
     updates.ts   the update check, banner and one-tap install
     live-train.ts  the train page while open: polling, folds, the sticky bar
     live-marker.ts the train marker and travelled line, placed every second against the rows as laid out
@@ -45,7 +47,8 @@ src/
     html.ts, routes.ts, format.ts   the escaping template, hash routes, text formatting
     focus.ts     keeping focus on the same control when markup is drawn again
   data/        bundled station list (ODbL, see its README)
-public/css/    CUBE layers; the only raw colours are in themes/platform.css
+public/css/    CUBE layers; the only raw colours are in themes/ (operator, swiss, quiet; operators.css; scene.css);
+               exception/ holds what each theme changes beyond its tokens
 android/       Capacitor's Android project (committed), including UpdaterPlugin.java (the install) and ApkDownload.java
                (fetching the APK and checking its SHA-256)
 test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt/ (RTT recordings), fixtures/release/
@@ -116,8 +119,8 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   early train is coloured early, not "On time"), "On time" when it matches. With no live time it says "Timetable" until 2 minutes past booked
   (`NO_REPORT_AFTER`), then "No report"; a bus with none says nothing there (the row already says Bus). Arrivals
   say "from" before the origin. The platform plate carries hidden words ("Platform 5, not confirmed, changed"), not an
-  aria-label. The platform is a navy plate when confirmed, outlined when only expected; a changed platform adds a
-  yellow bar along the plate's foot (either kind) and "Platform changed" in the row's details. The summary line under
+  aria-label. The platform is a solid plate when confirmed, outlined when only expected; a changed platform adds a
+  bar in the train's colour along the plate's foot (either kind) and "Platform changed" in the row's details. The summary line under
   the nameboard ("Departures calling at Oxford · 10:00 to 11:00") links to the search form filled in with this board's
   query, and Back from a board you searched for returns to the form as you filled it. Its controls are few and plain:
   Earlier, Later and the other direction as words, Refresh as an icon, and a star on the nameboard to save a journey.
@@ -227,12 +230,14 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   its `h1`; the same page drawn again, a train poll or a board refresh puts focus back on the same control (by id,
   name, `data-*` or href). The skip link focuses `main` rather than following `#main`.
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
-  the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
+  the theme (a miniature of each, the choice applied at once without drawing the page again) and the train marker
+  (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
   for Settings (named "Settings" for screen readers).
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
-  page leaves the app (minimised, as other apps do), which also lets predictive back work. The status bar has light
-  icons in both themes, over a fixed navy strip its height (`body::before`, in `--sign`) that stays whatever the page is
-  scrolled to; the gesture bar follows the system theme, including a day/night switch while the app is open. The CSS reads the status bar's height once, as `--inset-top`
+  page leaves the app (minimised, as other apps do), which also lets predictive back work. Both system bars
+  follow the phone's theme, including a day/night switch while the app is open: under the status bar is a fixed strip
+  its height in the top bar's colour (`body::before`, in `--bar`), whatever the page is scrolled to, and every theme's
+  top bar is light by day and dark at night. Before the page draws, the window is the default theme's page colour. The CSS reads the status bar's height once, as `--inset-top`
   (`test/design.test.ts`), so the browser tests stand in for a phone by setting it.
 - **Tiers** come from entitlements and reported limits: `allowDetailed` = Hobbyist features, a full-allocation
   entitlement or over 100 an hour = Team or above, nothing = Free.
@@ -252,16 +257,29 @@ one line of facts; class and units are in the Train view. Explanations (an outli
 
 ## UI
 
-The "Platform" look, from British rail signage: warm paper and navy ink (deep navy at night), Barlow and Barlow Semi
-Condensed, navy sign plates for platforms, a thick Beck-style line with ringed stops, the train as a yellow marker with
-an ink edge, one giant "N min" number. No cards, boxes, glow, gradients or pills: hierarchy comes from type. Two
-deliberate exceptions, so each page is known at a glance: a board's station name is a navy nameboard, and Settings
-groups its rows in panels, like a phone's settings. CUBE
+Three themes, picked in Settings > Appearance from a miniature of each (`components/theme-preview.ts`), each with a
+light and a dark set that follow the phone (owner, 2026-11-08; mock-ups in `notes/prototypes/overhaul`):
+- **Operator colour** (`operator`, the default): a grey page, white panels with round corners (board rows, the
+  train's status and route, journeys), Figtree, a yellow main button and train. Each board row has its operator's
+  badge in place of its name (the name stays for screen readers), and a train page's header wears its operator's
+  colour. Badges and colours: `components/operators.ts` (the operators' real short forms, or the brand as written;
+  LM split into LNR and WMR by name; no badge rather than a guess) and `themes/operators.css` (Wikipedia's National
+  Rail colours, TfL's for the Elizabeth line; white or black text, whichever reads; `test/operators.test.ts`).
+- **Swiss timetable** (`swiss`): white, black and one red, square corners, Inter Tight, rules instead of boxes, the
+  station name huge and heavy.
+- **Quiet** (`quiet`): soft paper, Atkinson Hyperlegible Next, a thin line, light figures and one big thin number.
+
+All three keep the same pages, content and layout: a theme changes colour, type, shapes and spacing only. Each is
+tokens on its own `[data-theme]` (`themes/*.css`, not `:root`, so a miniature in Settings can wear it), set on `<html>`
+by `store/appearance.ts` (`liveline.theme`); what a theme changes beyond tokens is in `exception/<theme>.css`, under
+`:root[data-theme]`, so the miniatures never pick it up. Every theme shares a thick line with ringed stops, the train
+as a marker with an edge, one giant "N min" number, and sign plates for platforms. CUBE
 layers `tokens, base, composition, block, utility, exception`; themes are token-only files. Phone first (412 px and
 360 px), 44 px touch targets (links inside sentences excepted; a link that is a whole line is a control and isn't), edge to edge with `env(safe-area-inset-*)`. A new
 page opens at the top; redrawing the same page keeps its place. Every text
-colour is at least 4.5:1 on what it sits on, in both themes, and the train marker 3:1 (`test/design.test.ts`, which
-also works out the cascade for the board's platform plate). Text grows with the phone's text size: content sets
+colour is at least 4.5:1 on what it sits on, in every theme, light and dark, and the train marker 3:1
+(`test/design.test.ts`, which also works out the cascade for the board's platform plate); `test/ui/themes.spec.ts`
+lays out every main page in each theme. Text grows with the phone's text size: content sets
 heights and text wraps rather than ending in "…". Where a row can't fit at large text, container queries (whose rem
 follows the root text size, unlike a media query's) stack it: board rows and route times go under the name, and the
 top bar's nav takes a line of its own. Checked at 200%: the board, the Route tab, the Train view and the train bar.
