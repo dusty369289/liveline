@@ -188,7 +188,8 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   dusk or night by the sun where the train is (`core/daylight.ts`), each tuned for the light and dark themes.
   Reduced motion: the scene stands still. Layers move by CSS transforms (composited), and it sleeps while standing.
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
-  (solid plate confirmed, outlined expected). Over 3 hours off, the big number is the time instead, and the other
+  (solid plate confirmed, outlined expected). From an arrivals board you're meeting it: the board's station is where
+  you get off (the count is to it reaching you), and its "from" station, if any, where you get on. Over 3 hours off, the big number is the time instead, and the other
   stop's line drops its "in N min"; within 3 hours both count down, across midnight too, and keep counting between
   polls ("Due" under a minute; `countText`, ticked by `widgets/countdowns.ts`). A train on another day says
   its day once, in the title ("08:05 London Waterloo to Woking · Mon 9 Nov"); a stop's time adds a day only when it

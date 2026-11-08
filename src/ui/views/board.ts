@@ -41,7 +41,10 @@ function row(r: BoardRow, res: BoardResult, here: string): Html {
   const arr = res.mode === "arr";
   const [state, liveCls] = status(r, arr);
   const cancelled = rowCancelled(r);
-  const href = `#/train/${encodeURIComponent(r.uniqueId)}${qs({ at: here, to: res.to?.crs })}`;
+  // On arrivals you meet the train here: this station is where it's followed to (you "get off" here), and the "from"
+  // station, if any, is where it was boarded. The train page then counts down to it reaching you.
+  const stops = arr ? { at: res.to?.crs, to: here } : { at: here, to: res.to?.crs };
+  const href = `#/train/${encodeURIComponent(r.uniqueId)}${qs(stops)}`;
   const platCls = `${r.platformChanged ? " is-changed" : ""}${r.platform && !r.platformConfirmed ? " is-unconfirmed" : ""}`;
   // A plain span's aria-label isn't read reliably, so the plate's words are hidden text inside it: "Platform 5, changed"
   const plate = r.platform ? html`<span class="visually-hidden">Platform </span><span class="trains__plat-label" aria-hidden="true">Plat</span>${

@@ -48,8 +48,10 @@ export function manualMinAge(hourLeft: number, reserve: number): number | null {
  * Seconds until the next poll, or null to stop (FINISHED). Passing your own stop
  * doesn't stop it: you may want to watch it carry on, and nothing polls unless the train page is on screen.
  * `budgetSecs` is the allowance's own floor (Budget.refreshInterval); the answer is never sooner than that.
+ * `at` and `to` are where you get on and off; with no `at` (a train you're meeting, opened from arrivals), the stop
+ * that counts for "far off" is `to`.
  */
-export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): number | null {
+export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = "", to = ""): number | null {
   const p = tl.position;
   if (FINISHED.includes(p.state)) return null;
 
@@ -76,7 +78,7 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
     const due = secsTo(p.expected);
     s = due == null ? 90 : clamp(due + POLL.afterDue, POLL.running, POLL.max);
   }
-  const mine = at ? yourStops(tl, at, "")[0] : null;
+  const mine = at ? yourStops(tl, at, "")[0] : to ? yourStops(tl, "", to)[1] : null;
   if (mine && mine.status === "ahead" && mine.minutes != null && mine.minutes > POLL.farMinutes) s = Math.max(s, POLL.farAway);
   return Math.round(Math.max(s, budgetSecs, POLL.min));
 }
