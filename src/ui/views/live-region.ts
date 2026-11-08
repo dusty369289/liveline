@@ -68,21 +68,27 @@ const foldRow = (g: number, n: number) => html`
 const mainTime = (v: PointView, isTo: boolean) =>
   v.point.kind === "pass" ? v.passing : isTo ? (v.arrival ?? v.departure) : (v.departure ?? v.arrival);
 
-function pointMeta(v: PointView, isTo: boolean): unknown {
+const STATUS: Record<string, string> = { APPROACHING: "Approaching", AT_PLATFORM: "At platform", DEPART_READY: "Ready to leave", DEPARTING: "Leaving" };
+
+/**
+ * The line under a point's name: the parts that apply, one dot between each, so a stop with no platform never starts
+ * with a stray dot. Your stop's tag isn't one of the parts: it's a sign plate with its own gap after it.
+ */
+function pointMeta(v: PointView, isTo: boolean): Html | "" {
   const pt = v.point;
   if (isCancelled(pt)) return html`<span class="problem">${pt.display === "DIVERTED" ? "Diverted away" : "Cancelled here"}</span>`;
   // The row shows the departure: say the arrival too when the shown times differ by a minute or more
   const a = v.arrival?.time;
   const d = v.departure?.time;
   const dwell = pt.kind === "call" && !isTo && a != null && d != null && d - a >= 60_000;
-  const status = { APPROACHING: " · Approaching", AT_PLATFORM: " · At platform", DEPART_READY: " · Ready to leave", DEPARTING: " · Leaving" } as Record<string, string>;
-  return [
+  const parts = [
     pt.kind === "call" && pt.platform ? html`Plat ${pt.platform}${pt.platformChanged ? html` <span class="is-changed">changed</span>` : ""}` : "",
-    dwell ? ` · arr ${hm(a)}` : "",
-    pt.requestStop ? " · Request stop" : "",
-    !pt.public && pt.kind === "call" ? " · Not for passengers" : "",
-    status[pt.status ?? ""] ?? "",
-  ];
+    dwell ? `arr ${hm(a)}` : "",
+    pt.requestStop ? "Request stop" : "",
+    !pt.public && pt.kind === "call" ? "Not for passengers" : "",
+    STATUS[pt.status ?? ""] ?? "",
+  ].filter((p) => p !== "");
+  return html`${parts.map((p, i) => html`${i ? " · " : ""}${p}`)}`;
 }
 
 /** Booked time, then the live one with its mark. On time shows once ("On time" at a stop, just the mark at a junction). */

@@ -99,7 +99,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   live time has a circle before it (`components/marks.ts`): **filled** = reported, **ring** = RTT's forecast or own
   estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle. A row
   shows the departure, with "arr hh:mm" when the shown arrival is a minute or more earlier; where you get off it shows
-  the arrival, as the summary does.
+  the arrival, as the summary does. The line under a name joins only the parts that apply (platform, arr, Request
+  stop, Not for passengers, status) with one dot between; your stop's Board/Alight plate stands before them, no dot.
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. It
   never passes an unreported point (holds at 95%), says "No report at X yet" 2 minutes after expected, and once
   departed sits at least 26 px clear of the station it left.

@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { build, stopSummary, type Timeline } from "../src/core/engine";
 import { formationFor, parseFormations } from "../src/core/formation";
+import type { Point } from "../src/core/models";
 import { parseService } from "../src/core/parse";
 import type { ServiceResult } from "../src/core/rail";
 import { fromLondon, hm } from "../src/core/time";
@@ -39,6 +40,44 @@ describe("the route", () => {
       && p.departure.time - p.arrival.time >= 60_000 && p.departure.time - p.arrival.time < 120_000)!;
     expect(v).toBeTruthy();
     expect(meta(row(region("", ""), v.index))).toContain(`arr ${hm(v.arrival!.time)}`);
+  });
+
+  describe("a stop line with no platform", () => {
+    /** The region with one point changed, the rest of the real recording as it is. */
+    function regionWith(index: number, change: Partial<Point>, at = "", to = ""): string {
+      const points = tl.points.map((p) => (p.index === index ? { ...p, point: { ...p.point, ...change } } : p));
+      const res: ServiceResult = {
+        timeline: { ...tl, points }, formation: formationFor(parseFormations(BODY, null), null),
+        fetched: { body: BODY, fetchedAt: NOW, stale: false, note: null }, refreshAfter: null,
+      };
+      return liveRegion(res, at, to, null, null).value;
+    }
+    const dwell = tl.points.find((p) => p.point.kind === "call" && p.arrival?.time != null && p.departure?.time != null
+      && p.departure.time - p.arrival.time >= 60_000)!;
+
+    it("starts with the arrival, not a stray dot", () => {
+      const m = meta(row(regionWith(dwell.index, { platform: null }), dwell.index)).trim();
+      expect(m).toBe(`arr ${hm(dwell.arrival!.time)}`);
+    });
+
+    it("starts with Request stop, not a stray dot", () => {
+      const v = tl.points.find((p) => p.point.kind === "call" && p !== dwell && p.arrival?.time != null
+        && (p.departure?.time ?? 0) - p.arrival.time < 60_000)!;
+      expect(meta(row(regionWith(v.index, { platform: null, requestStop: true }), v.index)).trim()).toBe("Request stop");
+    });
+
+    it("joins every part with one dot between", () => {
+      const m = meta(row(regionWith(dwell.index, { platform: "4", requestStop: true, status: "AT_PLATFORM" }), dwell.index));
+      expect(m.trim()).toBe(`Plat 4 · arr ${hm(dwell.arrival!.time)} · Request stop · At platform`);
+    });
+
+    it("puts your stop's tag before the first part without a dot, platform or not", () => {
+      // The tag is a sign plate with its own gap after it, so nothing joins it to what follows
+      const code = dwell.point.crs ?? dwell.point.tiploc!;
+      const afterTag = (r: string) => r.match(/<span class="route__tag">Board<\/span>([\s\S]*?)<\/span>\s*<\/span>/)?.[1].trim();
+      expect(afterTag(row(regionWith(dwell.index, { platform: "4" }, code), dwell.index))).toBe(`Plat 4 · arr ${hm(dwell.arrival!.time)}`);
+      expect(afterTag(row(regionWith(dwell.index, { platform: null }, code), dwell.index))).toBe(`arr ${hm(dwell.arrival!.time)}`);
+    });
   });
 
   it("doesn't repeat the time at a stop with no dwell", () => {
