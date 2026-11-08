@@ -27,8 +27,12 @@ done
 
 staged=$(git diff --cached --name-status)
 if [ -z "$staged" ]; then
-  echo "pre-commit: nothing staged." >&2
-  exit 1
+  # An amend that changes no file: a reword, or the author reset history-check.mjs advises. The identity was checked
+  # above; if the tree is exactly the one already committed there's nothing new to check. (A plain commit with
+  # nothing staged gets here too, and git itself then says there's nothing to commit.)
+  echo "pre-commit: no file changes (an amend or reword)." >&2
+  head_tree=$(git rev-parse -q --verify 'HEAD^{tree}' || true)
+  [ "$(git write-tree)" = "$head_tree" ] && exit 0
 fi
 added=$(printf '%s\n' "$staged" | grep -c '^A' || true)
 modified=$(printf '%s\n' "$staged" | grep -c '^M' || true)

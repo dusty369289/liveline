@@ -143,6 +143,38 @@ describe("pre-commit", () => {
     expect(repo.run("cat", [".test-review/failures.log"]).stdout).toBe("seen\n");
   });
 
+  describe("with the hooks on, as a checkout has them", () => {
+    beforeEach(() => {
+      repo.git("config", "core.hooksPath", script("git-hooks"));
+      stubNpm(`echo ran >> "${repo.dir}/.git/ran"`);
+    });
+    const ran = () => repo.run("cat", [".git/ran"]).stdout;
+
+    it("lets the advised repair through: a commit under a wrong identity, amended with --reset-author", () => {
+      repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "Second",
+        "--author", "Some One <one@example.com>");
+      const run = repo.git("commit", "-q", "--amend", "--no-edit", "--reset-author");
+      expect(run.status, run.stderr).toBe(0);
+      expect(run.stderr).toMatch(/no file changes/);
+      expect(repo.git("log", "-1", "--format=%an <%ae>").stdout.trim()).not.toContain("Some One");
+      expect(ran()).toBe(""); // the tree is the one already committed: nothing new to check
+    });
+
+    it("lets a message-only amend through", () => {
+      repo.git("commit", "-q", "-m", "Second");
+      const run = repo.git("commit", "-q", "--amend", "-m", "Second, reworded");
+      expect(run.status, run.stderr).toBe(0);
+      expect(repo.git("log", "-1", "--format=%s").stdout.trim()).toBe("Second, reworded");
+    });
+
+    it("still refuses the wrong identity on an amend with no file changes", () => {
+      repo.git("commit", "-q", "-m", "Second");
+      const run = repo.git("-c", "user.name=Some One", "commit", "-q", "--amend", "--no-edit", "--reset-author");
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toMatch(/identity/);
+    });
+  });
+
   it("checks a clean tree where it stands (the fast path), and leaves no log behind", () => {
     stubNpm(`pwd > "${repo.dir}/.git/where"`);
     expect(preCommit().status).toBe(0);
