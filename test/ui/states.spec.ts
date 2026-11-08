@@ -4,14 +4,9 @@
 import { readFileSync } from "node:fs";
 import type { Page, TestInfo } from "@playwright/test";
 import { KEYS } from "../../src/ui/store/keys";
-import { audit, expect, open, seedKey, snap, test } from "./support";
+import { audit, expect, open, openFirstTrain, seedKey, snap, test } from "./support";
 
-async function firstTrain(page: Page, hash: string): Promise<void> {
-  await open(page, hash);
-  await page.locator(".trains__link").first().click();
-  await page.locator("[data-trainbar]").waitFor();
-  await page.waitForTimeout(300);
-}
+const firstTrain = openFirstTrain;
 
 async function shot(page: Page, info: TestInfo, name: string): Promise<void> {
   expect(await audit(page)).toEqual([]);

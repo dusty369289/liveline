@@ -47,33 +47,18 @@ for (const [id, name] of THEMES) {
   test.describe(name, () => {
     test.beforeEach(async ({ page }) => useTheme(page, id));
 
-    test("route: each stop's name, booked time and live time on one line, a late one too", async ({ page, errors }) => {
+    // One visit to the train page for its three checks: opening it is most of a test's time
+    test("train page: route rows, their rings, and the Train view's two ends each read on one line", async ({ page, errors }) => {
       // The 09:00 to Oxford: running late, so most rows carry a lateness ("+7"), which hangs under the live time
       // rather than pushing it up. The group the train is in opens by itself, so passing points are rows here too.
       await openTrain(page);
-      const rows = await baselines(page.locator(".route__pt:not(.is-folded)"), [".route__place", ".route__booked", ".route__live"]);
-      expect(rows.length).toBeGreaterThan(5);
-      expect(offLine(rows)).toEqual([]);
-      void errors;
-    });
-
-    test("route: each stop's ring on its name's first line, and the travelled line starting on the first", async ({ page, errors }) => {
-      await openTrain(page);
-      const off = await page.locator(".route__pt:not(.is-folded)").evaluateAll((rows) => rows.flatMap((row) => {
-        const mark = row.querySelector(".route__mark")!;
-        const ring = mark.getBoundingClientRect().top + parseFloat(getComputedStyle(mark, "::after").top);
-        const range = document.createRange();
-        range.selectNodeContents(row.querySelector(".route__place")!);
-        const line = range.getClientRects()[0];
-        const middle = (line.top + line.bottom) / 2;
-        return Math.abs(ring - middle) > 2 ? [{ stop: row.querySelector(".route__place")!.textContent, ring, middle }] : [];
-      }));
-      expect(off).toEqual([]);
-      const start = await page.locator(".route__pt").first().evaluate((row) => {
-        const mark = row.querySelector(".route__mark")!;
-        return mark.getBoundingClientRect().top + parseFloat(getComputedStyle(mark, "::after").top);
+      await test.step("each stop's name, booked time and live time on one line", async () => {
+        const rows = await baselines(page.locator(".route__pt:not(.is-folded)"), [".route__place", ".route__booked", ".route__live"]);
+        expect(rows.length).toBeGreaterThan(5);
+        expect(offLine(rows)).toEqual([]);
       });
-      expect(Math.abs((await page.locator(".route__done").boundingBox())!.y - start)).toBeLessThan(1);
+      await test.step("each ring on its name's first line, the travelled line starting on the first", () => rings(page));
+      await test.step("the Train view's ends: names, times and lateness level", () => sceneEnds(page));
       void errors;
     });
 
@@ -84,30 +69,49 @@ for (const [id, name] of THEMES) {
       expect(offLine(rows)).toEqual([]);
       void errors;
     });
-
-    test("Train view: the two ends' names, times and lateness each on one line", async ({ page, errors }) => {
-      await openTrain(page);
-      await page.getByRole("tab", { name: "Train view" }).click();
-      await page.locator(".scene__ends").waitFor();
-      const ends = page.locator(".scene__ends");
-      // A name that wraps grows upwards, so the names share their last line, just above the times
-      for (const [part, last] of [[".scene__where", true], [".scene__time", false], [".scene__late", false]] as const) {
-        const ys = await ends.locator(part).evaluateAll((els, atEnd) => els.map((el) => {
-          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent!.trim() ? 1 : 3) });
-          let text = walker.nextNode();
-          if (atEnd) for (let n = text; n; n = walker.nextNode()) text = n;
-          if (!text) return null;
-          const probe = document.createElement("span");
-          probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
-          text.parentNode!.insertBefore(probe, atEnd ? text.nextSibling : text);
-          const y = probe.getBoundingClientRect().bottom;
-          probe.remove();
-          return y;
-        }), last);
-        const shown = ys.filter((y): y is number => y != null);
-        if (shown.length > 1) expect(Math.max(...shown) - Math.min(...shown), part).toBeLessThanOrEqual(TOLERANCE);
-      }
-      void errors;
-    });
   });
+}
+
+/** Each stop's ring sits on its name's first line (the ring is CSS: its centre is the ::after's top), and the
+ *  travelled line starts on the first ring. */
+async function rings(page: Page): Promise<void> {
+  const off = await page.locator(".route__pt:not(.is-folded)").evaluateAll((rows) => rows.flatMap((row) => {
+    const mark = row.querySelector(".route__mark")!;
+    const ring = mark.getBoundingClientRect().top + parseFloat(getComputedStyle(mark, "::after").top);
+    const range = document.createRange();
+    range.selectNodeContents(row.querySelector(".route__place")!);
+    const line = range.getClientRects()[0];
+    const middle = (line.top + line.bottom) / 2;
+    return Math.abs(ring - middle) > 2 ? [{ stop: row.querySelector(".route__place")!.textContent, ring, middle }] : [];
+  }));
+  expect(off).toEqual([]);
+  const start = await page.locator(".route__pt").first().evaluate((row) => {
+    const mark = row.querySelector(".route__mark")!;
+    return mark.getBoundingClientRect().top + parseFloat(getComputedStyle(mark, "::after").top);
+  });
+  expect(Math.abs((await page.locator(".route__done").boundingBox())!.y - start)).toBeLessThan(1);
+}
+
+/** The Train view's two ends: their names share their last line (a name that wraps grows upwards, just above the
+ *  times), and their times and lateness are level. */
+async function sceneEnds(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: "Train view" }).click();
+  await page.locator(".scene__ends").waitFor();
+  const ends = page.locator(".scene__ends");
+  for (const [part, last] of [[".scene__where", true], [".scene__time", false], [".scene__late", false]] as const) {
+    const ys = await ends.locator(part).evaluateAll((els, atEnd) => els.map((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent!.trim() ? 1 : 3) });
+      let text = walker.nextNode();
+      if (atEnd) for (let n = text; n; n = walker.nextNode()) text = n;
+      if (!text) return null;
+      const probe = document.createElement("span");
+      probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+      text.parentNode!.insertBefore(probe, atEnd ? text.nextSibling : text);
+      const y = probe.getBoundingClientRect().bottom;
+      probe.remove();
+      return y;
+    }), last);
+    const shown = ys.filter((y): y is number => y != null);
+    if (shown.length > 1) expect(Math.max(...shown) - Math.min(...shown), part).toBeLessThanOrEqual(TOLERANCE);
+  }
 }

@@ -112,10 +112,20 @@ export async function open(page: Page, hash: string): Promise<void> {
 
 /** Open the first train on Paddington's board towards Oxford (has passing points, calls and a destination). */
 export async function openTrain(page: Page, time = "09:00"): Promise<void> {
-  await open(page, `/board?station=PAD&to=OXF&time=${time}`);
+  await openFirstTrain(page, `/board?station=PAD&to=OXF&time=${time}`);
+}
+
+/** Open the first train on the board at `hash`, and wait until the marker is placed. */
+export async function openFirstTrain(page: Page, hash: string): Promise<void> {
+  await open(page, hash);
   await page.locator(".trains__link").first().click();
   await page.locator("[data-trainbar]").waitFor();
-  await page.waitForTimeout(300); // first placement and jump to the train
+  // The first placement, and the jump to the train in the same step (live-marker.ts): the marker has its place, or is
+  // hidden when there's no train on the line to show. Waiting for that, not a fixed 300 ms, on every train opened.
+  await page.waitForFunction(() => {
+    const m = document.querySelector<HTMLElement>("[data-train-marker]");
+    return !!m && (m.hidden || m.style.top !== "");
+  });
 }
 
 /**
