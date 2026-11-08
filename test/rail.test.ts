@@ -53,8 +53,10 @@ describe("a stale answer near the end of a journey", () => {
   });
 
   it("the hour's calls kept back: keeps asking, no sooner than the allowance allows", async () => {
-    await cached(route(), { "x-ratelimit-remaining-hour": "10" }); // only the search reserve left
+    await cached(route());
     clock.advance(lateEnough);
+    // only the search reserve left, said in this hour (the hour is the clock's: one from 07:50 has gone by 08:42)
+    rail.budget.observe(200, { "x-ratelimit-remaining-hour": "10" });
     const res = await rail.service(UID, { background: true });
     expect(res.fetched.stale).toBe(true);
     expect(res.refreshAfter).toBe(Math.max(POLL.overdue, rail.budget.refreshInterval()));

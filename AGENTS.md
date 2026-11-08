@@ -92,8 +92,10 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   (not the token swap, nor a refused key). The last 10 calls of each hour are kept for searches: background work never spends them. Running out shows the last answer, never "not found"; with
   nothing kept, "Allowance used up" when this key's calls are spent (`AllowanceError`: ours, not RTT's), or "busy" when
   RTT asked us to wait. That page names one wait: its own (Problem pages, below), or the time RTT gave when that is
-  later (`BusyError.retryAt`). "Allowance used up" says when searches work again (`Budget.freeAt`, as the oldest
-  calls leave the window), and its retry, a background call, waits until 11 calls are free so it can succeed.
+  later (`BusyError.retryAt`). "Allowance used up" says when searches work again (`Budget.freeAt`), and its retry,
+  a background call, waits until 11 calls are free so it can succeed. RTT's minute and hour are the clock's (seen
+  2026-11-08): all their calls come back at the top of the minute or hour. The day and week aren't known to be, so
+  they're counted as rolling windows (a call counts until it's a day or week old), which can only be too careful.
 - **Be plain about limits.** Say when data is simulated, stale, estimated by us, or missing. Never pass our estimate off
   as RTT's forecast. RTT has no signal or berth data: never claim signals.
 - **Tests never touch the network.** Unit tests use the simulator or fakes; browser tests fake RTT and GitHub and fail on
@@ -194,7 +196,7 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   at all, it says the times shown are the timetable (`no-data`); reported on the way, it says where it was last
   reported and that its arrival wasn't (`unreported`). Only a fresh answer gives up: an old one served again (RTT
   down, or calls kept back) that looks given up keeps polling, every minute or the allowance's floor, and says it
-  couldn't get a new answer (`Rail.service`). The allowance's own floor, `3600 / (calls left this hour - 10)`,
+  couldn't get a new answer (`Rail.service`). The allowance's own floor, `seconds until the hour turns / (calls left this hour - 10)`,
   can only slow it. A failed fetch stretches the wait (`nextWait`), to at most 5 minutes, but never cuts a longer
   planned wait short. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an
   hour per train.
