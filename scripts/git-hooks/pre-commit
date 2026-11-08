@@ -3,8 +3,24 @@
 # 1. Show what is staged, so a commit can't quietly carry deletions or renames from earlier `git rm`/`git mv`.
 # 2. Every commit passes the full check on its own (typecheck, tests, architecture, the leak check, build), so
 #    history can be bisected. This is the only per-commit pass: nothing re-runs it over a branch later.
+# 3. Before both, the commit carries the owner's identity (scripts/owner.sh), so no real name or personal email
+#    reaches public history. `git var` sees what the commit will really use: config, environment or --author.
 # Never skip this with --no-verify: fix what it finds instead.
 set -e
+
+. "$(dirname "$0")/../owner.sh"
+for who in AUTHOR COMMITTER; do
+  ident=$(git var "GIT_${who}_IDENT")
+  name=${ident%% <*}
+  email=${ident#*<}
+  email=${email%%>*}
+  if [ "$name" != "$OWNER_NAME" ] || [ "$email" != "$OWNER_EMAIL" ]; then
+    echo "pre-commit: wrong identity: this commit's $(echo "$who" | tr 'A-Z' 'a-z') would be $name <$email>." >&2
+    echo "pre-commit: commits here carry only $OWNER_NAME <$OWNER_EMAIL>. In this checkout:" >&2
+    echo "  git config user.name $OWNER_NAME && git config user.email $OWNER_EMAIL" >&2
+    exit 1
+  fi
+done
 
 staged=$(git diff --cached --name-status)
 if [ -z "$staged" ]; then

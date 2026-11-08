@@ -14,6 +14,13 @@ afterEach(() => repo.remove());
 /** Run pre-push as git would: `pre-push <remote name> <remote url>`, the refs on stdin. */
 const prePush = (name: string, url: string, refs = "") => repo.run("sh", [script("git-hooks/pre-push"), name, url], refs);
 
+/** Put a stand-in `npm` first on PATH, whose `npm run check` runs `check` (shell). Kept in .git, so it's not untracked. */
+function stubNpm(check = "exit 0") {
+  repo.write(".git/stub-bin/npm", `#!/bin/sh\n${check}\n`, true);
+  repo.env.PATH = `${repo.dir}/.git/stub-bin:${repo.env.PATH}`;
+}
+const preCommit = () => repo.run("sh", [script("git-hooks/pre-commit")]);
+
 /** Run commit-msg on a message, as git would: the message in a file. */
 function commitMsg(message: string) {
   repo.write("MSG", message);
@@ -44,6 +51,45 @@ describe("pre-push", () => {
     expect(run.status).not.toBe(0);
     expect(run.stderr).toMatch(/staged/);
     expect(run.stderr).toContain("a.txt");
+  });
+
+  it("refuses a pushed commit that someone else wrote or committed, and passes the owner's", () => {
+    repo.init();
+    const head = () => repo.git("rev-parse", "HEAD").stdout.trim();
+    const zero = "0".repeat(40);
+    expect(prePush("liveline", OURS, `refs/heads/x ${head()} refs/heads/x ${zero}\n`).status).toBe(0);
+    repo.write("b.txt", "y");
+    repo.git("add", "b.txt");
+    repo.git("-c", "core.hooksPath=/dev/null", "commit", "-q", "-m", "Second", "--author", "Some One <one@example.com>");
+    const run = prePush("liveline", OURS, `refs/heads/x ${head()} refs/heads/x ${zero}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("Some One");
+  });
+});
+
+describe("pre-commit", () => {
+  beforeEach(() => {
+    repo.init();
+    repo.write("a.txt", "x");
+    repo.git("add", "a.txt");
+  });
+
+  it("commits as the owner", () => {
+    stubNpm();
+    expect(preCommit().status).toBe(0);
+  });
+
+  it("refuses any other name or email, before running the check", () => {
+    stubNpm("echo ran > ran.txt");
+    for (const [key, value] of [["user.name", "Some One"], ["user.email", "one@example.com"]]) {
+      const was = repo.git("config", key).stdout.trim();
+      repo.git("config", key, value);
+      const run = preCommit();
+      expect(run.status, key).not.toBe(0);
+      expect(run.stderr).toMatch(/identity/);
+      repo.git("config", key, was);
+    }
+    expect(repo.git("ls-files", "--others").stdout).not.toContain("ran.txt");
   });
 });
 

@@ -4,6 +4,8 @@
 #    check), and the push would leave that work behind while looking done. Commit it, or unstage it, then push.
 # 2. Only this repository: a checkout can carry more than one remote (the old repository this one replaced, say), and
 #    a push by habit to the wrong one publishes a branch where nobody reviews it.
+# 3. Every commit being pushed is the owner's, author and committer, and its message is clean (history-check.mjs):
+#    pre-commit only sees commits made here, with hooks on.
 staged=$(git diff --cached --name-only 2>/dev/null)
 if [ -n "$staged" ]; then
   echo "pre-push: these files are staged but not committed; did a commit just fail?" >&2
@@ -14,9 +16,20 @@ fi
 url="$2"
 case "$url" in
   https://github.com/dusty369289/liveline | https://github.com/dusty369289/liveline.git \
-  | git@github.com:dusty369289/liveline.git | ssh://git@github.com/dusty369289/liveline.git)
-    exit 0 ;;
+  | git@github.com:dusty369289/liveline.git | ssh://git@github.com/dusty369289/liveline.git) ;;
+  *)
+    echo "pre-push: refusing to push to $url." >&2
+    echo "pre-push: this project lives at github.com/dusty369289/liveline; push to the remote with that URL." >&2
+    exit 1 ;;
 esac
-echo "pre-push: refusing to push to $url." >&2
-echo "pre-push: this project lives at github.com/dusty369289/liveline; push to the remote with that URL." >&2
-exit 1
+check="$(dirname "$0")/../history-check.mjs"
+# git sends one line per ref: <local ref> <local sha> <remote ref> <remote sha>. An all-zero sha means "none".
+while read -r _lref lsha _rref rsha; do
+  case "$lsha" in *[!0]*) ;; *) continue ;; esac # deleting a branch: nothing to check
+  case "$rsha" in
+    *[!0]*) if git cat-file -e "$rsha^{commit}" 2>/dev/null; then node "$check" "$rsha..$lsha" || exit 1; continue; fi ;;
+  esac
+  # A new branch, or a remote tip we don't have: everything no remote has yet
+  node "$check" "$lsha" --not --remotes || exit 1
+done
+exit 0
