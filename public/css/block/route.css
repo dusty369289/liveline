@@ -131,10 +131,10 @@
   border: 5px solid transparent; border-top-color: var(--train-edge); border-bottom: 0;
 }
 .route__done { position: absolute; left: calc(1.125rem - 3px); width: 6px; top: 0; background: var(--ink); z-index: 1; pointer-events: none; transition: height .9s linear; }
-.route__train.is-waiting { animation: idle 2.4s ease-in-out infinite; }
-@keyframes idle { 50% { transform: translateY(-2px); } }
+/* Still while the train is: at a station, before it starts, or waiting on a report. Only its place moves, when it does
+   (a bob while waiting looked as if it were moving: test/design.test.ts) */
 .route-wrap.is-instant .route__train, .route-wrap.is-instant .route__done { transition: none; }
-@media (prefers-reduced-motion: reduce) { .route__train, .route__done { transition: none; } .route__train.is-waiting { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .route__train, .route__done { transition: none; } }
 
 .route__train[data-m="dot"] { left: calc(1.125rem - 12px); width: 24px; height: 24px; margin-top: -12px; border-width: 4px; border-radius: 50%; }
 .route__train[data-m="dot"]::before { content: none; }
