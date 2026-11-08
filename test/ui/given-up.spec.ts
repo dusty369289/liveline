@@ -23,11 +23,35 @@ async function openGivenUp(page: Page, reported: boolean): Promise<void> {
   await page.waitForTimeout(300);
 }
 
+/** What every given-up train page says, whether it was reported on the way or not. */
+async function saysItPlainly(page: Page): Promise<void> {
+  // the bar: not "Finished", which would claim it got there
+  await expect(page.locator("[data-age]")).toContainText("No reports");
+  await expect(page.locator("[data-age]")).not.toContainText("Finished");
+  // no big number for a timetable time, and the time it was due, said in the past
+  await expect(page.locator(".live__hero-num")).toHaveCount(0);
+  await expect(page.locator(".live__hero")).toContainText("was due to leave at 07:52");
+  // the destination's time once, not again in a line under the headline
+  expect((await page.locator(".live__status").innerText()).split("08:10").length - 1).toBeLessThanOrEqual(1);
+  // the hero sentence leads, so it's in ink, not the grey of a caption
+  const lead = page.locator(".live__hero-what.is-lead");
+  await expect(lead).toHaveCount(1);
+  const [colour, ink] = await lead.evaluate((el) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--ink)";
+    el.append(probe);
+    const out = [getComputedStyle(el).color, getComputedStyle(probe).color];
+    probe.remove();
+    return out;
+  });
+  expect(colour).toBe(ink);
+}
+
 test("train: reported on the way, never at its end", async ({ page, errors }, info) => {
   await openGivenUp(page, true);
   await expect(page.locator(".live")).toHaveAttribute("data-state", "unreported");
-  await expect(page.locator(".live__hero-num")).toHaveCount(0);
-  await expect(page.locator(".live__hero")).toContainText("timetable has it leaving at 07:52");
+  await saysItPlainly(page);
+  await expect(page.locator("[data-jump]")).toBeVisible(); // the marker stands where it was last reported
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "18-train-unreported");
   void errors;
@@ -36,8 +60,10 @@ test("train: reported on the way, never at its end", async ({ page, errors }, in
 test("train: never reported", async ({ page, errors }, info) => {
   await openGivenUp(page, false);
   await expect(page.locator(".live")).toHaveAttribute("data-state", "no-data");
-  await expect(page.locator(".live__hero-num")).toHaveCount(0);
+  await saysItPlainly(page);
   await expect(page.locator(".live__headline")).toContainText("times shown are the timetable");
+  await expect(page.locator(".live__status")).toContainText("08:10"); // named once, in the headline
+  await expect(page.locator("[data-jump]")).toBeHidden(); // no marker to jump to
   expect(await audit(page)).toEqual([]);
   await snap(page, info, "19-train-no-data");
   void errors;

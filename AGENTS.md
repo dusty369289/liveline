@@ -126,8 +126,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   can only slow it. Nothing polls in the background; coming back fetches only if a poll is due. About 45 calls an hour per train.
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
-- **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that
-  spins during any fetch, Jump to train. It sits below the status bar on edge-to-edge phones.
+- **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch; once polling stops,
+  "Finished · updated …" for a train arrived or cancelled, "No reports · updated …" for one given up on), a refresh
+  icon that spins during any fetch, Jump to train (hidden while there's no marker to jump to). It sits below the
+  status bar on edge-to-edge phones.
 - **Train view** (the train page's second tab, remembered): the same answers drawn as the train in countryside. It
   stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
   runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
@@ -142,7 +144,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   on at its first call with a departure and off at the first call with an arrival after that (`resolveStops`,
   `yourStops` in `core/stops.ts`); the page, its Board and Alight tags and the polling all use those calls. Once the
   train is given up on (`no-data`, `unreported`), there's no "N min": your stops, and every row it hasn't reached, show
-  the timetable's time and say so (`timetableOnly`), never our estimate.
+  the timetable's time and say so (`timetableOnly`), never our estimate. The status then has one sentence in ink
+  ("No live time for X. The timetable says it was due to leave at 07:52.") and the headline, with no line per stop repeating them.
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds

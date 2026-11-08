@@ -1,7 +1,7 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { DEFAULT_ENGINE, sectionFraction } from "../core/engine";
+import { DEFAULT_ENGINE, GIVEN_UP, sectionFraction } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { yourStops } from "../core/stops";
@@ -19,7 +19,8 @@ export class LiveTrain {
   private failures = 0;
   private busy = false;
   private stopped = false;
-  private done = false; // the train arrived or is cancelled: no more background polls
+  private done = false; // nothing more will come (poll.ts FINISHED): no more background polls
+  private doneState = ""; // the train's state when it finished: arrived and cancelled are over, given up isn't known
   private message = "";
   private messageUntil = 0;
   private region: HTMLElement;
@@ -68,6 +69,7 @@ export class LiveTrain {
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
     this.done = true;
+    this.doneState = this.live()?.dataset.state ?? "";
     this.age();
   }
 
@@ -177,6 +179,9 @@ export class LiveTrain {
     } else if (d.state === "arrived" || d.state === "unreported") {
       y = this.rowCentre(from, wrap);
     }
+    // No marker, no "Jump to train": a button that does nothing would look broken
+    const jump = this.page.querySelector<HTMLElement>("[data-jump]");
+    if (jump) jump.hidden = y === null;
     if (y === null) {
       marker.hidden = true;
       done.style.height = "0";
@@ -217,7 +222,9 @@ export class LiveTrain {
     }
     const s = Math.max(0, Math.round((Date.now() - this.fetchedAt()) / 1000));
     const when = s < 5 ? "just now" : s < 60 ? `${s} s ago` : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
-    el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? "Finished · updated" : "Updated"} ${when}`;
+    // Given up on, it may not have finished at all: say only that no reports are coming
+    const done = (GIVEN_UP as readonly string[]).includes(this.doneState) ? "No reports · updated" : "Finished · updated";
+    el.textContent = `${this.failures ? "Couldn't update. Last answer" : this.done ? done : "Updated"} ${when}`;
   }
 
   async refresh(force: boolean): Promise<void> {

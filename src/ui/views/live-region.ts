@@ -1,9 +1,9 @@
 // The part of the train page that refreshes: where the train is, your stops, and the route with every point.
-import { changed, DEFAULT_ENGINE, type PointView, type Timeline } from "../../core/engine";
+import { changed, DEFAULT_ENGINE, GIVEN_UP, type PointView, type Timeline } from "../../core/engine";
 import { isCancelled, statusMessage } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import type { StopSummary } from "../../core/stops";
-import { hm } from "../../core/time";
+import { hm, type Ms } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
 import { delayClass, hmh, plural } from "../format";
 import { type Html, html, raw } from "../html";
@@ -11,16 +11,19 @@ import { type Html, html, raw } from "../html";
 const CHEVRON = raw('<svg class="route__fold-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
 
 /** The one number you came for: minutes until it leaves your stop (or reaches where you get off). */
-function hero(stop: StopSummary | null, off: StopSummary | null): [Html | "", StopSummary | null] {
+function hero(stop: StopSummary | null, off: StopSummary | null, now: Ms): [Html | "", StopSummary | null] {
   const hs = stop && ["ahead", "here"].includes(stop.status) ? stop : off && off.status === "ahead" ? off : null;
   if (!hs) return ["", null];
   const isStop = hs === stop;
   const plat = hs.platform && isStop ? `, platform ${hs.platform}` : "";
   let inner: Html | "" = "";
   if (hs.timetableOnly) {
-    // Given up on: our estimate would be a guess passed off as live, so no number, just the timetable, said plainly
-    inner = html`<span class="live__hero-what">No live time for ${hs.name}. The timetable has it ${isStop ? "leaving" : "arriving"} at ${
-      hm(hs.shown?.time ?? null)}${plat}.</span>`;
+    // Given up on: our estimate would be a guess passed off as live, so no number, just the timetable, said plainly.
+    // With no number above it, this sentence leads (is-lead), so it's ink rather than a caption's grey.
+    const t = hs.shown?.time ?? null;
+    const due = t != null && t < now ? `The timetable says it was due to ${isStop ? "leave" : "arrive"} at`
+      : `The timetable has it ${isStop ? "leaving" : "arriving"} at`;
+    inner = html`<span class="live__hero-what is-lead">No live time for ${hs.name}. ${due} ${hm(t)}${plat}.</span>`;
   } else if (hs.status === "here") inner = html`<span class="live__hero-num">Now</span><span class="live__hero-what">at ${hs.name}${hs.platform ? `, platform ${hs.platform}` : ""}</span>`;
   else if (hs.minutes != null && hs.minutes < 1) inner = html`<span class="live__hero-num">Due</span><span class="live__hero-what">at ${hs.name}${plat}</span>`;
   else if (hs.minutes != null) {
@@ -36,9 +39,6 @@ function stopLine(sm: StopSummary, verb: "leaves" | "reaches"): Html {
   else if (sm.status === "here") body = html`<strong>It's at ${sm.name} now</strong>${sm.platform ? `, platform ${sm.platform}` : ""}.`;
   else if (sm.status === "gone") {
     body = html`It has ${verb === "leaves" ? "left" : "reached"} ${sm.name}${sm.shown && sm.shown.source === "actual" ? ` (${hm(sm.shown.time)})` : ""}.`;
-  } else if (sm.timetableOnly) {
-    body = html`The timetable has it ${verb === "leaves" ? "leaving" : "arriving at"} <strong>${sm.name}</strong> at <strong class="tnum">${
-      sm.shown ? hm(sm.shown.time) : "?"}</strong>${sm.platform && verb === "leaves" ? `, platform ${sm.platform}${sm.platformConfirmed ? "" : " (not confirmed)"}` : ""}. No live time.`;
   } else {
     body = html`It ${verb} <strong>${sm.name}</strong> at <strong class="tnum ${delayClass(sm.shown)}">${sm.shown ? hm(sm.shown.time) : "?"}</strong>${
       sm.minutes != null ? `, in ${sm.minutes} min` : ""}${sm.callsBetween ? `, ${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away` : ""}${
@@ -130,10 +130,11 @@ function pointRow(v: PointView, at: number | null, to: number | null, group: num
 export function liveRegion(res: ServiceResult, stop: StopSummary | null, off: StopSummary | null): Html {
   const tl = res.timeline;
   const p = tl.position;
-  const [heroHtml, hs] = hero(stop, off);
+  const [heroHtml, hs] = hero(stop, off, tl.now);
   const feedNote = statusMessage(res.status);
-  // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
-  const lines = p.state === "arrived" ? []
+  // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it. Given up on,
+  // the hero and headline already give the timetable's times: a line per stop would say "no live time" over again.
+  const lines = p.state === "arrived" || GIVEN_UP.includes(p.state) ? []
     : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
   const { groupOf, size } = passGroups(tl);
   const route = tl.points.map((v) => {
