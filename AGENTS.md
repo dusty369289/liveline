@@ -482,6 +482,26 @@ for attribution and personal details.
 - `test/golden/` is frozen (see its README): a change that alters a golden answer updates it in the same PR and says why.
 - Run output goes to a file before you read it (`npm test > out.txt 2>&1`), and you read the real error.
 
+**Keeping them fast** (2026-11-08: the unit suite went from 14 s to 6 s, the browser suite's work down by 29%):
+- The demo railway comes from `simulator(clock)` in `test/support.ts`, which shares one timetable: building one lays out
+  a whole day of trains, and a test that made one per step (or per test) cost seconds. Never `new SimTransport` in a
+  loop or a per-test setup.
+- A browser test of behaviour, not looks (call counts, polling, focus, what's kept), is tagged `ONCE` and runs at
+  360 px light only; whole files of it are left out of the 412 px dark project in `playwright.config.ts`. A test that
+  judges looks, layout or wrapping, or puts a page on the contact sheet, runs at both sizes.
+- Wait for a condition, never a fixed time: `openTrain` waits for the marker to be placed, not 300 ms.
+- A file whose tests spawn processes (the git and script tests) is kept short or split, so no one file holds up the
+  run: the slowest file sets the suite's end. 4 Playwright workers (6 measured slower: Chromium uses the cores).
+- Output is short locally (a dot per test, failures in full, the summary; CI keeps full lists): a passing run is
+  about 17 lines of unit and 16 of browser output. Noise in a passing run (a warning a test causes) is fixed.
+
+**While working** (an agent's every command and its output land in the conversation, and cost):
+- Run what you're changing: `npx vitest run test/x.test.ts`, `npx playwright test test/ui/x.spec.ts --project
+  phone-360-light`. The full suites run at each commit (the hook) and before the PR (`npm run test:ui`); not after
+  every edit.
+- Read a failure from the file the run wrote, by its error lines, not the whole log; look at the screenshots of the
+  pages you changed, not the whole contact sheet.
+
 ### Commands
 ```sh
 npm ci
