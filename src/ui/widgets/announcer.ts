@@ -5,7 +5,11 @@
 interface Heard { headline: string; hero: string }
 
 const text = (el: Element | null) => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
-const read = (region: ParentNode): Heard => ({ headline: text(region.querySelector(".live__headline")), hero: text(region.querySelector(".live__hero")) });
+// The hero's parts ("37", "min", "until it reaches…") are spans with nothing between, so read them as separate words
+const words = (el: Element | null) => (el && el.children.length ? [...el.children].map(text).filter(Boolean).join(" ") : text(el));
+// The headline ends in a full stop, and the news joins its parts with ". ", so it would be said with two
+const read = (region: ParentNode): Heard =>
+  ({ headline: text(region.querySelector(".live__headline")).replace(/\.$/, ""), hero: words(region.querySelector(".live__hero")) });
 
 export class Announcer {
   private last: Heard;

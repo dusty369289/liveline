@@ -39,6 +39,13 @@ describe("the train page's announcer", () => {
     expect(note.textContent).toBe("Between Slough and Reading. 11 min");
   });
 
+  it("reads the page's own markup as words: no doubled full stop, and the number's parts kept apart", () => {
+    // as liveRegion draws them: a headline ending in a full stop, and the hero's spans with nothing between
+    poll(`<section class="live"><p class="live__hero"><span>37</span><span>min</span><span>until it reaches Oxford · 10:03</span></p>`
+      + `<p class="live__headline">Left Slough 09:23. Next: Burnham.</p></section>`);
+    expect(note.textContent).toBe("Left Slough 09:23. Next: Burnham. 37 min until it reaches Oxford · 10:03");
+  });
+
   it("says 'Updated' when you asked and nothing changed, and nothing for the same again unasked", () => {
     poll(live("Between Slough and Reading", "12"), true);
     expect(note.textContent).toBe("Updated");
