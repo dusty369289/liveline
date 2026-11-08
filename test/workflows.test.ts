@@ -78,6 +78,26 @@ describe("workflows", () => {
   });
 });
 
+describe("dependabot", () => {
+  it("watches npm, Gradle and the actions monthly, after a week's cooldown", () => {
+    const config = parse(readFileSync(new URL("../.github/dependabot.yml", import.meta.url), "utf8"), { uniqueKeys: true });
+    expect(config.version).toBe(2);
+    const updates = config.updates as { "package-ecosystem": string; directory: string; schedule: { interval: string };
+      cooldown?: { "default-days"?: number }; groups?: Record<string, unknown> }[];
+    expect(updates.map((u) => `${u["package-ecosystem"]} ${u.directory}`).sort())
+      .toEqual(["github-actions /", "gradle /android", "npm /"]);
+    for (const u of updates) {
+      expect(u.schedule.interval, u["package-ecosystem"]).toBe("monthly");
+      expect(u.cooldown?.["default-days"], u["package-ecosystem"]).toBe(7);
+    }
+    const npm = updates.find((u) => u["package-ecosystem"] === "npm")!;
+    expect(npm.groups).toEqual({
+      capacitor: { patterns: ["@capacitor/*"] },
+      dev: { "dependency-type": "development" },
+    });
+  });
+});
+
 describe("release", () => {
   it("builds unsigned, with no secrets and no install scripts, where npm and Gradle run", () => {
     const text = JSON.stringify(apk);
