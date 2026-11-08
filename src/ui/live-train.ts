@@ -1,13 +1,13 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { DEFAULT_ENGINE, GIVEN_UP, sectionFraction } from "../core/engine";
+import { GIVEN_UP } from "../core/engine";
 import { manualMinAge, nextWait } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
 import { yourStops } from "../core/stops";
 import { keepFocus } from "./focus";
 import { fragment } from "./html";
-import { clampBetween } from "./route-place";
+import { LiveMarker } from "./live-marker";
 import { liveRegion } from "./views/live-region";
 import { Announcer } from "./widgets/announcer";
 import { Countdowns } from "./widgets/countdowns";
@@ -19,7 +19,6 @@ const MIN_AGE = 15_000; // the client won't refetch anything younger either, so 
 const FALLBACK_POLL = 30;
 
 export class LiveTrain {
-  private jumped = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private tick: ReturnType<typeof setInterval> | null = null;
   private failures = 0;
@@ -33,6 +32,7 @@ export class LiveTrain {
   private folds: PassFolds;
   private announcer: Announcer;
   private countdowns: Countdowns;
+  private marker: LiveMarker;
   private listeners: Array<(res: ServiceResult) => void> = [];
   private onVisible = () => {
     if (document.visibilityState !== "visible" || this.done) return;
@@ -49,6 +49,7 @@ export class LiveTrain {
     this.folds = new PassFolds(this.region, () => this.place(true));
     this.announcer = new Announcer(page.querySelector<HTMLElement>("[data-refresh-note]")!, this.region);
     this.countdowns = new Countdowns(this.region);
+    this.marker = new LiveMarker(this.region, rail.clock, page.querySelector<HTMLElement>("[data-jump]"));
   }
 
   /** Called with every new answer this page fetches (the Train view keeps up from these). */
@@ -58,7 +59,7 @@ export class LiveTrain {
 
   start(): void {
     this.folds.wire();
-    this.page.querySelector("[data-jump]")!.addEventListener("click", () => this.jump(true));
+    this.page.querySelector("[data-jump]")!.addEventListener("click", () => this.marker.jump(true));
     this.page.querySelector("[data-refresh-now]")!.addEventListener("click", () => this.refreshNow());
     document.addEventListener("visibilitychange", this.onVisible);
     window.addEventListener("resize", this.onResize);
@@ -126,94 +127,9 @@ export class LiveTrain {
     return l.dataset.refresh ? Number(l.dataset.refresh) || FALLBACK_POLL : null;
   }
 
-  private rowCentre(row: Element | null | undefined, wrap: Element): number | null {
-    if (!row) return null;
-    const r = row.getBoundingClientRect();
-    const w = wrap.getBoundingClientRect();
-    return r.top - w.top + r.height / 2;
-  }
-
-  // Layout changes (toggling passes, a refreshed list, resizing) jump straight to the new place. Only the train's own
-  // progress is animated, or the travelled line would visibly regrow from the top after every refresh.
+  /** Put the marker where the train is now (live-marker.ts); `instant` for a layout change, not progress. */
   place(instant: boolean): void {
-    const live = this.live();
-    if (!live || !this.region.offsetParent) return; // the Route tab is hidden: nothing has a size to place against
-    const wrap = live.querySelector<HTMLElement>(".route-wrap")!;
-    if (instant) wrap.classList.add("is-instant");
-    const route = live.querySelector<HTMLElement>(".route")!;
-    const marker = live.querySelector<HTMLElement>("[data-train-marker]")!;
-    marker.dataset.m = document.documentElement.dataset.marker ?? "dot"; // Settings > Appearance
-    const done = wrap.querySelector<HTMLElement>(".route__done")!; // the travelled line (views/live-region.ts)
-    const d = live.dataset;
-    const rows = [...route.querySelectorAll<HTMLElement>(".route__pt")];
-    const from = d.from === "" ? null : rows[Number(d.from)];
-    const to = d.to === "" ? null : rows[Number(d.to)];
-    let y: number | null = null;
-    let waiting = false;
-    if (d.state === "running" || d.state === "overdue") {
-      const hold = Number(d.hold) || DEFAULT_ENGINE.holdFraction;
-      let rowA = from;
-      let rowB = to;
-      let since = Number(d.since);
-      let expected = Number(d.expected);
-      const folded = (r: HTMLElement | null) => !!r && r.classList.contains("is-folded");
-      if (folded(from) || folded(to)) {
-        // A folded row has no height, so run between the nearest rows you can see, by their times
-        const ia = from ? rows.indexOf(from) : -1;
-        const ib = to ? rows.indexOf(to) : rows.length;
-        for (let i = ia; i >= 0; i--) if (!folded(rows[i])) { rowA = rows[i]; break; }
-        for (let i = ib; i < rows.length; i++) if (!folded(rows[i])) { rowB = rows[i]; break; }
-        if (rowA && rowA !== from) since = Number(rowA.dataset.tOut) || since;
-        if (rowB && rowB !== to) expected = Number(rowB.dataset.tIn) || expected;
-      }
-      const a = this.rowCentre(rowA, wrap);
-      const b = this.rowCentre(rowB, wrap);
-      let f = Number(d.fraction) || 0;
-      if (since && expected && expected > since) f = sectionFraction(since, expected, this.rail.clock(), hold);
-      if (d.state === "overdue" && rowB === to) f = hold;
-      if (d.state === "overdue") waiting = true;
-      // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
-      if (a !== null && b !== null) y = clampBetween(a, b, f);
-    } else if (d.state === "at-station" || d.state === "at-origin") {
-      y = this.rowCentre(from ?? to, wrap);
-      waiting = true;
-    } else if (d.state === "not-started") {
-      y = this.rowCentre(to, wrap);
-      waiting = true;
-    } else if (d.state === "arrived" || d.state === "unreported") {
-      y = this.rowCentre(from, wrap);
-    }
-    // No marker, no "Jump to train": a button that does nothing would look broken
-    const jump = this.page.querySelector<HTMLElement>("[data-jump]");
-    if (jump) jump.hidden = y === null;
-    if (y === null) {
-      marker.hidden = true;
-      done.style.height = "0";
-      wrap.classList.remove("is-instant");
-      return;
-    }
-    marker.hidden = false;
-    marker.style.top = `${y}px`;
-    marker.classList.toggle("is-waiting", waiting);
-    // The travelled ink starts where the line does, at the first stop's centre, not above it
-    const start = this.rowCentre(rows.find((r) => !r.classList.contains("is-folded")), wrap) ?? 0;
-    done.style.top = `${start}px`;
-    done.style.height = `${Math.max(y - start, 0)}px`;
-    if (instant) {
-      void wrap.offsetHeight;
-      wrap.classList.remove("is-instant");
-    }
-    if (!this.jumped) {
-      this.jumped = true;
-      this.jump(false);
-    }
-  }
-
-  jump(smooth: boolean): void {
-    const marker = this.region.querySelector<HTMLElement>("[data-train-marker]");
-    if (!marker || marker.hidden) return;
-    const top = marker.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.4;
-    window.scrollTo({ top: Math.max(top, 0), behavior: smooth ? "smooth" : "auto" });
+    this.marker.place(instant);
   }
 
   private age(): void {
