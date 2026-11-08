@@ -21,7 +21,19 @@ test("opening a train from a board puts focus on the train page's heading", asyn
   void errors;
 });
 
-test("a fold button you're on keeps focus when the train is polled", async ({ page, errors }) => {
+test("a train row you're on keeps focus when a 'now' board refreshes itself", async ({ page, errors }) => {
+  await open(page, "/board?station=PAD");
+  const row = page.locator(".trains__link").nth(3); // a few rows down, so it's still on the board two minutes on
+  await row.focus();
+  const href = await row.getAttribute("href");
+  await page.evaluate(() => ((document.querySelector(".trains") as HTMLElement).dataset.old = "1")); // to see the redraw
+  await page.clock.fastForward("02:30"); // past the board's own refresh
+  await expect(page.locator(".trains[data-old]")).toHaveCount(0);
+  await expect(page.locator(`.trains__link[href="${href}"]`)).toBeFocused();
+  void errors;
+});
+
+test("a fold button you're on keeps focus when the train is polled",async ({ page, errors }) => {
   await openTrain(page);
   const fold = page.locator("[data-fold-toggle]").last();
   await fold.focus();
