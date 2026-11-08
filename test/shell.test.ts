@@ -105,6 +105,15 @@ describe("the launch screen", () => {
     expect(color(read("values/colors.xml"), "window_background")).toBe(token(light, "page"));
     expect(color(read("values-night/colors.xml"), "window_background")).toBe(token(dark, "page"));
   });
+
+  // Without this the splash library draws its default, the generic Android robot. The adaptive icon's own foreground
+  // fits: both keep the picture inside the middle two thirds.
+  it("shows LiveLine's icon, not Android's default", () => {
+    expect(style("AppTheme.NoActionBarLaunch")).toContain(
+      '<item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>',
+    );
+    expect(read("mipmap-anydpi-v26/ic_launcher.xml")).toContain('android:drawable="@mipmap/ic_launcher_foreground"');
+  });
 });
 
 // No Java test harness here (and the emulator crashes on the dev machine), so this reads UpdaterPlugin.java for the

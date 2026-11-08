@@ -18,9 +18,12 @@
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 
-    <!-- Launch screen: Android draws the app icon on navy (the icon's own background, so it sits seamlessly). No
-         picture of our own: Capacitor's stock splash was its logo on a gradient. -->
+    <!-- Launch screen: the app icon's foreground on navy (the icon's own background, so it sits seamlessly). The icon
+         must be named: left out, the splash library draws the generic Android robot. No picture of our own:
+         Capacitor's stock splash was its logo on a gradient. No postSplashScreenTheme: BridgeActivity switches to
+         AppTheme.NoActionBar itself. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
     </style>
 </resources>
