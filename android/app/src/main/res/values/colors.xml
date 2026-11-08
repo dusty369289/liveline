@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The page's paper (the "page" token in public/css/themes/platform.css), behind the WebView until it draws.
+         test/shell.test.ts keeps the two equal. -->
+    <color name="window_background">#F3EFE6</color>
+</resources>

@@ -1,5 +1,6 @@
 // The Android shell around the page: the back button and the status bar. Capacitor is mocked, so these run in Node and
 // check what the platform asks of it on a phone and in the browser build.
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 type BackListener = (e: { canGoBack: boolean }) => void;
@@ -72,5 +73,36 @@ describe("the status bar", () => {
     const { platform, bars } = await platformOn(false);
     await platform.styleStatusBar();
     expect(bars.setStyle).not.toHaveBeenCalled();
+  });
+});
+
+describe("the launch screen", () => {
+  const res = new URL("../android/app/src/main/res/", import.meta.url);
+  const read = (p: string) => readFileSync(new URL(p, res), "utf8");
+  const theme = readFileSync(new URL("../public/css/themes/platform.css", import.meta.url), "utf8");
+  const [light, dark] = theme.split("prefers-color-scheme: dark");
+  const token = (css: string | undefined, name: string) =>
+    new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, "i").exec(css ?? "")?.[1]?.toLowerCase();
+  const color = (xml: string, name: string) =>
+    new RegExp(`<color name="${name}">(#[0-9A-Fa-f]{6})</color>`).exec(xml)?.[1]?.toLowerCase();
+  const style = (name: string) =>
+    new RegExp(`<style name="${name.replace(/\./g, "\\.")}"[^>]*>([\\s\\S]*?)</style>`).exec(read("values/styles.xml"))?.[1] ?? "";
+
+  it("has no Capacitor stock splash picture", () => {
+    const left = readdirSync(res)
+      .filter((d) => d.startsWith("drawable"))
+      .filter((d) => existsSync(new URL(`${d}/splash.png`, res)));
+    expect(left).toEqual([]);
+    expect(read("values/styles.xml")).not.toContain("@drawable/splash");
+  });
+
+  it("is the app icon on navy, then the page's own paper (deep navy at night) until the page draws", () => {
+    expect(style("AppTheme.NoActionBarLaunch")).toContain(
+      '<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>',
+    );
+    expect(color(read("values/ic_launcher_background.xml"), "ic_launcher_background")).toBe(token(light, "sign"));
+    expect(style("AppTheme.NoActionBar")).toContain('<item name="android:windowBackground">@color/window_background</item>');
+    expect(color(read("values/colors.xml"), "window_background")).toBe(token(light, "page"));
+    expect(color(read("values-night/colors.xml"), "window_background")).toBe(token(dark, "page"));
   });
 });
