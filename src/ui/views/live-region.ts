@@ -30,8 +30,8 @@ const dayBeside = (t: Ms | null, runDate: string) => (t != null && isoDate(t) !=
 export function countText(t: Ms, now: Ms, big: boolean): string {
   const m = minutesUntil(t, now);
   if (m > HERO_COUNTDOWN_MAX) return big ? hm(t) : "";
-  if (m < 1) return big ? "Due" : ", due now";
-  return big ? String(m) : `, in ${m} min`;
+  if (m < 1) return big ? "Due" : "due now";
+  return big ? String(m) : `in ${m} min`;
 }
 
 /** The one number you came for: minutes until it leaves your stop (or reaches where you get off). */
@@ -59,8 +59,10 @@ function hero(stop: StopSummary | null, off: StopSummary | null, runDate: string
     const n = countText(t, now, true);
     // The tick turns the number into "Due" on its own: it drops the unit and swaps in the shorter line it keeps here
     inner = n === "Due" ? html`<span class="live__hero-num">Due</span><span class="live__hero-what">${dueWhat}</span>`
+      // The clock time stands beside the number (where there's always room), not at the end of a line a long name
+      // wraps; it comes after the words in the page, so it's read "…Tame Bridge Parkway at 15:39" (owner, 2026-11-08)
       : html`<span class="live__hero-num" data-count-at="${t}">${n}</span><span class="live__hero-unit">min</span>
-      <span class="live__hero-what" data-due-what="${dueWhat}">until it ${isStop ? "leaves" : "reaches"} ${hs.name} · ${hm(t)}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span>`;
+      <span class="live__hero-what" data-due-what="${dueWhat}">until it ${isStop ? "leaves" : "reaches"} ${hs.name}${hs.platform && isStop ? ` · platform ${hs.platform}` : ""}</span><span class="live__hero-at tnum"><span class="visually-hidden">at </span>${hm(t)}</span>`;
   }
   return [html`<p class="live__hero">${inner}</p>`, hs];
 }
@@ -72,11 +74,17 @@ function stopLine(sm: StopSummary, verb: "leaves" | "reaches", runDate: string, 
   else if (sm.status === "gone") {
     body = html`It has ${verb === "leaves" ? "left" : "reached"} ${sm.name}${sm.shown && sm.shown.source === "actual" ? ` (${hm(sm.shown.time)})` : ""}.`;
   } else {
+    // The name and its time together, then the rest on a line of its own, "in 35 min · 8 stops away": a long name
+    // no longer leaves a time alone on a line (owner, 2026-11-08). The countdown ticks in place (widgets/countdowns.ts)
     const t = sm.shown?.time ?? null;
     const day = dayBeside(t, runDate);
-    body = html`It ${verb} <strong>${sm.name}</strong> at <strong class="tnum ${delayClass(sm.shown)}">${t != null ? hm(t) : "?"}</strong>${
-      day ? ` ${day}` : ""}${t != null && sm.minutes != null ? html`<span data-count-at="${t}">${countText(t, now, false)}</span>` : ""}${sm.callsBetween ? `, ${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away` : ""}${
-      sm.platform && verb === "leaves" ? `, platform ${sm.platform}${sm.platformConfirmed ? "" : " (not confirmed)"}` : ""}.`;
+    const more = [
+      t != null && sm.minutes != null ? html`<span data-count-at="${t}">${countText(t, now, false)}</span>` : "",
+      sm.callsBetween ? html`<span>${sm.callsBetween} stop${sm.callsBetween !== 1 ? "s" : ""} away</span>` : "",
+      sm.platform && verb === "leaves" ? html`<span>platform ${sm.platform}${sm.platformConfirmed ? "" : " (not confirmed)"}</span>` : "",
+    ].filter(Boolean);
+    body = html`${verb === "leaves" ? "Leaves" : "Reaches"} <strong>${sm.name}</strong> <strong class="tnum ${delayClass(sm.shown)}">${
+      t != null ? hm(t) : "?"}</strong>${day ? ` ${day}` : ""}${more.length ? html`<span class="live__stop-more">${more}</span>` : ""}`;
   }
   return html`<p class="live__stop">${body}</p>`;
 }
