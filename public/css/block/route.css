@@ -18,6 +18,8 @@
 .trainbar.is-busy .icon { animation: spin .9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .trainbar__age { flex: 1; min-width: 0; font-size: var(--t-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A message ("Saving calls: refresh in 40 s") wraps to a second line rather than losing its end */
+.trainbar__age.is-message { white-space: normal; line-height: 1.2; }
 .trainbar__jump { flex: none; font-size: var(--t-sm); }
 @media (prefers-reduced-motion: reduce) { .trainbar.is-busy .icon { animation: none; opacity: .45; } }
 

@@ -83,12 +83,15 @@ export class LiveTrain {
     this.age();
   }
 
-  /** A short message in the bar in place of the age, for a few seconds. */
-  private say(text: string, secs = 4): void {
+  /**
+   * A short message in the bar in place of the age, for a few seconds (it wraps to two lines, so keep it short).
+   * `detail` is the fuller sentence screen readers hear from the status region instead.
+   */
+  private say(text: string, secs = 4, detail = text): void {
     this.message = text;
     this.messageUntil = Date.now() + secs * 1000;
     const note = this.page.querySelector("[data-refresh-note]");
-    if (note) note.textContent = text;
+    if (note) note.textContent = detail;
     this.age();
   }
 
@@ -212,11 +215,13 @@ export class LiveTrain {
   private age(): void {
     const el = this.page.querySelector("[data-age]");
     if (!el || !this.live()) return;
+    const message = !this.busy && !!this.message && Date.now() < this.messageUntil;
+    el.classList.toggle("is-message", message);
     if (this.busy) {
       el.textContent = "Updating…";
       return;
     }
-    if (this.message && Date.now() < this.messageUntil) {
+    if (message) {
       el.textContent = this.message;
       return;
     }
@@ -242,7 +247,8 @@ export class LiveTrain {
       this.place(true);
     } catch (e) {
       this.failures += 1;
-      this.say(e instanceof Error && e.message ? `Couldn't update: ${e.message}` : "Couldn't update. Trying again soon.", 8);
+      this.say("Couldn't update. Trying again soon.", 8,
+        e instanceof Error && e.message ? `Couldn't update: ${e.message}` : "Couldn't update. Trying again soon.");
     } finally {
       this.setBusy(false);
     }
@@ -257,13 +263,14 @@ export class LiveTrain {
     const b = this.rail.budget;
     const minAge = manualMinAge(b.state().remaining.hour, b.reserve);
     if (minAge == null) {
-      this.say("Only the calls kept for searches are left this hour. Showing the last answer.", 5);
+      this.say("Only search calls are left this hour", 5,
+        "Only the calls kept for searches are left this hour. Showing the last answer.");
       return;
     }
     const age = Date.now() - this.fetchedAt();
     if (age < minAge * 1000) {
       this.say(age < MIN_AGE ? `Already up to date (${Math.round(age / 1000)} s old)`
-        : `Saving calls: you can refresh again in ${Math.ceil(minAge - age / 1000)} s`, 3);
+        : `Saving calls: refresh in ${Math.ceil(minAge - age / 1000)} s`, 3);
       return;
     }
     void this.refresh(true);

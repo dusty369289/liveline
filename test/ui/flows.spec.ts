@@ -74,6 +74,21 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
+test("a message in the train page bar wraps rather than being cut off", async ({ page, errors }) => {
+  await openTrain(page);
+  await page.locator("[data-refresh-now]").click();
+  const age = page.locator("[data-age]");
+  await expect(age).toContainText("Already up to date");
+  await expect(age).toHaveClass(/is-message/);
+  // the longest the bar says (live-train.ts, refreshNow), measured in place while the message class is on
+  const fits = await age.evaluate((el) => {
+    el.textContent = "Only search calls are left this hour";
+    return el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight + 1;
+  });
+  expect(fits).toBe(true);
+  void errors;
+});
+
 test("a train you opened is in Recent, and Recent can be cleared", async ({ page, errors }) => {
   await openTrain(page);
   await open(page, "/");
