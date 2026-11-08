@@ -88,8 +88,8 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   revoked. The app ships with none; each user's key stays on their phone (Capacitor Preferences, app-private, Android
   backups off). With no key the app is in **demo mode** (the simulator), clearly bannered.
 - **The allowance is tiny:** 10 calls a minute, 100 an hour, 1000 a day on Free and Hobbyist. Every real call goes
-  through one `Budget`, which obeys `X-RateLimit-Remaining-*` and `Retry-After`. The last 10 calls of each hour are
-  kept for searches: background work never spends them. Running out shows the last answer, never "not found"; with
+  through one `Budget`, which obeys `X-RateLimit-Remaining-*` and `Retry-After`, and counts only what RTT charges
+  (not the token swap, nor a refused key). The last 10 calls of each hour are kept for searches: background work never spends them. Running out shows the last answer, never "not found"; with
   nothing kept, "Allowance used up" when this key's calls are spent (`AllowanceError`: ours, not RTT's), or "busy" when
   RTT asked us to wait. That page names one wait: its own (Problem pages, below), or the time RTT gave when that is
   later (`BusyError.retryAt`). "Allowance used up" says when searches work again (`Budget.freeAt`, as the oldest

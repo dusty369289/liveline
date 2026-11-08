@@ -31,7 +31,7 @@ function keyForm(d: SettingsData): Html {
         <label for="token">${d.demo ? "Paste your key" : "Replace key"}</label>
         <input id="token" name="token" type="password" required minlength="20" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="eyJ…">
       </div>
-      <p class="hint">It's checked with Realtime Trains first (1 to 3 calls), then kept <strong>only on this ${where}</strong>${
+      <p class="hint">It's checked with Realtime Trains first (one call), then kept <strong>only on this ${where}</strong>${
         d.native ? ", in the app's private storage" : ""}. The app talks to Realtime Trains directly, so your key never goes anywhere else.</p>
       <button class="button" type="submit">Check and save key</button>
     </form>

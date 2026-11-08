@@ -81,6 +81,13 @@ describe("client", () => {
     await again.service("X1:2026-11-07");
     expect(fake.calls.slice(before)).toEqual(["/gb-nr/service"]); // no re-authentication
   });
+  it("counts only the calls RTT charges for: a token swap and a refusal are free (seen 2026-11-08)", async () => {
+    const b = new Budget(clock.now);
+    // the portal's refresh token: info refused (free), swap (free), info with the access token (one call)
+    await new RttClient(new FakeRtt(), GOOD, b, clock.now).checkToken();
+    expect(b.total).toBe(1);
+    expect(b.remaining("hour")).toBe(99);
+  });
   it("ignores a remembered token that belongs to another key", async () => {
     const store = new MemStore();
     await new RttClient(new FakeRtt(), GOOD, new Budget(clock.now), clock.now, store).checkToken();
@@ -123,7 +130,9 @@ describe("client", () => {
         refused++;
       }
     }
-    expect(fake.calls.length).toBeLessThanOrEqual(10);
+    // what RTT charges: everything but the free token swap and the refused first try of the key on /api/info
+    const charged = fake.calls.filter((p) => p !== "/api/get_access_token").length - 1;
+    expect(charged).toBeLessThanOrEqual(10);
     expect(refused).toBeGreaterThan(0);
   });
   it("serves the last answer, marked stale, when it can't ask", async () => {
