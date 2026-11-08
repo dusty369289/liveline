@@ -350,8 +350,10 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   `test/open-pr.test.ts`): it runs `history-check.mjs` on the title and body first, because PR text is public the
   moment it's saved, then `gh pr create` against `main` with that same file. It refuses `--body`, `--draft` and
   `--fill`. Before a `gh pr edit` of the title or body, check the new text the same way:
-  `PR_TITLE="..." PR_BODY="$(cat file.md)" node scripts/history-check.mjs`. Opening the PR is its CI run. If `main` moved since the
-  branch started (another PR merged), rebase onto `main` first, so that one run is also the run that counts. Pushing
+  `PR_TITLE="..." PR_BODY="$(cat file.md)" node scripts/history-check.mjs`. Opening the PR is its CI run. If `main`
+  moved since the branch started (another PR merged), rebase onto `main` first, so that one run is also the run that
+  counts: `npm run pr` fetches `main` and refuses a branch that isn't on top of it ("rebase onto main first") or whose
+  pushed copy isn't this commit ("push first"). Pushing
   to an open PR re-runs CI (and cancels the older run), so fix review points in one push. No draft PRs: CI must never
   skip its jobs to save a run, because GitHub counts a skipped required check as passed.
 - Its title is the line release notes will show, in plain words. The notes are shown in Settings, so they're for users:
