@@ -55,7 +55,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   ];
   if (problems.length) {
     console.error(["history check:", ...problems.map((p) => `  ${p}`)].join("\n"));
-    console.error("history check: fix the commits (reword, or reset the author) or the PR text, then try again.");
+    console.error("history check: fix the commits or the PR text, then try again. To reset every commit on the branch"
+      + " to the owner's identity:\n  git rebase --exec \"git commit --amend --no-edit --reset-author\" liveline/main");
     process.exit(1);
   }
 }

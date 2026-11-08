@@ -55,4 +55,11 @@ describe("commits", () => {
     expect(run.stderr).toContain("the author is Some One <one@example.com>");
     expect(run.stderr).toMatch(/message carries AI attribution/);
   });
+
+  it("names the exact repair for a wrong author, one the hooks let through", () => {
+    commit("Second", "--author", "Some One <one@example.com>");
+    const run = check(["HEAD~1..HEAD"]);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(`git rebase --exec "git commit --amend --no-edit --reset-author" liveline/main`);
+  });
 });
