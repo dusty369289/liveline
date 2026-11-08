@@ -145,7 +145,9 @@ deliberate exceptions, so each page is known at a glance: a board's station name
 groups its rows in panels, like a phone's settings. CUBE
 layers `tokens, base, composition, block, utility, exception`; themes are token-only files. Phone first (412 px and
 360 px), 44 px touch targets (links inside sentences excepted), edge to edge with `env(safe-area-inset-*)`. Every text
-colour is at least 4.5:1 on what it sits on, in both themes, and the train marker 3:1 (`test/design.test.ts`).
+colour is at least 4.5:1 on what it sits on, in both themes, and the train marker 3:1 (`test/design.test.ts`, which
+also works out the cascade for the board's platform plate). Text grows with the phone's text size: content sets
+heights and text wraps rather than ending in "…" (the Train view and train bar are checked at 200%).
 
 ## RTT API essentials
 
