@@ -35,6 +35,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Just after an in-app update, the new version posts "tap to open" (UpdatedNotice). Exported so Android's
+             own broadcast surely arrives; MY_PACKAGE_REPLACED is protected (only Android can send it, only to this
+             app), and the receiver acts only on an update it started. -->
+        <receiver
+            android:name=".UpdatedNotice"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
@@ -44,4 +55,6 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Lets Android skip its "Update this app?" dialog for our own updates (Android 12+, when it allows it) -->
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <!-- "LiveLine updated: tap to open" after an in-app update (Android 13+ asks once, when Update is tapped) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
