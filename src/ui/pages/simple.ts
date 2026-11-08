@@ -69,7 +69,7 @@ export class ProblemPage extends Page {
 
   /** Busy: try again by itself, at Realtime Trains' time if it gave one (never sooner than RETRY_SECONDS). */
   mount(): void {
-    if (this.retry) this.after(Math.max(RETRY_SECONDS * 1000, (this.retry.at ?? 0) - Date.now()), () => this.ctx.rerender());
+    if (this.retry) this.after(Math.max(RETRY_SECONDS * 1000, (this.retry.at ?? 0) - this.ctx.rail.clock()),() => this.ctx.rerender());
   }
 }
 
