@@ -15,6 +15,25 @@ test("search by typing and picking suggestions lands on the board", async ({ pag
   void errors;
 });
 
+test("the station box is a named combobox, and says how many stations match as you type", async ({ page, errors }) => {
+  await open(page, "/");
+  const box = page.getByRole("combobox", { name: "Station" });
+  await expect(box).toHaveAttribute("aria-expanded", "false");
+  const status = page.locator('[data-suggest-status="station"]');
+  await box.fill("padd");
+  await expect(page.getByRole("listbox", { name: "Station" })).toBeVisible();
+  await expect(status).toHaveText(/^\d+ stations? match(es)?$/);
+  await box.fill("zzzz");
+  await expect(status).toHaveText("No stations match");
+  await box.press("Escape");
+  await box.fill("padd");
+  await box.press("ArrowDown");
+  await expect(box).toHaveAttribute("aria-activedescendant", "station-list-0");
+  await box.press("Escape");
+  await expect(box).not.toHaveAttribute("aria-activedescendant", /./);
+  void errors;
+});
+
 test("the second station's label follows Departures and Arrivals", async ({ page, errors }) => {
   await open(page, "/");
   await expect(page.locator('[data-label-for="to"]')).toContainText("Calling at");

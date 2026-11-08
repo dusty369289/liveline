@@ -6,11 +6,12 @@ import { type Query, qs } from "../routes";
 
 const stationBox = (id: string, label: Html, placeholder: string, value: string, extra: Html | "") => html`
   <div class="field">
-    <label for="${id}" data-label-for="${id}">${label}</label>
+    <label for="${id}" id="${id}-label" data-label-for="${id}">${label}</label>
     <div class="suggest" data-suggest>
       <input id="${id}" name="${id}" type="text" inputmode="search" placeholder="${placeholder}" value="${value}"
-             aria-autocomplete="list" aria-controls="${id}-list" aria-expanded="false" ${extra}>
-      <ul class="suggest__list" id="${id}-list" role="listbox" hidden></ul>
+             role="combobox" aria-autocomplete="list" aria-controls="${id}-list" aria-expanded="false" ${extra}>
+      <ul class="suggest__list" id="${id}-list" role="listbox" aria-labelledby="${id}-label" hidden></ul>
+      <p class="visually-hidden" data-suggest-status="${id}" role="status" aria-live="polite"></p>
     </div>
   </div>`;
 
