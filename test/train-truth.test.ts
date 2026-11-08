@@ -1,7 +1,8 @@
 // The train page is plain about what it doesn't know: RTT's feed down, a train never reported, a train altered or
 // cancelled. AGENTS.md, "Be plain about limits".
 import { describe, expect, it } from "vitest";
-import { build, resolveStops, stopSummary, yourStops } from "../src/core/engine";
+import { build } from "../src/core/engine";
+import { resolveStops, stopSummary, yourStops } from "../src/core/stops";
 import { feedOf, rowCancelled } from "../src/core/models";
 import { parseBoard, parseService, parseSystemStatus } from "../src/core/parse";
 import { pollAfter } from "../src/core/poll";

@@ -1,7 +1,8 @@
 // The part of the train page that refreshes: where the train is, your stops, and the route with every point.
-import { changed, DEFAULT_ENGINE, type PointView, type StopSummary, type Timeline } from "../../core/engine";
+import { changed, DEFAULT_ENGINE, type PointView, type Timeline } from "../../core/engine";
 import { isCancelled, statusMessage } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
+import type { StopSummary } from "../../core/stops";
 import { hm } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
 import { delayClass, hmh, plural } from "../format";
@@ -107,7 +108,7 @@ export function pointTimes(v: PointView): Html {
   return html`<span class="route__booked tnum">${pt.kind === "pass" ? hmh(main.booked) : hm(main.booked)}</span><span class="route__live tnum ${delayClass(main)} src-${main.source === "booked" ? "booked" : markOf(main.source)}">${shown}</span>`;
 }
 
-/** `at` and `to` are the indices of your calls (engine.resolveStops), so a station called at twice is tagged once. */
+/** `at` and `to` are the indices of your calls (stops.resolveStops), so a station called at twice is tagged once. */
 function pointRow(v: PointView, at: number | null, to: number | null, group: number | undefined): Html {
   const pt = v.point;
   const isAt = v.index === at;
@@ -125,7 +126,7 @@ function pointRow(v: PointView, at: number | null, to: number | null, group: num
     </li>`;
 }
 
-/** `stop` and `off` are where you get on and off (engine.yourStops), which also tag their rows. */
+/** `stop` and `off` are where you get on and off (stops.yourStops), which also tag their rows. */
 export function liveRegion(res: ServiceResult, stop: StopSummary | null, off: StopSummary | null): Html {
   const tl = res.timeline;
   const p = tl.position;

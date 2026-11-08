@@ -1,8 +1,9 @@
 // The core must keep giving the frozen golden answers (test/golden/README.md): parsed services and boards from real
 // RTT recordings and spec fixtures, and the engine's timeline at many moments.
 import { describe, expect, it } from "vitest";
-import { build, stopSummary } from "../src/core/engine";
+import { build } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
+import { stopSummary } from "../src/core/stops";
 import { fromLondon } from "../src/core/time";
 import { fixture, readJson } from "./support";
 

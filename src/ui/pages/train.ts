@@ -1,8 +1,8 @@
 // A train page: fetch the train, remember it for Recent, and hand the live part to LiveTrain. Two tabs show the same
 // answers: Route (every point, with the marker) and Train view (the train in its scenery, TrainScene).
-import { yourStops } from "../../core/engine";
 import type { ServiceResult } from "../../core/rail";
 import { sceneOf } from "../../core/scene";
+import { yourStops } from "../../core/stops";
 import type { Html } from "../html";
 import { LiveTrain } from "../live-train";
 import type { RouteName } from "../routes";

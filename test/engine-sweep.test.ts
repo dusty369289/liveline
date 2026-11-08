@@ -2,10 +2,11 @@
 // (the demo railway: late, early, cancelled and short-terminated trains). One simulator and one shared Timetable, as
 // building the day's timetable afresh for each step is slow (test/poll.test.ts).
 import { expect, it } from "vitest";
-import { build, DEFAULT_ENGINE, type State, yourStops } from "../src/core/engine";
+import { build, DEFAULT_ENGINE, type State } from "../src/core/engine";
 import { planned } from "../src/core/models";
 import { parseBoard, parseService } from "../src/core/parse";
 import { POLL, pollAfter } from "../src/core/poll";
+import { yourStops } from "../src/core/stops";
 import { SimTransport, Timetable } from "../src/core/simulator";
 import { fromLondon, isoLocal, type Ms } from "../src/core/time";
 

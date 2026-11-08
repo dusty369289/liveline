@@ -2,7 +2,8 @@
 // when the train reaches a timing point, so polling on a fixed beat mostly re-fetches the same answer. Instead: wait
 // until the next report could exist, and stop once nothing more can change for the train. The marker keeps moving
 // between polls on its own (live.ts), so a slower poll doesn't freeze the picture.
-import { type State, type Timeline, yourStops } from "./engine";
+import type { State, Timeline } from "./engine";
+import { yourStops } from "./stops";
 import type { Ms } from "./time";
 
 export const POLL = {

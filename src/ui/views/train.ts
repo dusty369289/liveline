@@ -1,7 +1,7 @@
 // The train page: its title, the sticky bar (age, refresh, back to the train), the live region and the legend.
-import type { StopSummary } from "../../core/engine";
 import { destinationName, originName } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
+import type { StopSummary } from "../../core/stops";
 import { hm } from "../../core/time";
 import { timeMark } from "../components/marks";
 import { type Html, html, raw } from "../html";

@@ -1,9 +1,10 @@
 // The train page while it's open: move the marker every second, and fetch again when the last answer says to.
 // It lives inside one long-running app, so stop() undoes every timer and listener when you leave the page
 // (TrainPage calls it from dispose()).
-import { DEFAULT_ENGINE, sectionFraction, yourStops } from "../core/engine";
+import { DEFAULT_ENGINE, sectionFraction } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
+import { yourStops } from "../core/stops";
 import { fragment } from "./html";
 import { clampBetween } from "./route-place";
 import { liveRegion } from "./views/live-region";

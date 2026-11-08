@@ -20,9 +20,10 @@ build can come later). Plain CUBE CSS, no framework.
 ```
 src/
   core/        no DOM, no Capacitor. Pure logic and the RTT client:
-               time (UK DST), models, parse, engine (position + estimate), poll (when to ask again), budget,
-               http (Http interface), rtt (client: auth, cache, budget), simulator (demo mode) and sim-stock (its
-               trains' units), stations, rail (what the UI calls), update (release check), keys (core storage names),
+               time (UK DST), models, parse, engine (position + estimate), stops (where you get on and off),
+               poll (when to ask again), budget, http (Http interface), rtt (client: auth, cache, budget),
+               simulator (demo mode) and sim-stock (its trains' units), stations, rail (what the UI calls),
+               update (release check), keys (core storage names),
                and for the Train view: formation (coaches, units, letters, facilities), scene (stopped, running,
                the two ends), motion (how the drawn train moves), daylight (dawn, day, dusk or night)
   platform/    the only Capacitor code: native HTTP, the private key store, app version, the updater plugin bridge
@@ -139,7 +140,7 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
   (solid plate confirmed, outlined expected). Where a station comes up twice (a loop, a train that reverses), you get
   on at its first call with a departure and off at the first call with an arrival after that (`resolveStops`,
-  `yourStops` in `core/engine.ts`); the page, its Board and Alight tags and the polling all use those calls. Once the
+  `yourStops` in `core/stops.ts`); the page, its Board and Alight tags and the polling all use those calls. Once the
   train is given up on (`no-data`, `unreported`), there's no "N min": your stops, and every row it hasn't reached, show
   the timetable's time and say so (`timetableOnly`), never our estimate.
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
