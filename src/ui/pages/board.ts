@@ -88,16 +88,23 @@ export class BoardPage extends Page {
    * Swap in the fresh answer without jumping to the top: the window line and its links, and everything below the
    * header (status, the older-answer note, rows or the empty line, footer), each slot whole. Only into this board: an
    * answer that arrives after you've moved on to another board (the page root is shared) is dropped.
+   * Nothing is asked while the app is hidden; coming back asks at once if a round was missed meanwhile.
    */
   private keepFresh(board: HTMLElement): void {
     const opened = Date.now();
-    const stop = this.every(BOARD_REFRESH.every, async () => {
-      if (document.visibilityState !== "visible") return;
+    let last = opened; // when the answer on screen was asked for
+    let busy = false;
+    let stopped = false;
+    const refresh = async () => {
+      if (stopped || busy || document.visibilityState !== "visible") return;
       if (Date.now() - opened > BOARD_REFRESH.for) {
+        stopped = true;
         stop();
         board.querySelector(".board__foot")?.append(" Stopped updating by itself to save calls: tap Refresh.");
         return;
       }
+      busy = true;
+      last = Date.now();
       try {
         const res = await this.request({ background: true });
         if (!board.isConnected) return;
@@ -110,7 +117,15 @@ export class BoardPage extends Page {
         }
       } catch {
         /* keep what's shown; the next round tries again */
+      } finally {
+        busy = false;
       }
-    });
+    };
+    const stop = this.every(BOARD_REFRESH.every, refresh);
+    const back = () => {
+      if (Date.now() - last >= BOARD_REFRESH.every) void refresh();
+    };
+    document.addEventListener("visibilitychange", back);
+    this.onDispose(() => document.removeEventListener("visibilitychange", back));
   }
 }

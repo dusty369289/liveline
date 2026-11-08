@@ -20,9 +20,11 @@ const boardElement = () => new FakeElement({
 const touched = (el: FakeElement): boolean => el.replacedWith.length > 0 || el.appended.length > 0 || Object.values(el.parts).some(touched);
 const flush = () => new Promise((ok) => setTimeout(ok, 0)); // real timers: only intervals and Date are faked
 
+let doc: FakeDocument;
+
 beforeEach(() => {
   vi.useFakeTimers({ now: T0, toFake: ["setInterval", "clearInterval", "Date"] });
-  FakeDocument.install();
+  doc = FakeDocument.install();
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -119,5 +121,45 @@ describe("a refreshing board", () => {
     const { top } = await refreshOnce(await setup(), (r) => r);
     expect(top).toContain("09:02 to 10:02"); // a "now" board moved on two minutes
     expect(top).toContain("time=10%3A02"); // Later is an hour after the new start
+  });
+});
+
+describe("coming back to a board", () => {
+  it("asks nothing while hidden, and refreshes at once on return if a refresh was due", async () => {
+    const app = await setup();
+    await app.open("#/board?station=PAD");
+    doc.visibilityState = "hidden";
+    await vi.advanceTimersByTimeAsync(3 * BOARD_REFRESH.every);
+    expect(app.held.length).toBe(0);
+    doc.visibilityState = "visible";
+    doc.fire("visibilitychange");
+    expect(app.held.length).toBe(1);
+  });
+
+  it("waits for the usual round when the last refresh is recent", async () => {
+    const app = await setup();
+    await app.open("#/board?station=PAD");
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.every - 1000);
+    doc.visibilityState = "hidden";
+    doc.fire("visibilitychange");
+    doc.visibilityState = "visible";
+    doc.fire("visibilitychange");
+    expect(app.held.length).toBe(0);
+  });
+
+  it("stops listening when you leave, and after its 15 minutes", async () => {
+    const app = await setup();
+    await app.open("#/board?station=PAD");
+    expect(doc.listening("visibilitychange")).toBe(1);
+    app.leave();
+    expect(doc.listening("visibilitychange")).toBe(0);
+
+    const again = await setup();
+    await again.open("#/board?station=PAD");
+    doc.visibilityState = "hidden";
+    await vi.advanceTimersByTimeAsync(BOARD_REFRESH.for + BOARD_REFRESH.every);
+    doc.visibilityState = "visible";
+    doc.fire("visibilitychange");
+    expect(again.held.length).toBe(0); // past its time: Refresh only
   });
 });
