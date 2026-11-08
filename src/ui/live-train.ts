@@ -4,6 +4,7 @@
 import { stopSummary } from "../core/engine";
 import { manualMinAge } from "../core/poll";
 import type { Rail, ServiceResult } from "../core/rail";
+import { keepFocus } from "./focus";
 import { fragment } from "./html";
 import { liveRegion } from "./views/live-region";
 import { PassFolds } from "./widgets/pass-folds";
@@ -232,8 +233,10 @@ export class LiveTrain {
       if (this.stopped) return;
       const tl = res.timeline;
       const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
-      if (node) this.region.replaceChildren(node);
-      this.folds.apply();
+      keepFocus(this.region, () => { // a fold button you're on stays focused through a poll
+        if (node) this.region.replaceChildren(node);
+        this.folds.apply();
+      });
       for (const fn of this.listeners) fn(res);
       this.failures = 0;
       this.place(true);

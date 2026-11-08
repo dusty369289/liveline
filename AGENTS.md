@@ -39,6 +39,7 @@ src/
     train-scene.ts the Train view while showing: slides the scenery, platforms, wheels (art in views/scene-art.ts,
                    views/train-art.ts; colours in public/css/themes/scene.css)
     html.ts, routes.ts, format.ts   the escaping template, hash routes, text formatting
+    focus.ts     keeping focus on the same control when markup is drawn again
   data/        bundled station list (ODbL, see its README)
 public/css/    CUBE layers; the only raw colours are in themes/platform.css
 android/       Capacitor's Android project (committed), including UpdaterPlugin.java
@@ -129,7 +130,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   Realtime Trains error gets its problem page; anything else is logged to the console and shown as "Something went
   wrong" with Try again. A page whose `mount()` fails stays, with a message in the flash. A key that can't be read on
   launch leaves demo mode on. Messages for the next page (`ctx.flash`, after saving a key, say) go in one persistent
-  live region in the chrome (`data-flash`), so screen readers hear them.
+  live region in the chrome (`data-flash`), so screen readers hear them. Focus (`ui/focus.ts`): a new page focuses
+  its `h1`; the same page drawn again, a train poll or a board refresh puts focus back on the same control (by id,
+  name, `data-*` or href). The skip link focuses `main` rather than following `#main`.
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
   the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
   for Settings (named "Settings" for screen readers).

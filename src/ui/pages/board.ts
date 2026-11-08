@@ -1,5 +1,6 @@
 // A board page: fetch the board, remember the station, save the journey, and keep a "now" board fresh (gently).
 import type { BoardResult } from "../../core/rail";
+import { keepFocus } from "../focus";
 import { fragment, type Html } from "../html";
 import { type Query, queryOf, qs, type RouteName, timeParams, when } from "../routes";
 import { type BoardNav, boardView } from "../views/board";
@@ -96,11 +97,13 @@ export class BoardPage extends Page {
       }
       try {
         const fresh = fragment(boardView(await this.request({ background: true }), this.query, this.nav!, true, this.ctx.rail.clock()));
-        for (const sel of [".trains", ".board__foot", ".empty"]) {
-          const now = root.querySelector(sel);
-          const next = fresh.querySelector(sel);
-          if (now && next) now.replaceWith(next);
-        }
+        keepFocus(root, () => { // the train row you're on stays focused through the refresh
+          for (const sel of [".trains", ".board__foot", ".empty"]) {
+            const now = root.querySelector(sel);
+            const next = fresh.querySelector(sel);
+            if (now && next) now.replaceWith(next);
+          }
+        });
       } catch {
         /* keep what's shown; the next round tries again */
       }

@@ -4,6 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Rail } from "../src/core/rail";
 import { App } from "../src/ui/app";
+import { keepFocus } from "../src/ui/focus";
 import { RecentPage } from "../src/ui/pages/simple";
 import { KEYS } from "../src/ui/store/keys";
 import { MemStore, stations } from "./support";
@@ -119,5 +120,41 @@ describe("launch", () => {
     expect(draws).toHaveBeenCalledTimes(1);
     expect(root.querySelector("[data-banner-slot]")?.textContent).toContain("Version 99.0.0");
     expect(neverFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("focus", () => {
+  it("going to another page puts focus on its heading, so a screen reader starts there", async () => {
+    const { app, root } = await setUp("#/");
+    await app.start();
+    location.hash = "#/recent";
+    await vi.waitFor(() => expect(root.querySelector("main h1")?.textContent).toBe("Recent trains"));
+    const h1 = root.querySelector("main h1");
+    expect(document.activeElement).toBe(h1);
+    expect(h1?.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("drawing the same page again keeps focus on the same field", async () => {
+    const { app, root } = await setUp("#/");
+    await app.start();
+    const before = root.querySelector<HTMLInputElement>("#station")!;
+    before.focus();
+    await app.render();
+    const after = root.querySelector("#station");
+    expect(after).not.toBe(before);
+    expect(document.activeElement).toBe(after);
+  });
+});
+
+describe("keepFocus", () => {
+  it("puts focus back on the twin of a button or link that was drawn again", () => {
+    document.body.innerHTML = '<div id="r"><button data-fold-toggle="3">Fold</button><a href="#/train/A">A</a></div>';
+    const r = document.getElementById("r")!;
+    r.querySelector<HTMLElement>("[data-fold-toggle]")!.focus();
+    keepFocus(r, () => (r.innerHTML = '<a href="#/train/A">A</a><button data-fold-toggle="3">Fold</button>'));
+    expect(document.activeElement?.getAttribute("data-fold-toggle")).toBe("3");
+    r.querySelector<HTMLElement>("a")!.focus();
+    keepFocus(r, () => (r.innerHTML = '<button data-fold-toggle="3">Fold</button><a href="#/train/A">A</a>'));
+    expect(document.activeElement?.getAttribute("href")).toBe("#/train/A");
   });
 });

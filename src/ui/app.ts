@@ -3,6 +3,7 @@
 import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { chrome } from "./components/chrome";
 import { SearchForm } from "./components/search-form";
+import { focusKey, refocus } from "./focus";
 import { type Html, html, render } from "./html";
 import { BoardPage } from "./pages/board";
 import type { AppContext, Page } from "./pages/page";
@@ -38,6 +39,7 @@ export class App {
   private page: Page | null = null;
   private seq = 0; // a newer navigation wins over a slow answer
   private flashRegion: HTMLElement | null = null;
+  private drawnPath: string | null = null; // the page on screen, to tell a new page from the same one drawn again
 
   constructor(private readonly root: HTMLElement, rail: Rail) {
     this.ctx = {
@@ -75,13 +77,13 @@ export class App {
     try {
       const { page, view } = await this.load(route, stale);
       if (stale() || !view) return;
-      this.draw(page, view);
+      this.draw(page, view, route);
     } catch (e) {
       if (stale()) return;
       try {
         const page = this.problem(route, e);
         const view = await page.load(stale);
-        if (view && !stale()) this.draw(page, view);
+        if (view && !stale()) this.draw(page, view, route);
       } catch (again) {
         console.error("Couldn't even show the problem page", again);
       }
@@ -110,9 +112,14 @@ export class App {
   }
 
   /** Swap pages: the old one stops only now, so it keeps working while a slow answer for the next is awaited. */
-  private draw(page: Page, view: Html): void {
+  private draw(page: Page, view: Html, route: Route): void {
+    const first = this.drawnPath === null;
+    const again = this.drawnPath === route.path; // the same page drawn again (a refresh, a saved key), not a new one
+    const active = document.activeElement;
+    const focused = active && this.root.contains(active) ? focusKey(active) : null;
     this.page?.dispose();
     this.page = page;
+    this.drawnPath = route.path;
     render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
     this.keepFlashRegion();
     document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
@@ -124,6 +131,21 @@ export class App {
       this.ctx.flash.error = MOUNT_FAILED;
     }
     this.showFlash();
+    // Not on launch (nothing had focus to lose), nor when the same page is drawn again with focus elsewhere (a busy
+    // page retrying by itself shouldn't pull a screen reader away)
+    if (!first && !(again && !focused)) this.placeFocus(again ? focused : null);
+  }
+
+  /**
+   * Where focus goes after a page change: back to the same control when the page was only drawn again, else (or if
+   * that control is gone) to the page's heading, so a screen reader starts reading there instead of at the top bar.
+   */
+  private placeFocus(key: string | null): void {
+    if (refocus(this.root, key)) return;
+    const h1 = this.root.querySelector<HTMLElement>("main h1");
+    if (!h1) return;
+    h1.tabIndex = -1;
+    h1.focus({ preventScroll: true });
   }
 
   /**
