@@ -30,6 +30,7 @@ const TEXT_ON: Array<[string, string]> = [
   ["ink", "page"], ["muted", "page"], ["problem", "page"], ["late", "page"], ["very-late", "page"], ["early", "page"],
   ["ink", "surface"], ["muted", "surface"], ["late", "surface"], ["ink", "surface-2"], ["muted", "surface-2"],
   ["on-primary", "primary"], ["demo-ink", "demo"], ["on-sign", "sign"], ["train-edge", "train"], ["ink", "control"],
+  ["faint", "control"], // a text box's placeholder (forms.css)
 ];
 
 describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {
@@ -139,5 +140,11 @@ describe.each(Object.entries(THEMES))("the board's platform plate, %s", (_name, 
     ["changed, not confirmed", ["trains__plat", "is-unconfirmed", "is-changed"]],
   ])("%s: keeps the yellow change bar", (_state, classes) => {
     expect(computed(classes, "box-shadow")).toContain("var(--train)");
+  });
+
+  it("not confirmed: the outline that stands for the plate stands out from the page (3:1)", () => {
+    const line = token(computed(["trains__plat", "is-unconfirmed"], "box-shadow"));
+    expect(line, "colour of the not-confirmed plate's outline").toBeDefined();
+    expect(contrast(line, t.page)).toBeGreaterThanOrEqual(3);
   });
 });
