@@ -153,7 +153,8 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   is, is "cancelled". Such a stop is labelled "Now ends here" or "Now starts here".
 - **Our estimate** carries the delay forward and lets a late train win back 75% of booked allowances and dwell over
   30 s, never leaving an advertised stop early. Used only where RTT gives no forecast or gives an impossible one. Not
-  backtested: it's a reasoned guess.
+  backtested: it's a reasoned guess. Never for a bus or ship (never reported) or a train we've given up on: those
+  show the timetable alone, with no countdown (`engine.timetableOnly`).
 - **Polling** (`core/poll.ts`): never more than once a minute; 20 s after the next report is due while running; just
   after departure at a station; shortly before it's due when not started (at least every 3 minutes, but every half hour
   while it's over 2 hours off, waking in time to be on the 3-minute beat at 2 hours); every minute when
