@@ -12,6 +12,7 @@ import android.provider.Settings;
 
 import androidx.core.content.ContextCompat;
 import androidx.core.content.IntentCompat;
+import androidx.lifecycle.Lifecycle;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -42,6 +43,11 @@ public class UpdaterPlugin extends Plugin {
     private PluginCall waitingForPermission;
     private PluginCall installing;
     private BroadcastReceiver receiver;
+    // Android's "Update this app?" dialog, kept until the install ends. Android blocks starting it while LiveLine is in
+    // the background, and it would then never appear, leaving "installing" up until a restart: so it's started only
+    // while LiveLine is on screen, or when the user comes back (handleOnResume), and can be reopened.
+    private volatile Intent pendingConfirm; // set on the main thread, read by install() on the plugin's thread
+    private boolean confirmShown; // main thread only
 
     @PluginMethod
     public void install(PluginCall call) {
@@ -50,9 +56,24 @@ public class UpdaterPlugin extends Plugin {
             call.reject("No download link for the update.", "BAD_URL");
             return;
         }
-        if (installing != null) {
-            call.reject("An update is already being installed.", "BUSY");
-            return;
+        synchronized (this) {
+            if (installing != null && pendingConfirm != null) {
+                // waiting on Android's dialog (closed, or never shown): this call takes over, and the dialog reopens
+                PluginCall old = installing;
+                call.setKeepAlive(true);
+                installing = call;
+                old.setKeepAlive(false);
+                old.reject("Carried on by a newer tap on Update.", "REPLACED");
+                getActivity().runOnUiThread(() -> {
+                    confirmShown = false;
+                    showConfirm();
+                });
+                return;
+            }
+            if (installing != null) {
+                call.reject("An update is already being installed.", "BUSY");
+                return;
+            }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getContext().getPackageManager().canRequestPackageInstalls()) {
             // one-time system switch; handleOnResume carries on if the user turns it on
@@ -72,6 +93,7 @@ public class UpdaterPlugin extends Plugin {
     @Override
     protected void handleOnResume() {
         super.handleOnResume();
+        showConfirm(); // a confirm dialog Android wouldn't let us show while in the background
         PluginCall call = waitingForPermission;
         if (call == null) return;
         waitingForPermission = null;
@@ -83,9 +105,24 @@ public class UpdaterPlugin extends Plugin {
         start(call);
     }
 
+    /** Start Android's confirm dialog if one is waiting and not yet shown, and LiveLine is on screen. Main thread only. */
+    private void showConfirm() {
+        Intent confirm = pendingConfirm;
+        if (confirm == null || confirmShown) return;
+        if (!getActivity().getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) return;
+        try {
+            getActivity().startActivity(confirm);
+            confirmShown = true;
+        } catch (RuntimeException e) {
+            finish(false, "Android couldn't show its update dialog. Try again.", "FAILED");
+        }
+    }
+
     private void start(PluginCall call) {
         call.setKeepAlive(true);
-        installing = call;
+        synchronized (this) {
+            installing = call;
+        }
         new Thread(() -> {
             try {
                 File apk = download(call.getString("url"));
@@ -187,6 +224,10 @@ public class UpdaterPlugin extends Plugin {
                 int n;
                 while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
                 s.fsync(out);
+            } catch (Exception e) {
+                // a half-written session would sit in Android's installer (and its storage) until it expires
+                s.abandon();
+                throw e;
             }
             listen();
             Intent i = new Intent(ACTION).setPackage(ctx.getPackageName());
@@ -206,7 +247,9 @@ public class UpdaterPlugin extends Plugin {
                     if (confirm != null) {
                         progress("confirm", 1.0);
                         confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        c.startActivity(confirm);
+                        pendingConfirm = confirm;
+                        confirmShown = false;
+                        showConfirm(); // receivers run on the main thread
                     }
                     return;
                 }
@@ -236,6 +279,9 @@ public class UpdaterPlugin extends Plugin {
     private synchronized void finish(boolean ok, String message, String code) {
         PluginCall call = installing;
         installing = null;
+        pendingConfirm = null;
+        // the APK is in the installer's session (or failed): no need to keep a copy in the cache
+        new File(new File(getContext().getCacheDir(), "updates"), "update.apk").delete();
         if (call == null) return;
         call.setKeepAlive(false);
         if (ok) {
