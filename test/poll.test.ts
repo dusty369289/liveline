@@ -30,6 +30,15 @@ const arr = (() => {
   return tl.points.find((v) => v.point.crs === "OXF")!.arrival!.booked!;
 })();
 
+/** The same train as RTT knew it a minute before it was due off (nothing reported), seen at `now`, as `mode`. */
+const unreported = (now: Ms, mode = "TRAIN"): Timeline => {
+  simNow = dep - 60_000;
+  const body = structuredClone(sim.getSync("/gb-nr/service", { uniqueIdentity: pick }).body) as
+    { service: { scheduleMetadata: { modeType: string } } };
+  body.service.scheduleMetadata.modeType = mode;
+  return build(parseService(body, () => now), now);
+};
+
 describe("manual refresh", () => {
   it("is 4x faster than the automatic polls while the hour has plenty left", () => {
     expect(manualMinAge(100, 10)).toBe(15);
@@ -96,6 +105,22 @@ describe("polling a train", () => {
     const tl = at(now);
     expect(tl.points.find((v) => v.point.crs === "RDG")!.reported).toBe(true);
     expect(pollAfter(tl, now, 30, "PAD")).not.toBeNull();
+  });
+
+  it("a train with nothing reported 10 minutes after it was due off is checked every 3 minutes, not every minute", () => {
+    const soon = dep + 5 * 60_000;
+    expect(unreported(soon).position.state).toBe("at-origin");
+    expect(pollAfter(unreported(soon), soon, 30)).toBe(POLL.overdue); // just late: worth watching closely
+    const now = dep + 15 * 60_000;
+    expect(pollAfter(unreported(now), now, 30)).toBeGreaterThanOrEqual(POLL.notStartedMax);
+  });
+
+  it("a replacement bus isn't reported, so it's checked every 3 minutes and says the times are the timetable", () => {
+    const now = dep + 5 * 60_000;
+    const bus = unreported(now, "REPLACEMENT_BUS");
+    expect(pollAfter(bus, now, 30)).toBeGreaterThanOrEqual(POLL.notStartedMax);
+    expect(bus.position.headline).toBe("Buses aren't tracked live: the times shown are the timetable.");
+    expect(unreported(now, "SHIP").position.headline).toBe("Ships aren't tracked live: the times shown are the timetable.");
   });
 
   it("following one train end to end fits the hour, with the search reserve left over", () => {

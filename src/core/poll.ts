@@ -12,6 +12,9 @@ export const POLL = {
   notStartedMax: 180, // before it sets off: platform changes and cancellations still show within 3 minutes
   afterDue: 20, // a report lands in RTT a little after the event
   overdue: 60, // no report where one was expected: check every minute
+  // Nothing reported this long after booked departure: it's probably not reporting at all (a bus, a train that lost its
+  // reporting), so check as rarely as before it set off. A cancellation still shows within 3 minutes.
+  unreportedAfter: 10 * 60, // seconds
   farAway: 120, // your stop is over 40 minutes off: no need to be quicker than this
   farMinutes: 40,
 };
@@ -48,7 +51,13 @@ export function pollAfter(tl: Timeline, now: Ms, budgetSecs: number, at = ""): n
   if (p.state === "not-started") {
     const due = secsTo(p.expected);
     s = due == null ? POLL.notStartedMax : clamp(due - 60, 60, POLL.notStartedMax);
-  } else if (p.state === "overdue" || p.state === "at-origin") {
+  } else if (p.state === "at-origin") {
+    // Nothing reported yet. Buses and ships never are; a train just late off is worth watching closely, for a while
+    const booked = p.fromIndex != null ? tl.points[p.fromIndex].departure?.booked ?? null : null;
+    const since = booked == null ? null : -secsTo(booked)!;
+    const silent = tl.service.mode !== "TRAIN" || (since != null && since >= POLL.unreportedAfter);
+    s = silent ? POLL.notStartedMax : POLL.overdue;
+  } else if (p.state === "overdue") {
     s = POLL.overdue;
   } else if (p.state === "at-station") {
     const dep = p.fromIndex != null ? tl.points[p.fromIndex].departure?.time ?? null : null;

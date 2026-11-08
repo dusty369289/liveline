@@ -286,8 +286,11 @@ function position(
     if (dep != null && now < dep) {
       return P("not-started", null, first, null, dep, 0, null, `Not started yet. Due to leave ${p.name} at ${hm(dep)}.`);
     }
-    return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null,
-      dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet.");
+    // Buses and ships aren't reported at all: "no reports yet" would suggest one is coming
+    const headline = service.mode !== "TRAIN"
+      ? `${service.mode.includes("SHIP") ? "Ships" : "Buses"} aren't tracked live: the times shown are the timetable.`
+      : dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet.";
+    return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null, headline);
   }
 
   const lp = pts[last];
