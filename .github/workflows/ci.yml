@@ -54,6 +54,8 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          # Dependabot's PRs carry its commits and an upstream changelog body (history-check.mjs)
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           if [ -n "$HEAD" ]; then
             # main's own commits are left out even if the PR's base is older (GitHub stamps their committer itself)
