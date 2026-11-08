@@ -1,13 +1,18 @@
 // The Recent tab: every train you've opened, newest first.
-import type { Ms } from "../../core/time";
+import { hm, isoDate, type Ms } from "../../core/time";
 import { ago, dayOrTime } from "../format";
 import { type Html, html } from "../html";
 import { type RecentTrain, RecentTrains } from "../store/recent-trains";
 
+/** "Leaves 08:05" today, "Runs Mon 9 Nov, 08:05" another day. */
+const leaves = (starts: Ms, now: Ms) => (isoDate(starts) === isoDate(now) ? `Leaves ${hm(starts)}` : `Runs ${dayOrTime(starts, now)}`);
+
 export function recentView(list: RecentTrain[], now: Ms): Html {
   const items = list.map((t) => {
-    const running = RecentTrains.isRunning(t, now);
-    const when = running ? "Running now" : t.starts && t.starts > now ? `Runs ${dayOrTime(t.starts, now)}` : t.ends ? `Finished ${dayOrTime(t.ends, now)}` : `Seen ${ago((now - t.seen) / 1000)}`;
+    // Until it sets off it says when it leaves, even in the half hour the search page already offers it
+    const waiting = !!t.starts && t.starts > now;
+    const running = !waiting && RecentTrains.isRunning(t, now);
+    const when = waiting ? leaves(t.starts!, now) : running ? "Running now" : t.ends ? `Finished ${dayOrTime(t.ends, now)}` : `Seen ${ago((now - t.seen) / 1000)}`;
     return html`<li class="recents__item${running ? " is-running" : ""}"><a class="recents__link" href="${t.href}">
       <span class="recents__title">${t.title}</span><span class="recents__when">${when}</span></a></li>`;
   });

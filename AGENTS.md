@@ -127,7 +127,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   ("08:05 London Waterloo to Woking · Mon 9 Nov").
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
-  it's due in). A train that hasn't set off yet says when it runs ("Runs Mon 9 Nov, 08:05"), not "Running now".
+  it's due in). Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05" for
+  another day), never "Running now", even in that first half hour.
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
   the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
   for Settings (named "Settings" for screen readers).

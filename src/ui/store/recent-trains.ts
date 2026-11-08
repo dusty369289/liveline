@@ -34,7 +34,7 @@ export class RecentTrains {
 
   static isRunning(t: RecentTrain, now: Ms): boolean {
     if (t.starts && t.starts - RecentTrains.STARTS_WITHIN > now) return false;
-    return now <=(t.ends ? t.ends + RecentTrains.RUNNING_FOR : t.seen + RecentTrains.FALLBACK);
+    return now <= (t.ends ? t.ends + RecentTrains.RUNNING_FOR : t.seen + RecentTrains.FALLBACK);
   }
 
   all(): RecentTrain[] {
