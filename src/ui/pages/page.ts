@@ -10,7 +10,7 @@ import type { TrainTab } from "../store/train-tab";
 import type { Updates } from "../updates";
 
 /** A message to show once on the next page drawn (after saving a key, say). */
-export interface Flash { message: string | null; error: string | null }
+export interface Flash { message: string | null }
 
 /** What pages share, owned by App. */
 export interface AppContext {

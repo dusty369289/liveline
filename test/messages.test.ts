@@ -54,6 +54,12 @@ describe("when the allowance stops a call", () => {
     expect((e as Error).message).not.toMatch(/\d\d:\d\d|minutes|shortly/);
   });
 
+  it("a refused key is told in plain words, with no HTTP status", async () => {
+    const c = new RttClient(ok, "not-the-right-key-0123456789", new Budget(clock.now), clock.now);
+    const e = await c.checkToken().catch((x: unknown) => x);
+    expect((e as Error).message).toBe("Realtime Trains didn't accept that key. Check you copied all of it from api-portal.rtt.io.");
+  });
+
   it("the problem page gives one wait: every 30 seconds, or the time Realtime Trains gave", () => {
     const allowance = text(problemView("Allowance used up", new AllowanceError("hour").message, { at: null }));
     expect(allowance).toMatch(/every 30 seconds/);

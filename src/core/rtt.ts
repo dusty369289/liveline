@@ -205,7 +205,7 @@ export class RttClient {
       return this.info;
     }
     if (r.status === 429 || r2.status === 429) throw new BusyError("Realtime Trains asked us to slow down.", this.budget.state().blockedUntil);
-    throw new AuthError(`Realtime Trains refused the key (HTTP ${r.status}). Check it in api-portal.rtt.io.`);
+    throw new AuthError("Realtime Trains didn't accept that key. Check you copied all of it from api-portal.rtt.io.");
   }
 
   private async bearer(): Promise<string> {

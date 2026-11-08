@@ -1,8 +1,8 @@
 // Settings: save or forget the key, choose the train marker, check for updates.
 import { canSelfUpdate, native } from "../../platform";
-import type { Html } from "../html";
+import { fragment, type Html } from "../html";
 import type { RouteName } from "../routes";
-import { settingsView } from "../views/settings";
+import { settingsView, tokenErrorView } from "../views/settings";
 import { Page } from "./page";
 
 export class SettingsPage extends Page {
@@ -15,9 +15,9 @@ export class SettingsPage extends Page {
     const info = await rail.tokenInfo();
     if (stale()) return null;
     const view = settingsView({ demo: rail.demo, tier, info, hint: rail.tokenHint, tokenError: rail.lastTokenError,
-      budget: rail.budget.state(), message: flash.message, error: flash.error, update: updates.info, native,
+      budget: rail.budget.state(), message: flash.message, update: updates.info, native,
       selfUpdate: canSelfUpdate, marker: appearance.marker() });
-    flash.message = flash.error = null; // shown once
+    flash.message = null; // shown once
     return view;
   }
 
@@ -27,14 +27,19 @@ export class SettingsPage extends Page {
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const btn = form.querySelector("button")!;
+      const label = btn.textContent;
       btn.disabled = true;
       btn.textContent = "Checking with Realtime Trains…";
       try {
         await rail.setKey(String(new FormData(form).get("token") ?? ""));
-        flash.message = "Key saved and working.";
       } catch (e) {
-        flash.error = e instanceof Error ? e.message : String(e);
+        // Stay on the form with what was typed, so a typo can be fixed in place.
+        btn.disabled = false;
+        btn.textContent = label;
+        showTokenError(form, e instanceof Error ? e.message : String(e));
+        return;
       }
+      flash.message = "Key saved and working.";
       this.ctx.rerender();
     });
     root.querySelector("[data-forget-key]")?.addEventListener("click", async () => {
@@ -46,4 +51,13 @@ export class SettingsPage extends Page {
     root.querySelectorAll<HTMLInputElement>("[data-marker-choice]").forEach((input) =>
       input.addEventListener("change", () => appearance.setMarker(input.value)));
   }
+}
+
+/** The key's problem, said under its field and tied to it, with the field focused to try again. */
+function showTokenError(form: HTMLFormElement, message: string): void {
+  const input = form.querySelector<HTMLInputElement>("#token")!;
+  form.querySelector("#token-error")?.remove();
+  input.closest(".field")!.append(fragment(tokenErrorView(message)));
+  input.setAttribute("aria-describedby", "token-error");
+  input.focus();
 }

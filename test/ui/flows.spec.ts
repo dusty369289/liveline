@@ -98,9 +98,16 @@ test("the marker style is kept after reopening the app", async ({ page, errors }
 
 test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors }) => {
   await open(page, "/settings");
-  await page.locator("#token").fill("x".repeat(40));
+  const key = page.locator("#token");
+  await key.fill("x".repeat(40));
   await page.locator("[data-key-form] button[type=submit]").click();
-  await expect(page.locator(".settings .problem")).toContainText("refused the key");
+  const problem = page.locator("#token-error");
+  await expect(problem).toContainText("didn't accept that key");
+  await expect(problem).not.toContainText("HTTP");
+  await expect(key).toHaveValue("x".repeat(40)); // kept, so a typo can be fixed in place
+  await expect(key).toHaveAttribute("aria-describedby", "token-error");
+  await expect(key).toBeFocused();
+  await expect(page.locator("[data-key-form] button[type=submit]")).toBeEnabled();
   await expect(page.locator(".banner--demo")).toBeVisible();
   void errors;
 });

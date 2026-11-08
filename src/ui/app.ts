@@ -44,7 +44,7 @@ export class App {
       journeys: new Journeys(),
       stations: new RecentStations(),
       trainTab: new TrainTab(),
-      flash: { message: null, error: null },
+      flash: { message: null },
       rerender: () => void this.render(),
     };
   }
