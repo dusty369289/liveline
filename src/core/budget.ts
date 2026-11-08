@@ -35,9 +35,41 @@ export class Budget {
     return new Budget(clock, 0, true);
   }
 
+  /** Calls in the last `secs` seconds. One exactly that old has just left, so freeAt can name an exact moment. */
   private used(now: Ms, secs: number): number {
     const cutoff = now - secs * 1000;
-    return this.calls.filter((t) => t >= cutoff).length;
+    return this.calls.filter((t) => t > cutoff).length;
+  }
+
+  /** How many free calls in this window a kind of call needs: background ones leave the reserve for searches. */
+  private need(dim: Dim, interactive: boolean): number {
+    return interactive || dim === "minute" || dim === "week" ? 1 : 1 + this.reserve;
+  }
+
+  /**
+   * When `need` calls in this window are free again, if nothing more is spent: our own count frees up as its oldest
+   * calls leave the window, a header's count when its window is over. Null if it never can (a limit below `need`).
+   */
+  freeAt(dim: Dim, need: number, now: Ms = this.clock()): Ms | null {
+    const win = DIMENSIONS[dim] * 1000;
+    if (this.limits[dim] < need) return null;
+    const inWindow = this.calls.filter((t) => t > now - win);
+    const leave = inWindow.length - (this.limits[dim] - need); // this many of the oldest must leave
+    let at = leave > 0 ? inWindow[leave - 1] + win : now;
+    const h = this.headerRemaining.get(dim);
+    if (h && now - h[1] < win && h[0] - this.calls.filter((t) => t > h[1]).length < need) at = Math.max(at, h[1] + win);
+    return at;
+  }
+
+  /** When this kind of call can go again: every window it needs, and any wait RTT asked for. */
+  freeFor(interactive: boolean, now: Ms = this.clock()): Ms | null {
+    let at = this.blockedUntil != null ? Math.max(now, this.blockedUntil) : now;
+    for (const dim of DIMS) {
+      const t = this.freeAt(dim, this.need(dim, interactive), now);
+      if (t == null) return null;
+      at = Math.max(at, t);
+    }
+    return at;
   }
 
   remaining(dim: Dim, now: Ms = this.clock()): number {
@@ -60,11 +92,7 @@ export class Budget {
   /** Which of this key's allowances is used up for this kind of call (the shortest first), or null if none is. */
   spent(interactive: boolean): Dim | null {
     const now = this.clock();
-    const need = interactive ? 1 : 1 + this.reserve;
-    if (this.remaining("minute", now) < 1) return "minute";
-    if (this.remaining("hour", now) < need) return "hour";
-    if (this.remaining("day", now) < need) return "day";
-    return this.remaining("week", now) < 1 ? "week" : null;
+    return DIMS.find((dim) => this.remaining(dim, now) < this.need(dim, interactive)) ?? null;
   }
 
   spend(): void {

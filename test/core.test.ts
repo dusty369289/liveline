@@ -45,6 +45,25 @@ describe("budget", () => {
     b.observe(200, { "x-ratelimit-remaining-hour": "5" });
     expect(b.refreshInterval()).toBe(600);
   });
+  it("knows when a spent hour frees up: when its oldest calls are an hour old", () => {
+    const b = new Budget(clock.now);
+    const first = clock.now();
+    for (let i = 0; i < 100; i++) {
+      b.spend();
+      clock.advance(30); // two a minute: only the hour runs out
+    }
+    expect(b.remaining("hour")).toBe(0);
+    expect(b.freeAt("hour", 1)).toBe(first + 3_600_000);
+    expect(b.freeAt("hour", 11)).toBe(first + 10 * 30_000 + 3_600_000); // the 11th oldest call leaves
+    expect(b.freeAt("minute", 1)).toBe(clock.now()); // not spent: free now
+    clock.t = first + 3_600_000;
+    expect(b.remaining("hour")).toBe(1);
+  });
+  it("a header saying the hour is spent holds until its hour is over", () => {
+    const b = new Budget(clock.now);
+    b.observe(200, { "x-ratelimit-remaining-hour": "0" });
+    expect(b.freeAt("hour", 1)).toBe(clock.now() + 3_600_000);
+  });
 });
 
 describe("client", () => {
