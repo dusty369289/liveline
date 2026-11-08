@@ -1,11 +1,18 @@
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--train); color: var(--train-edge); padding: var(--s-2) var(--s-3); z-index: 10; }
 .skip-link:focus { left: var(--s-2); }
 
+/* Behind the status bar on an edge-to-edge phone, always navy: its icons are light (platform/index.ts), and the top bar
+   scrolls away, so without this they would sit on paper. Above everything, and never in the way of a tap. */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--inset-top);
+  background: var(--sign); z-index: 20; pointer-events: none;
+}
+
 /* The top bar is a band of ink, like the name strip along a station sign. */
 .topbar {
   display: flex; align-items: center; gap: var(--s-4);
   padding: var(--s-1) var(--gutter);
-  padding-top: max(var(--s-1), env(safe-area-inset-top));
+  padding-top: max(var(--s-1), var(--inset-top));
   background: var(--sign); color: var(--on-sign);
 }
 .topbar__logo {

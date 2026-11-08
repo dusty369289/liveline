@@ -1,6 +1,6 @@
 // What a screenshot can't check: every text colour in the theme is readable on what it sits on (WCAG 4.5:1), in
 // both light and dark, and the train marker stands out from the page (3:1 for graphics).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("../public/css/themes/platform.css", import.meta.url), "utf8");
@@ -45,5 +45,19 @@ describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {
     // yellow on paper alone is about 1.4:1, so the marker always carries its dark edge
     expect(Math.max(contrast(t["train-edge"], t.page), contrast(t.train, t.page))).toBeGreaterThanOrEqual(3);
     expect(contrast(t["train-edge"], t.train)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("the status bar's height", () => {
+  // Read once into --inset-top, so the browser tests can stand in for a phone's status bar by setting that variable
+  // (a browser's own inset is always 0). A direct env(safe-area-inset-top) elsewhere would escape those tests.
+  const dir = new URL("../public/css/", import.meta.url);
+  const files = readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((f) => f.endsWith(".css"));
+  const uses = files.flatMap((f) =>
+    readFileSync(new URL(f, dir), "utf8").split("\n").filter((l) => l.includes("safe-area-inset-top")).map((l) => `${f}: ${l.trim()}`),
+  );
+
+  it("is read from env() in one place only, --inset-top", () => {
+    expect(uses).toEqual([expect.stringMatching(/^base\/elements\.css: --inset-top: env\(safe-area-inset-top, 0px\);/)]);
   });
 });

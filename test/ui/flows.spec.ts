@@ -1,4 +1,5 @@
 // What people do, end to end, in the built app (demo mode: the simulator, at a fixed moment).
+import type { Page } from "@playwright/test";
 import { expect, open, openTrain, test } from "./support";
 
 test("search by typing and picking suggestions lands on the board", async ({ page, errors }) => {
@@ -64,9 +65,16 @@ test("passing points open and fold away", async ({ page, errors }) => {
   void errors;
 });
 
+/** Scroll to the end of the page, on a screen short enough that it really scrolls (the demo pages can fit on one). */
+async function scrollFar(page: Page): Promise<void> {
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 420 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100); // the navy top bar has gone off screen
+}
+
 test("the train page bar stays on screen while scrolling the route", async ({ page, errors }) => {
   await openTrain(page);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await scrollFar(page);
   const bar = await page.locator("[data-trainbar]").boundingBox();
   expect(bar?.y).toBe(0);
   await page.locator("[data-refresh-now]").click(); // the answer is fresh: says so, costs nothing
@@ -74,22 +82,50 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
-test("the stuck train page bar paints the strip under the status bar navy", async ({ page, errors }) => {
-  await openTrain(page);
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  // On a phone the strip is env(safe-area-inset-top) tall (0 here): its colour is what keeps the light status icons
-  // readable once the navy top bar has scrolled away.
-  const { border, style, sign } = await page.evaluate(() => {
-    const bar = getComputedStyle(document.querySelector("[data-trainbar]")!);
+// A browser has no status bar, so env(safe-area-inset-top) is 0 here. The CSS reads it once, into --inset-top
+// (test/design.test.ts holds it to that), so setting --inset-top stands in for an edge-to-edge phone's status bar.
+const INSET = 24;
+async function fakeStatusBar(page: Page, px = INSET): Promise<void> {
+  await page.evaluate((v) => document.documentElement.style.setProperty("--inset-top", `${v}px`), px);
+}
+async function statusStrip(page: Page) {
+  return page.evaluate(() => {
+    const s = getComputedStyle(document.body, "::before");
     const probe = document.createElement("i");
     probe.style.color = "var(--sign)";
     document.body.append(probe);
     const sign = getComputedStyle(probe).color;
     probe.remove();
-    return { border: bar.borderTopColor, style: bar.borderTopStyle, sign };
+    return { position: s.position, top: s.top, height: s.height, z: Number(s.zIndex), colour: s.backgroundColor, sign };
   });
-  expect(style).toBe("solid");
-  expect(border).toBe(sign);
+}
+
+test("a navy strip sits behind the status bar on every page, however far it's scrolled", async ({ page, errors }) => {
+  // the status icons are light on a phone (platform/index.ts): they need navy under them, not paper
+  await open(page, "/board?station=PAD&time=09:00");
+  await page.locator(".trains__row").first().waitFor();
+  await fakeStatusBar(page);
+  await scrollFar(page);
+  const strip = await statusStrip(page);
+  expect(strip).toMatchObject({ position: "fixed", top: "0px", height: `${INSET}px` });
+  expect(strip.colour).toBe(strip.sign);
+  expect(strip.z).toBeGreaterThan(5); // above the sticky train bar and the suggestion lists
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const logo = await page.locator(".topbar__logo").boundingBox();
+  expect(logo!.y).toBeGreaterThanOrEqual(INSET); // the top bar's contents start below the status bar
+  void errors;
+});
+
+test("the train page bar sticks below the status bar, and adds no band before it sticks", async ({ page, errors }) => {
+  await openTrain(page);
+  const plain = (await page.locator("[data-trainbar]").boundingBox())!.height;
+  await fakeStatusBar(page);
+  // in the page's flow (not stuck) it is the same bar as on a phone with no inset: no navy band above it
+  expect((await page.locator("[data-trainbar]").boundingBox())!.height).toBe(plain);
+  await scrollFar(page);
+  const stuck = (await page.locator("[data-trainbar]").boundingBox())!;
+  expect(stuck.y).toBe(INSET);
+  expect(stuck.height).toBe(plain);
   void errors;
 });
 

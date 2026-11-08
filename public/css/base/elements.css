@@ -25,6 +25,8 @@
   --gutter: var(--s-5);
   --measure: 40rem;
   --tap: 44px;
+  /* the status bar's height on an edge-to-edge phone (0 in a browser): read here only, so the browser tests can set it */
+  --inset-top: env(safe-area-inset-top, 0px);
 }
 
 @media (max-width: 640px) { :root { --gutter: 1.125rem; } }
