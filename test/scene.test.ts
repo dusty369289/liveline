@@ -4,15 +4,20 @@ import { describe, expect, it } from "vitest";
 import { build } from "../src/core/engine";
 import { parseBoard, parseService } from "../src/core/parse";
 import { sceneOf } from "../src/core/scene";
-import { SimTransport } from "../src/core/simulator";
 import { isoLocal } from "../src/core/time";
+import { simulator } from "./support";
 
 const DAY = Date.parse("2026-11-07T00:00:00Z");
 const at = (hhmm: string) => DAY + (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))) * 60_000;
 
+// One simulator, its clock moved by each call: the searches below look at a few hundred moments, and a new
+// simulator for each (a new timetable before support.ts shared one) took 7 s of this file's 8
+let clock = 0;
+const sim = simulator(() => clock);
+
 /** The first train from Paddington to Oxford from 09:00, as the train page would see it at `now`. */
 function timelineAt(now: number) {
-  const sim = new SimTransport(() => now);
+  clock = now;
   const from = at("09:00");
   const board = parseBoard(sim.getSync("/gb-nr/location", { code: "PAD", timeFrom: isoLocal(from), timeWindow: "60", filterTo: "OXF" }).body,
     { fallbackName: "Paddington", timeFrom: from, timeTo: from + 3_600_000, today: () => now });

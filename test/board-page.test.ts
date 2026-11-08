@@ -3,12 +3,11 @@
 // overtaken by navigation. Only a board for now (no time, and no day or today's) keeps itself fresh.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type BoardResult, BusyError, Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon, isoDate } from "../src/core/time";
 import { BOARD_REFRESH, BoardPage } from "../src/ui/pages/board";
 import type { AppContext } from "../src/ui/pages/page";
 import { parseHash } from "../src/ui/routes";
-import { FakeDocument, FakeElement, MemStore, stations } from "./support";
+import { FakeDocument, FakeElement, MemStore, simulator, stations } from "./support";
 
 const T0 = fromLondon(2026, 11, 7, 9, 0);
 
@@ -32,7 +31,7 @@ afterEach(() => {
 
 /** A tiny App: one root whose board is swapped on navigation, a Rail on the simulator with background calls held. */
 async function setup() {
-  const rail = new Rail(new SimTransport(() => Date.now()), new MemStore(), stations, () => Date.now());
+  const rail = new Rail(simulator(() => Date.now()), new MemStore(), stations, () => Date.now());
   await rail.setKey("k".repeat(40));
   const held: Array<() => Promise<void>> = [];
   const state = { edit: (r: BoardResult) => r };

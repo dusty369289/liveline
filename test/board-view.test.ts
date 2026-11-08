@@ -6,17 +6,16 @@ import { describe, expect, it } from "vitest";
 import { emptyTimes, type Times } from "../src/core/models";
 import { parseBoard } from "../src/core/parse";
 import { type BoardResult, Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon } from "../src/core/time";
 import { boardView } from "../src/ui/views/board";
-import { fixture, MemStore, stations } from "./support";
+import { fixture, MemStore, simulator, stations } from "./support";
 
 const T0 = fromLondon(2026, 11, 7, 9, 0);
 const NAV = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c" };
 
 const boards = new Map<string, Promise<BoardResult>>(); // one simulated board per mode: building one is slow
 function board(mode: "dep" | "arr"): Promise<BoardResult> {
-  if (!boards.has(mode)) boards.set(mode, new Rail(new SimTransport(() => T0), new MemStore(), stations, () => T0).board({ station: "PAD", mode }));
+  if (!boards.has(mode)) boards.set(mode, new Rail(simulator(() => T0), new MemStore(), stations, () => T0).board({ station: "PAD", mode }));
   return boards.get(mode)!;
 }
 

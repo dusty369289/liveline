@@ -2,11 +2,10 @@
 // keeps them from becoming markup, so it's tested directly and through a real view.
 import { describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon } from "../src/core/time";
 import { html, raw } from "../src/ui/html";
 import { boardView } from "../src/ui/views/board";
-import { MemStore, stations } from "./support";
+import { MemStore, simulator, stations } from "./support";
 
 const HOSTILE = `<img src=x onerror=1>`;
 const QUOTES = `"'&`;
@@ -29,7 +28,7 @@ describe("the escaping template", () => {
 describe("a view with hostile names", () => {
   it("a board escapes the station, destination and operator RTT sent", async () => {
     const now = fromLondon(2026, 11, 7, 9, 0);
-    const sim = new SimTransport(() => now);
+    const sim = simulator(() => now);
     const rail = new Rail(sim, new MemStore(), stations, () => now);
     await rail.setKey("k".repeat(40));
     const res = await rail.board({ station: "PAD" });
