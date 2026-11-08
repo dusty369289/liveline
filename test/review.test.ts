@@ -43,6 +43,20 @@ describe("timing review", () => {
     expect(review.record([...steady(), passed("tiny", 120)], "fp").newlySlow).toEqual([]); // 3.4x, but only 85 ms
   });
 
+  it("a fast test that suddenly takes far longer is queued, not taken as its new normal", () => {
+    for (let i = 0; i < 3; i++) review.record([...steady(), passed("tiny", 5)], "fp");
+    expect(review.record([...steady(), passed("tiny", 900)], "fp").newlySlow).toEqual(["tiny"]);
+  });
+
+  it("tests under the timing floor don't vote on how slow the machine is", () => {
+    const tiny = ["p", "q", "r", "s", "u", "v", "w"].map((x) => passed(`tiny ${x}`, 1));
+    for (let i = 0; i < 3; i++) review.record([...steady(), ...tiny, passed("t", 100)], "fp");
+    // the whole machine is 3x slower; seven 1 ms tests still at 1 ms would otherwise outvote that and blame "t"
+    const r = review.record([...steady(3), ...tiny, passed("t", 300)], "fp");
+    expect(r.machine).toBeCloseTo(3);
+    expect(r.newlySlow).toEqual([]);
+  });
+
   it("accepting a new time needs a reason and is logged", () => {
     for (let i = 0; i < 3; i++) review.record([...steady(), passed("t", 100)], "fp");
     review.record([...steady(), passed("t", 500)], "fp");

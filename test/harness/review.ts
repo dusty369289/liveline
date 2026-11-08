@@ -14,7 +14,7 @@ import { join } from "node:path";
 export const LIMITS = {
   slowFactor: 2, // slower than twice its baseline...
   slowMs: 100, // ...and by at least this much (tiny tests jitter by more than 2x)
-  minMs: 30, // tests faster than this are never timed
+  minMs: 30, // the lowest baseline (faster tests count as this fast), and the floor for the machine-speed vote
   recoverRuns: 3, // back within limits this many runs in a row: off the queue
   history: 7, // passing runs kept for the median
   machineSlow: 1.3, // the whole run this much slower: say so, and scale for it
@@ -113,14 +113,16 @@ export class TestReview {
 
     const timings = this.read<Record<string, Timing>>("timings.json", {});
     const queue = this.read<Record<string, Queued>>("timing-queue.json", {});
-    const timed = runs.filter((r) => r.state === "passed" && r.ms >= LIMITS.minMs);
-    const ratios = timed.filter((r) => timings[r.id]?.baseline).map((r) => r.ms / timings[r.id].baseline);
+    // Every passing run is timed, so a fast test has a baseline before it ever turns slow (otherwise its first slow run
+    // would become its baseline). Only tests over the floor vote on the machine's speed: tiny ones jitter too much.
+    const passing = runs.filter((r) => r.state === "passed");
+    const ratios = passing.filter((r) => r.ms >= LIMITS.minMs && timings[r.id]).map((r) => r.ms / timings[r.id].baseline);
     const machine = ratios.length >= 5 ? Math.max(1, median(ratios)) : 1;
     const newlySlow: string[] = [];
-    for (const r of timed) {
+    for (const r of passing) {
       const t = timings[r.id];
       if (!t) {
-        timings[r.id] = { history: [r.ms], baseline: r.ms };
+        timings[r.id] = { history: [r.ms], baseline: Math.max(r.ms, LIMITS.minMs) };
         continue;
       }
       const adjusted = r.ms / machine;
@@ -131,7 +133,7 @@ export class TestReview {
       }
       if (queue[r.id] && ++queue[r.id].good >= LIMITS.recoverRuns) delete queue[r.id];
       t.history = [...t.history, r.ms].slice(-LIMITS.history);
-      t.baseline = median(t.history);
+      t.baseline = Math.max(median(t.history), LIMITS.minMs); // a floor, so a 2 ms test isn't "slow" at 5 ms
     }
     this.write("outcomes.json", outcomes);
     this.write("flaky.json", flaky);
