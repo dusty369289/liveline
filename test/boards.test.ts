@@ -4,16 +4,15 @@
 import { describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
 import { FETCH_WINDOW, FUTURE_BOARD_TTL } from "../src/core/rtt";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon, type Ms } from "../src/core/time";
-import { FakeRtt, fixture, GOOD, MemStore, stations } from "./support";
+import { FakeRtt, fixture, GOOD, MemStore, simulator, stations } from "./support";
 
 const KEY = "k".repeat(40);
 
 async function setup(start: Ms) {
   let now = start;
   const clock = () => now;
-  const sim = new SimTransport(clock);
+  const sim = simulator(clock);
   const rail = new Rail(sim, new MemStore(), stations, clock);
   await rail.setKey(KEY);
   sim.requests.length = 0;

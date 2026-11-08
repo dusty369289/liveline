@@ -3,16 +3,15 @@
 // it was boarded. Before this, the link swapped them, and the big number counted down to the train leaving here.
 import { describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { yourStops } from "../src/core/stops";
 import { fromLondon } from "../src/core/time";
 import { boardView } from "../src/ui/views/board";
 import { liveRegion } from "../src/ui/views/live-region";
-import { MemStore, stations } from "./support";
+import { MemStore, simulator, stations } from "./support";
 
 const T0 = fromLondon(2026, 11, 7, 9, 0);
 const NAV = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c" };
-const rail = new Rail(new SimTransport(() => T0), new MemStore(), stations, () => T0);
+const rail = new Rail(simulator(() => T0), new MemStore(), stations, () => T0);
 
 /** Each row's train link on a drawn board, as the uid and its query. */
 async function links(to: string | null): Promise<Array<{ uid: string; params: URLSearchParams }>> {

@@ -6,6 +6,7 @@ import { type Http, type HttpResponse, NetworkError } from "../src/core/http";
 import type { StoreKey } from "../src/core/keys";
 import type { Rail } from "../src/core/rail";
 import type { KeyValueStore } from "../src/core/rtt";
+import { SimTransport, Timetable } from "../src/core/simulator";
 import { StationIndex } from "../src/core/stations";
 import type { Ms } from "../src/core/time";
 import type { AppContext } from "../src/ui/pages/page";
@@ -67,6 +68,13 @@ export function fakeService(locs: FakeLocation[], systemStatus = { realtimeNetwo
     },
   };
 }
+
+/**
+ * The demo railway on `clock`. Its timetable is built once for every test: building one lays out a whole day's
+ * trains, and a timetable is never changed after (each service is complete when built), so sharing it is safe.
+ */
+const TIMETABLE = new Timetable();
+export const simulator = (clock: () => Ms): SimTransport => new SimTransport(clock, TIMETABLE);
 
 /** The bundled station list, loaded once. */
 export const stations = StationIndex.fromRaw(JSON.parse(readFileSync(`${here}../src/data/stations.json`, "utf8")));

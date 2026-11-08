@@ -3,11 +3,10 @@ import { describe, expect, it } from "vitest";
 import { TRAIN_STATUSES, type TrainStatus } from "../src/core/models";
 import { parseBoard } from "../src/core/parse";
 import { Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon } from "../src/core/time";
 import { boardView } from "../src/ui/views/board";
 import { liveRegion } from "../src/ui/views/live-region";
-import { MemStore, stations } from "./support";
+import { MemStore, simulator, stations } from "./support";
 
 const NAV = { earlier: "", later: "", refresh: "", switch: "", all: "", change: "" };
 const text = (h: { value: string }) => h.value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -23,7 +22,7 @@ function added(withIt: string, without: string): string {
 
 describe("train status words", async () => {
   const now = fromLondon(2026, 11, 7, 9, 0);
-  const rail = new Rail(new SimTransport(() => now), new MemStore(), stations, () => now);
+  const rail = new Rail(simulator(() => now), new MemStore(), stations, () => now);
   await rail.start();
   const board = await rail.board({ station: "PAD" });
   const row = board.rows.find((r) => r.operatorName)!;

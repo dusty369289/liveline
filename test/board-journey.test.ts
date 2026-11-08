@@ -4,14 +4,13 @@
 // the departures board at Oxford calling at Paddington shows, so starring either lights the other.
 import { beforeEach, describe, expect, it } from "vitest";
 import { Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon } from "../src/core/time";
 import { fragment } from "../src/ui/html";
 import { BoardPage } from "../src/ui/pages/board";
 import type { AppContext } from "../src/ui/pages/page";
 import { parseHash } from "../src/ui/routes";
 import { Journeys } from "../src/ui/store/lists";
-import { MemStore, stations } from "./support";
+import { MemStore, simulator, stations } from "./support";
 
 const T0 = fromLondon(2026, 11, 7, 9, 0);
 
@@ -19,7 +18,7 @@ beforeEach(() => localStorage.clear());
 
 /** A board page drawn into the document and wired, as the app does it. */
 async function open(hash: string, journeys: Journeys): Promise<HTMLElement> {
-  const rail = new Rail(new SimTransport(() => T0), new MemStore(), stations, () => T0);
+  const rail = new Rail(simulator(() => T0), new MemStore(), stations, () => T0);
   const ctx = { rail, stations: { remember() {} }, journeys } as unknown as AppContext;
   const page = new BoardPage(ctx, parseHash(hash));
   const markup = await page.load(() => false);

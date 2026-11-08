@@ -3,12 +3,11 @@
 import { describe, expect, it } from "vitest";
 import { stopSummary } from "../src/core/stops";
 import { Rail } from "../src/core/rail";
-import { SimTransport } from "../src/core/simulator";
 import { fromLondon, type Ms } from "../src/core/time";
 import { html } from "../src/ui/html";
 import { countText } from "../src/ui/views/live-region";
 import { trainView } from "../src/ui/views/train";
-import { Clock, MemStore, stations } from "./support";
+import { Clock, MemStore, simulator, stations } from "./support";
 
 const NOW = fromLondon(2026, 11, 7, 9, 20); // a Saturday
 
@@ -18,7 +17,7 @@ const NOW = fromLondon(2026, 11, 7, 9, 20); // a Saturday
  */
 async function trainFrom(station: string, when: Ms, at = station, now = NOW, to = "") {
   const clock = () => now;
-  const rail = new Rail(new SimTransport(clock), new MemStore(), stations, clock);
+  const rail = new Rail(simulator(clock), new MemStore(), stations, clock);
   await rail.setKey("k".repeat(40));
   const board = await rail.board({ station, when });
   const uid = board.rows[0].uniqueId;
