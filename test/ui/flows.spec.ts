@@ -1,5 +1,5 @@
 // What people do, end to end, in the built app (demo mode: the simulator, at a fixed moment).
-import { expect, open, openTrain, test } from "./support";
+import { audit, expect, open, openTrain, snap, test } from "./support";
 
 test("search by typing and picking suggestions lands on the board", async ({ page, errors }) => {
   await open(page, "/");
@@ -96,7 +96,7 @@ test("the marker style is kept after reopening the app", async ({ page, errors }
   void errors;
 });
 
-test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors }) => {
+test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors }, info) => {
   await open(page, "/settings");
   const key = page.locator("#token");
   await key.fill("x".repeat(40));
@@ -109,6 +109,8 @@ test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors
   await expect(key).toBeFocused();
   await expect(page.locator("[data-key-form] button[type=submit]")).toBeEnabled();
   await expect(page.locator(".banner--demo")).toBeVisible();
+  expect(await audit(page)).toEqual([]);
+  await snap(page, info, "09-settings-key-refused");
   void errors;
 });
 
