@@ -14,6 +14,7 @@ export interface HomeData {
 export function homeView(d: HomeData): Html {
   return html`
 <div class="stack home">
+  <h1>Find your train</h1>
   ${d.carry ? html`<a class="carry" href="${d.carry.href}"><span class="carry__label">Carry on</span><span class="carry__title">${d.carry.title}</span></a>` : ""}
   ${d.journeys.length ? html`<section class="journeys" aria-labelledby="journeys-h">
     <h2 id="journeys-h" class="label">My journeys</h2>
@@ -23,7 +24,6 @@ export function homeView(d: HomeData): Html {
         <a class="journeys__back" href="#/board${qs({ station: j.to, to: j.from })}" aria-label="Return: ${j.toName} to ${j.fromName}">Return</a>
       </li>`)}</ul>
   </section>` : ""}
-  <h1>Find your train</h1>
   ${searchForm(d.query)}
   ${d.journeys.length ? "" : html`<p class="hint">Tip: put a station in “Calling at” and you can save the journey for one-tap use, both ways.</p>`}
 </div>`;

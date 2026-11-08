@@ -112,9 +112,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule.
 - **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch), a refresh icon that
   spins during any fetch, Jump to train. It sits below the status bar on edge-to-edge phones. It holds the page's
-  only live region (`widgets/announcer.ts`, kept through polls; the redrawn part has none): after a poll it says the
-  headline, plus the big number when that changed, only if that isn't what it said last; a tapped refresh with no
-  news says "Updated".
+  only live region (`widgets/announcer.ts`, kept through polls; the redrawn part has none): after a poll with news it
+  says the headline, plus the big number's line when that line's news changed. News is judged without the countdown
+  number and without the headline's clock times and lateness (they move on nearly every poll); "Now", "Due", a
+  platform or the hero's clock time moving are news. A tapped refresh with no news says "Updated".
 - **Train view** (the train page's second tab, remembered): the same answers drawn as the train in countryside. It
   stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
   runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
@@ -127,7 +128,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
   (solid plate confirmed, outlined expected).
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
-  shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
+  shows one "Carry on" line for the newest still running (until 30 minutes after it's due in), under its heading and
+  above My journeys, so a screen reader starting at the focused heading meets both.
 - **Page changes** (`ui/app.ts`): the old page keeps running until the new one is drawn; meanwhile the root has
   `aria-busy` and `is-navigating` (a thin still line along the top after 300 ms). `render` never throws: a
   Realtime Trains error gets its problem page; anything else is logged to the console and shown as "Something went
