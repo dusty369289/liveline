@@ -15,7 +15,7 @@
 
 /* A train: the header in its operator's colour, the status and the route on panels */
 :root[data-theme="operator"] .train__head {
-  padding: var(--s-4); border-radius: var(--radius-panel); background: var(--op-bg); color: var(--op-ink);
+  padding: var(--s-4); border-radius: var(--radius-panel); background: var(--op-head); color: var(--op-head-ink);
 }
 :root[data-theme="operator"] .train__head .label { color: inherit; }
 :root[data-theme="operator"] .live__status,
