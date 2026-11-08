@@ -52,4 +52,10 @@ describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {
     expect(Math.max(contrast(t["train-edge"], t.page), contrast(t.train, t.page))).toBeGreaterThanOrEqual(3);
     expect(contrast(t["train-edge"], t.train)).toBeGreaterThanOrEqual(3);
   });
+
+  it.each(["page", "surface"])("the focus ring (yellow outline, dark ring) stands out on %s (3:1)", (bg) => {
+    // base/elements.css: every focused control, a checked radio included, carries both; one of them must show
+    expect(Math.max(contrast(t["train-edge"], t[bg]), contrast(t.train, t[bg])), `focus ring on ${bg}`).toBeGreaterThanOrEqual(3);
+    expect(contrast(t["train-edge"], t.train), "dark ring against the yellow").toBeGreaterThanOrEqual(3);
+  });
 });

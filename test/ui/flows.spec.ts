@@ -44,6 +44,19 @@ test("the second station's label follows Departures and Arrivals", async ({ page
   void errors;
 });
 
+test("tabbing onto the checked radio keeps the dark focus ring, not just the yellow outline", async ({ page, errors }) => {
+  await open(page, "/");
+  await page.locator("#station").focus();
+  await page.keyboard.press("Tab"); // a radio group takes focus on its checked radio
+  const radio = page.locator('input[name="mode"][value="dep"]');
+  await expect(radio).toBeFocused();
+  await expect(radio).toBeChecked();
+  const shadow = await radio.evaluate((el) => getComputedStyle(el).boxShadow);
+  // the ring is the one shadow that isn't inset; the checked dot's two are
+  expect(shadow.split(/,(?![^(]*\))/).some((s) => /\b5px\b/.test(s) && !s.includes("inset"))).toBe(true);
+  void errors;
+});
+
 test("Later and Earlier step the board by an hour", async ({ page, errors }) => {
   await open(page, "/board?station=PAD&time=09:00");
   await page.getByRole("link", { name: "Later", exact: true }).click();
