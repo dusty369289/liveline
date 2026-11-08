@@ -9,6 +9,7 @@
 @import url("./base/elements.css") layer(base);
 @import url("./composition/layout.css") layer(composition);
 @import url("./block/chrome.css") layer(block);
+@import url("./block/tabs.css") layer(block);
 @import url("./block/forms.css") layer(block);
 @import url("./block/board.css") layer(block);
 @import url("./block/route.css") layer(block);

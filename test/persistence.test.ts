@@ -35,6 +35,7 @@ describe("updates keep the user's data", () => {
       marker: "liveline.marker",
       trainTab: "liveline.trainTab", // new in the Train view: nothing older to migrate
       theme: "liveline.theme", // new with the themes: nothing older to migrate (Platform kept no setting)
+      tabs: "liveline.tabs", // new with the bottom tabs: nothing older to migrate
     });
   });
 

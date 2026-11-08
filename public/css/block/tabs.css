@@ -1,0 +1,30 @@
+/* The tabs (Search, Recent, Settings). At the top, words, with a cog for Settings. At the bottom (the default,
+   Settings > Appearance; data-tabs on <html>), a bar along the foot of the screen, within a thumb's reach: each tab its
+   icon over its word, the one you're on lit with a line along its top, as the top bar's is along its foot. Only on a
+   screen tall enough to spare the room (a phone held upright); a short one keeps them at the top. */
+.topbar__nav a:not(.topbar__cog) .topbar__icon { display: none; }
+.topbar__cog .topbar__word { display: none; }
+
+@media (min-height: 600px) {
+  :root[data-tabs="bottom"] {
+    --tabs-height: 3.5rem;
+  }
+  :root[data-tabs="bottom"] body { padding-bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom, 0px)); }
+  /* With the tabs gone from it, the top bar would hold only the name: its room goes to the page instead, which then
+     still fits a small phone's screen (fit.spec.ts). Only the strip under the status bar stays. */
+  :root[data-tabs="bottom"] .topbar__logo { display: none; }
+  :root[data-tabs="bottom"] .topbar { padding: 0; padding-top: var(--inset-top); }
+  :root[data-tabs="bottom"] .topbar__nav {
+    position: fixed; z-index: 15; left: 0; right: 0; bottom: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--bar); border-top: 1px solid var(--line);
+  }
+  :root[data-tabs="bottom"] .topbar__nav a {
+    flex-direction: column; justify-content: center; gap: .15rem; min-height: calc(var(--tabs-height) - 1px); min-width: 0; /* and its hairline */
+    font-size: var(--t-xs); text-align: center;
+  }
+  :root[data-tabs="bottom"] .topbar__nav a[aria-current="page"] { box-shadow: inset 0 3px 0 var(--on-bar); }
+  :root[data-tabs="bottom"] .topbar__nav .topbar__icon { display: block; }
+  :root[data-tabs="bottom"] .topbar__cog .topbar__word { display: inline; }
+}
