@@ -140,6 +140,12 @@ describe("polling a train", () => {
     expect(pollAfter(at(now), now, 30, "OXF")).toBeGreaterThanOrEqual(POLL.farAway);
   });
 
+  it("is slower while the stop you're meeting it at is far off (opened from arrivals: no boarding stop)", () => {
+    const now = dep + 2 * 60_000;
+    expect(pollAfter(at(now), now, 30, "", "OXF")).toBeGreaterThanOrEqual(POLL.farAway);
+    expect(pollAfter(at(now), now, 30, "", "")).toBeLessThan(POLL.farAway); // the rule is what slows it
+  });
+
   it("stops only once it has arrived; passing your own stop doesn't stop it", () => {
     const after = arr + 10 * 60_000;
     expect(pollAfter(at(after), after, 30)).toBeNull();

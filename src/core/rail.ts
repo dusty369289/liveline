@@ -212,7 +212,7 @@ export class Rail {
   }
 
   async service(uniqueId: string, opts: { background?: boolean; force?: boolean; at?: string; to?: string } = {}): Promise<ServiceResult> {
-    const { background = false, force = false, at = "" } = opts;
+    const { background = false, force = false, at = "", to = "" } = opts;
     const uid = uniqueId.trim();
     const i = uid.lastIndexOf(":");
     if (i < 1) throw new RttError("That isn't a train identity (it should look like C05986:2026-09-06).");
@@ -225,6 +225,6 @@ export class Rail {
     const status = parseSystemStatus(f.body);
     const tl = build(parseService(f.body, this.clock), now, DEFAULT_ENGINE, feedOf(status));
     const formation = formationFor(parseFormations(f.body, tl.service.vehicles), tl.position.fromIndex);
-    return { timeline: tl, formation, status, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
+    return { timeline: tl, formation, status, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at, to) };
   }
 }
