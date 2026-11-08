@@ -8,7 +8,7 @@ import { boardView } from "../src/ui/views/board";
 import { liveRegion } from "../src/ui/views/live-region";
 import { MemStore, simulator, stations } from "./support";
 
-const NAV = { earlier: "", later: "", refresh: "", switch: "", all: "", change: "", flip: null };
+const NAV = { earlier: "", later: "", refresh: "", switch: "", all: "", change: "", flip: null, here: "" };
 const text = (h: { value: string }) => h.value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 /** What a status adds to a page: the text with it, less the text without it. */

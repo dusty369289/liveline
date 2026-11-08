@@ -49,6 +49,16 @@ export function dayLabel(t: Ms): string {
   return `${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} ${MONTHS[m - 1]}`;
 }
 
+const LONG_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const LONG_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+  "November", "December"];
+
+/** "Sunday 8 November" (UK day), under the search page's clock. */
+export function longDay(t: Ms): string {
+  const [y, m, d] = isoDate(t).split("-").map(Number);
+  return `${LONG_DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${d} ${LONG_MONTHS[m - 1]}`;
+}
+
 /** "Mon 9 Nov" for a train that runs on another day than `now` (its runDate, "2026-11-09"), "" for one today. */
 export function runDay(runDate: string, now: Ms): string {
   const day = parseDate(runDate);

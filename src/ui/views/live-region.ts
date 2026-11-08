@@ -7,6 +7,7 @@ import { hm, isoDate, type Ms } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
 import { dayLabel, delayClass, hmh, plural, STATUS_WORDS } from "../format";
 import { type Html, html, raw } from "../html";
+import type { Glance } from "../store/recent-trains";
 
 const CHEVRON = raw('<svg class="route__fold-icon" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>');
 
@@ -34,9 +35,24 @@ export function countText(t: Ms, now: Ms, big: boolean): string {
   return big ? String(m) : `in ${m} min`;
 }
 
+/** Which stop the big number counts to: yours until the train leaves it, then where you get off. */
+export const heroStop = (stop: StopSummary | null, off: StopSummary | null): StopSummary | null =>
+  stop && ["ahead", "here"].includes(stop.status) ? stop : off && off.status === "ahead" ? off : null;
+
+/**
+ * The big number as the search page keeps it (store/recent-trains.ts): the same stop, its time and lateness, as of
+ * `asOf`. None when there's no live time to count to (given up on, a bus, nothing ahead).
+ */
+export function glanceOf(stop: StopSummary | null, off: StopSummary | null, asOf: Ms): Glance | null {
+  const hs = heroStop(stop, off);
+  const t = hs?.shown?.time ?? null;
+  if (!hs || t == null || hs.timetableOnly) return null;
+  return { verb: hs === stop ? "leaves" : "reaches", stop: hs.name, due: t, late: hs.shown?.delayMin ?? null, asOf };
+}
+
 /** The one number you came for: minutes until it leaves your stop (or reaches where you get off). */
 function hero(stop: StopSummary | null, off: StopSummary | null, runDate: string, now: Ms): [Html | "", StopSummary | null] {
-  const hs = stop && ["ahead", "here"].includes(stop.status) ? stop : off && off.status === "ahead" ? off : null;
+  const hs = heroStop(stop, off);
   if (!hs) return ["", null];
   const isStop = hs === stop;
   const plat = hs.platform && isStop ? `, platform ${hs.platform}` : "";

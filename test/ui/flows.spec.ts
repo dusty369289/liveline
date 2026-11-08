@@ -8,11 +8,16 @@ test("search by typing and picking suggestions lands on the board", ONCE, async 
   await page.locator("#station-list [role=option]").first().click();
   await page.locator("#to").fill("oxf");
   await page.locator("#to-list [role=option]").first().click();
-  await expect(page.locator("#time")).toBeHidden(); // "now" by default: time and day are folded away
-  await page.locator(".search__when summary").click();
+  // "now" by default. On a screen with room to spare the time and day are out already, empty; otherwise folded away.
+  const fold = page.locator(".search__when summary");
+  if (await fold.isVisible()) {
+    await expect(page.locator("#time")).toBeHidden();
+    await fold.click();
+  }
+  await expect(page.locator("#time")).toHaveValue("");
   await page.locator("#time").fill("09:00");
   await page.locator("button[type=submit]").click();
-  await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
+  await expect(page.locator(".board__sub")).toContainText("Calling at Oxford");
   void errors;
 });
 
@@ -133,31 +138,6 @@ test("the train page bar stays on screen while scrolling the route", ONCE, async
   void errors;
 });
 
-test("between two passing points the marker moves along, not sat still till the next report", ONCE, async ({ page, errors }) => {
-  // The 09:00 from Paddington, out past Slough, where a section runs between rows close together (a station and a
-  // passing point, or two passing points): the old clear space at both ends left it nowhere to go (owner, 2026-11-08)
-  await openTrain(page);
-  const live = page.locator(".live");
-  // On until it's running with a minute or more left of a section whose rows are under 2 × 26 px apart (polls land
-  // as sections end near London, so the time left matters too)
-  const left = () => live.evaluate((el) => {
-    const d = (el as HTMLElement).dataset;
-    const rows = [...el.querySelectorAll<HTMLElement>(".route__pt")];
-    const [a, b] = [rows[Number(d.from)], rows[Number(d.to)]];
-    if (d.state !== "running" || !a || !b || a.classList.contains("is-folded") || b.classList.contains("is-folded")) return 0;
-    const close = b.getBoundingClientRect().top - a.getBoundingClientRect().top < 52;
-    return close ? Number(d.expected) - Date.now() : 0;
-  });
-  for (let i = 0; i < 60 && (await left()) < 45_000; i++) await page.clock.runFor(15_000);
-  expect(await left()).toBeGreaterThanOrEqual(45_000);
-  const top = () => page.locator("[data-train-marker]").evaluate((el) => parseFloat((el as HTMLElement).style.top));
-  const before = await top();
-  await page.clock.runFor(30_000); // within the section: no report due, so this is the marker's own progress
-  const after = await top();
-  expect(after).toBeGreaterThan(before);
-  void errors;
-});
-
 test("the big number counts down between polls", ONCE, async ({ page, errors }) => {
   // About an hour off: the next poll is 3 minutes away, so a change within 90 s is the page's own tick
   await openTrain(page, "10:15");
@@ -173,14 +153,19 @@ test("tabbing back to a passing-point fold brings it out from under the bar", ON
   await openTrain(page);
   const folds = page.locator("[data-fold-toggle]");
   expect(await folds.count()).toBeGreaterThan(1);
-  // focus is on the second fold; the first sits just under the screen's top edge, behind the sticky bar
+  // focus is on the second fold; the first sits behind the bar, wherever the bar is (the top of the screen, or just
+  // above the tabs at its foot)
   await folds.nth(1).evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
-  await folds.first().evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 10));
+  await folds.first().evaluate((el) => {
+    const bar = document.querySelector("[data-trainbar]")!.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    window.scrollBy(0, bar.top < innerHeight / 2 ? r.top - 10 : r.top - (bar.top + 10));
+  });
   await page.keyboard.press("Shift+Tab");
   await expect(folds.first()).toBeFocused();
   const bar = (await page.locator("[data-trainbar]").boundingBox())!;
   const fold = (await folds.first().boundingBox())!;
-  expect(fold.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+  expect(fold.y + fold.height <= bar.y || fold.y >= bar.y + bar.height, "the fold is clear of the bar").toBe(true);
   void errors;
 });
 

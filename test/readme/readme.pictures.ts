@@ -22,7 +22,7 @@ test("search, with a saved journey and a train to carry on with", async ({ page,
   await page.locator("[data-save-journey]").click();
   await openTrain(page);
   await open(page, "/");
-  await expect(page.locator(".carry:not(.carry--saved)")).toBeVisible();
+  await expect(page.locator(".home__glance, .carry:not(.carry--saved)").filter({ visible: true })).toHaveCount(1);
   await screen(page, info, "search");
   void errors;
 });

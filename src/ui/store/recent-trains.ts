@@ -11,6 +11,17 @@ export interface RecentTrain {
   ends: Ms; // when it's due at its destination (0 if unknown)
   seen: Ms; // last opened
   starts?: Ms; // when it's due away from its origin; entries saved by older versions lack it and count as started
+  glance?: Glance; // the train page's big number as of its last answer, for the search page to show without a call
+  hidden?: boolean; // dismissed from the search page (not travelling, just looking); opening it again clears it
+}
+
+/** The train page's big number, saved after each answer: where it's counting to, when, how late, and as of when. */
+export interface Glance {
+  verb: "leaves" | "reaches";
+  stop: string;
+  due: Ms;
+  late: number | null; // whole minutes, + late, - early; null when there's nothing to say
+  asOf: Ms; // when that answer came
 }
 
 export class RecentTrains {
@@ -49,13 +60,29 @@ export class RecentTrains {
     this.legacy.set(t);
   }
 
+  /** Change the entry for the train in `href` (wherever it was opened from), leaving its place in the list. */
+  private update(href: string, change: (t: RecentTrain) => RecentTrain): void {
+    const key = RecentTrains.trainOf(href);
+    this.list.set(this.all().map((t) => (RecentTrains.trainOf(t.href) === key ? change(t) : t)));
+  }
+
+  /** Keep the train page's latest big number: glancing at a train isn't opening it, so it doesn't move up. */
+  glance(href: string, g: Glance): void {
+    this.update(href, (t) => ({ ...t, glance: g }));
+  }
+
+  /** Not on it after all: the search page stops offering it. It stays in Recent, and opening it brings it back. */
+  dismiss(href: string): void {
+    this.update(href, (t) => ({ ...t, hidden: true }));
+  }
+
   clear(): void {
     this.list.set([]);
     this.legacy.set(null);
   }
 
-  /** The newest train still running, for the search page's one line. */
+  /** The newest train still running, unless dismissed, for the search page. */
   carryOn(now: Ms): RecentTrain | null {
-    return this.all().find((t) => RecentTrains.isRunning(t, now)) ?? null;
+    return this.all().find((t) => !t.hidden && RecentTrains.isRunning(t, now)) ?? null;
   }
 }

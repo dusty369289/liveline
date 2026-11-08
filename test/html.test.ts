@@ -35,7 +35,7 @@ describe("a view with hostile names", () => {
     expect(res.rows.length).toBeGreaterThan(0);
     res.board.stationName = HOSTILE;
     res.rows[0] = { ...res.rows[0], destination: HOSTILE, operatorName: QUOTES };
-    const nav = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c", flip: null };
+    const nav = { earlier: "#e", later: "#l", refresh: "#r", switch: "#s", all: "#a", change: "#c", flip: null, here: "#h" };
     const out = boardView(res, nav, true, now).value;
     expect(out).not.toContain("<img");
     expect(out).toContain("&lt;img src=x onerror=1&gt;");

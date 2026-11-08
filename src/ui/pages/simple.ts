@@ -1,21 +1,12 @@
-// The pages with little behaviour: search, Recent, Saved journeys, About, and a page that isn't there.
+// The pages with little behaviour: Recent, Saved journeys, About, and a page that isn't there (search: home.ts).
 import { APP_VERSION } from "../../platform";
 import type { Html } from "../html";
-import { queryOf, type RouteName } from "../routes";
+import type { RouteName } from "../routes";
 import { aboutView } from "../views/about";
-import { homeView, problemView, type Retry } from "../views/home";
+import { problemView, type Retry } from "../views/home";
 import { journeysView } from "../views/journeys";
 import { recentView } from "../views/recent";
 import { Page } from "./page";
-
-export class HomePage extends Page {
-  readonly tab: RouteName = "home";
-
-  async load(): Promise<Html> {
-    const c = this.ctx;
-    return homeView({ query: queryOf(this.route.params), carry: c.trains.carryOn(c.rail.clock()), journeys: c.journeys.all() });
-  }
-}
 
 export class RecentPage extends Page {
   readonly tab: RouteName = "recent";

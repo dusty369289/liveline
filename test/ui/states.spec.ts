@@ -18,7 +18,8 @@ test("search, returning: a saved journey, a train to carry on with, recent stati
   await page.locator("[data-save-journey]").click();
   await firstTrain(page, "/board?station=PAD&to=OXF&time=09:00");
   await open(page, "/");
-  await expect(page.locator(".carry:not(.carry--saved)")).toBeVisible();
+  // the train you're on: as your train's big number above the heading (a tall screen), else the Carry on line
+  await expect(page.locator(".home__glance, .carry:not(.carry--saved)").filter({ visible: true })).toHaveCount(1);
   await expect(page.locator(".carry--saved")).toContainText("1 journey");
   await shot(page, info, "10-search-returning");
   void errors;
@@ -42,13 +43,13 @@ test("saved journeys: their own page, reached from the search page's one line, a
   await expect(page.locator(".journeys__item")).toHaveCount(2);
   await expect(page.locator(".journeys__go").first()).toHaveText("London Paddington → Oxford");
   await page.locator(".journeys__go", { hasText: "London Paddington → Oxford" }).click();
-  await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
+  await expect(page.locator(".board__sub")).toContainText("Calling at Oxford");
   void errors;
 });
 
 test("board: arrivals", async ({ page, errors }, info) => {
   await open(page, "/board?station=PAD&mode=arr&time=09:00");
-  await expect(page.locator(".board__sub")).toContainText("Arrivals");
+  await expect(page.locator(".board__mode [aria-current=page]")).toHaveText("Arrivals");
   await expect(page.locator(".trains__place").first()).toContainText(/^from \S/);
   await shot(page, info, "11-board-arrivals");
   void errors;

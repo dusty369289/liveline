@@ -44,7 +44,11 @@
   flex: 1; margin: 0; padding: var(--s-1) var(--s-2); border: 0; border-radius: calc(var(--radius-button) - 4px);
   text-align: center; font-size: var(--t-base);
 }
-:root[data-theme="operator"] .tabs__tab[aria-selected="true"] { background: var(--surface); }
+:root[data-theme="operator"] .tabs__tab[aria-selected="true"],
+:root[data-theme="operator"] .tabs__tab[aria-current="page"] { background: var(--surface); }
+:root[data-theme="operator"] a.tabs__tab { align-items: center; justify-content: center; }
+:root[data-theme="operator"] .board__mode { flex-wrap: wrap; }
+:root[data-theme="operator"] .board__mode .tabs__tab { flex: 1 1 auto; }
 
 /* Search: the train you were on and your journeys on panels. Not the form: its padding would cost the page its fit
    on a small phone's screen (test/ui/fit.spec.ts); its fields are filled instead. Figtree's taller lines take a

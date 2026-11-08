@@ -4,6 +4,7 @@
    screen tall enough to spare the room (a phone held upright); a short one keeps them at the top. */
 .topbar__nav a:not(.topbar__cog) .topbar__icon { display: none; }
 .topbar__cog .topbar__word { display: none; }
+.home__top { display: none; } /* the search page's room above its heading: only with the tabs at the bottom of a tall screen */
 
 @media (min-height: 600px) {
   :root[data-tabs="bottom"] {
@@ -27,4 +28,76 @@
   :root[data-tabs="bottom"] .topbar__nav a[aria-current="page"] { box-shadow: inset 0 3px 0 var(--on-bar); }
   :root[data-tabs="bottom"] .topbar__nav .topbar__icon { display: block; }
   :root[data-tabs="bottom"] .topbar__cog .topbar__word { display: inline; }
+
+  /* Within a thumb's reach (owner, 2026-11-08). Taps are quickest and surest low and in the middle of a phone's
+     screen, slowest at its corners, the top left worst for a right thumb (Hoober, millions of measured touches). So
+     with the tabs at the bottom, a page's own controls sit just above them: the train page's bar (refresh at its
+     right end) and a board's Earlier, Later and the rest. Screen readers still meet them where they were. */
+  :root[data-tabs="bottom"] {
+    --thumb-bar: calc(var(--tap) + 1px); /* one line, and its hairline */
+  }
+  :root[data-tabs="bottom"] .trainbar,
+  :root[data-tabs="bottom"] .board__nav {
+    position: fixed; z-index: 14; left: 0; right: 0; top: auto; bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom, 0px));
+    margin: 0; padding-inline: var(--gutter); background: var(--page); border-top: 1px solid var(--line); border-bottom: 0;
+  }
+  /* The page's end clears the bar too; twice its line, as at large text it can wrap to two */
+  :root[data-tabs="bottom"] body:has(.trainbar, .board__nav) {
+    padding-bottom: calc(var(--tabs-height) + 2 * var(--thumb-bar) + env(safe-area-inset-bottom, 0px));
+  }
+  /* Whatever is scrolled or focused into view (a keyboard's Tab, Jump to train) stops clear of the bars, not under them */
+  :root[data-tabs="bottom"] { scroll-padding-bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom, 0px)); }
+  :root[data-tabs="bottom"]:has(.trainbar, .board__nav) {
+    scroll-padding-bottom: calc(var(--tabs-height) + 2 * var(--thumb-bar) + env(safe-area-inset-bottom, 0px));
+  }
+  :root[data-tabs="bottom"] .trainbar__refresh { order: 3; margin-right: -.5rem; }
+  /* A board's bar: Earlier and Later at the two ends, pointing the way they go, Later where a right thumb rests */
+  :root[data-tabs="bottom"] .board__nav { justify-content: space-between; }
+  :root[data-tabs="bottom"] .board__nav > * { margin: 0; }
+  :root[data-tabs="bottom"] .board__nav > .board__step:nth-child(2) { order: 3; }
+  :root[data-tabs="bottom"] .trainbar__jump { order: 2; }
 }
+
+/* The search page on a screen with room to spare (760 px: a 360 × 700 app screen, which the page must fit, has none):
+   the room it doesn't need goes above it all (owner, 2026-11-08: a gap between the heading and the form looked odd), so
+   the heading, the train to carry on with, the saved journeys and the form sit together low on the screen. Smaller,
+   the page stands at the top as before, where a fold opening downwards moves nothing above it (stable.spec.ts). */
+@media (min-height: 760px) {
+  :root[data-tabs="bottom"] #app:has(.home) {
+    display: flex; flex-direction: column; min-height: calc(100svh - var(--tabs-height) - env(safe-area-inset-bottom, 0px));
+  }
+  :root[data-tabs="bottom"] main:has(> .home) { flex: 1; display: flex; flex-direction: column; }
+  :root[data-tabs="bottom"] .home { flex: 1; }
+  :root[data-tabs="bottom"] .home > :first-child { margin-top: auto; }
+  /* The time and day show already, empty for now, rather than fold: opening them would push everything above it up,
+     as the page sits on its foot (owner, 2026-11-08; test/ui/stable.spec.ts). There's room for them on a tall screen. */
+  :root[data-tabs="bottom"] .home .search__when > summary { display: none; }
+  :root[data-tabs="bottom"] .home .search__when::details-content { content-visibility: visible; display: block; }
+  :root[data-tabs="bottom"] .home .search__go { flex-direction: column; align-items: stretch; }
+  /* That room holds something to read, the top of the screen being the hardest to tap (owner, 2026-11-08): your train
+     as the train page last counted it, or the time and the day. It sits on the room's foot, just above the heading. */
+  :root[data-tabs="bottom"] .home > .home__top { display: flex; flex-direction: column; justify-content: flex-end; flex: 1 1 auto; }
+  /* Your train above says what the Carry on line would: that line hides here, and stays where this block doesn't show */
+  :root[data-tabs="bottom"] .home:has(.home__glance) .carry:not(.carry--saved) { display: none; }
+}
+
+/* The search page's room above the heading (shown only as above) */
+.home__glance { display: grid; gap: var(--s-1); }
+.home__glance-head { display: flex; align-items: center; gap: 0; }
+.home__glance-label { flex: 1; min-width: 0; margin: 0; font: 600 var(--t-xs)/1.3 var(--sign-font); letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); }
+/* Small to see, a full tap to hit: refresh, then the cross that stops showing the train here */
+.home__refresh, .home__dismiss {
+  flex: none; display: grid; place-items: center; width: var(--tap); height: var(--tap); margin-block: calc(-1 * var(--s-2));
+  border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 50%;
+}
+.home__dismiss { margin-right: calc(-1 * var(--s-3)); }
+.home__refresh .icon { width: 18px; height: 18px; }
+.home__refresh:focus-visible, .home__dismiss:focus-visible { outline: 3px solid var(--train); outline-offset: -3px; }
+.home__refresh.is-busy .icon { animation: spin .9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .home__refresh.is-busy .icon { animation: none; opacity: .45; } }
+.home__glance-go { display: block; text-decoration: none; color: var(--ink); }
+.home__glance-said { margin: 0; }
+.home__clock { display: grid; gap: var(--s-1); margin: 0; font-family: var(--sign-font); }
+.home__time { font-weight: var(--hero-weight); font-size: min(6.5rem, 28vw); line-height: .9; letter-spacing: -.04em; }
+.home__date { font-weight: 600; font-size: var(--t-md); color: var(--muted); }

@@ -62,10 +62,11 @@ test("Back from a board returns to the search as it was filled in", async ({ pag
   await page.locator("#station").fill("PAD");
   await page.locator("#to").fill("OXF");
   await page.locator("#to").press("Escape"); // close the suggestions over the fold
-  await page.locator(".search__when summary").click();
+  const fold = page.locator(".search__when summary"); // folded on a smaller screen; out already on a tall one
+  if (await fold.isVisible()) await fold.click();
   await page.locator("#time").fill("09:00");
   await page.locator("button[type=submit]").click();
-  await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
+  await expect(page.locator(".board__sub")).toContainText("Calling at Oxford");
   await page.goBack();
   await expect(page.locator("#station")).toHaveValue("PAD");
   await expect(page.locator("#to")).toHaveValue("OXF");

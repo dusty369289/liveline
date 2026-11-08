@@ -126,10 +126,12 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   say "from" before the origin. The platform plate carries hidden words ("Platform 5, not confirmed, changed"), not an
   aria-label. The platform is a solid plate when confirmed, outlined when only expected; a changed platform adds a
   bar in the train's colour along the plate's foot (either kind) and "Platform changed" in the row's details. The summary line under
-  the nameboard ("Departures calling at Oxford · 10:00 to 11:00") links to the search form filled in with this board's
-  query, and Back from a board you searched for returns to the form as you filled it. Its controls are few and plain:
-  Earlier, Later and the other direction as words; Flip (the two stations swapped, same time and mode; only with a
-  second station) and Refresh as icons; and a star on the nameboard to save a journey.
+  the nameboard ("Calling at Oxford · 10:00 to 11:00", or just the times) links to the search form filled in with this
+  board's query, and Back from a board you searched for returns to the form as you filled it. Under it, Departures |
+  Arrivals is one switch with both choices showing (the train page's Route | Train view look; owner, 2026-11-08: a lone
+  "Arrivals" link didn't read as a switch), so the summary line doesn't say the direction again. Its other controls
+  are few and plain: Earlier and Later as words; Flip (the two stations swapped, same time and mode; only with a second
+  station) and Refresh as icons; and a star on the nameboard to save a journey.
 
 **Calm pages** (owner, 2026-11-07: the UI felt overstimulating; `test/ui/calm.spec.ts`): the answer first, each fact
 said once, few controls in view, small print only where it's wanted. A train's status is the big number, one line
@@ -140,7 +142,14 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped; each station box is an ARIA combobox with a status line saying how many
   match. The page fits a 360 × 700 app screen with no scrolling, first visit or
-  coming back (`test/ui/fit.spec.ts`).
+  coming back (`test/ui/fit.spec.ts`). With the tabs at the bottom of a screen at least 760 px tall
+  (`block/tabs.css`), it sits low, within a thumb's reach: its spare room goes above the heading, and holds your train
+  (`pages/home.ts`, `homeTop`): the big number as the train page last counted it (`glanceOf`, saved after each answer,
+  so no call), with a small refresh (one call, never within `GLANCE_REFRESH_MIN` = 60 s of the last answer, and the
+  train page's `manualMinAge` too; owner, 2026-11-08) and a cross that stops showing it there (it stays in Recent;
+  opening it brings it back). With no train, or its time 2 minutes gone, the time and the day. There the Time and Day
+  are always out, not folded: opening a fold would push everything above it up. Nothing opening moves what's above
+  it, anywhere (`test/ui/stable.spec.ts`).
 - **Train page:** every location RTT returns. Calls are full rows; passing points fold into one "N passing points" row
   between two stops (tap to open, "Fold away" closes; both survive refreshes). The group the train is in opens by
   itself unless you folded it. Passed stops are filled in. Each
@@ -192,7 +201,9 @@ one line of facts; class and units are in the Train view. Explanations (an outli
 - **Manual refresh** (`manualMinAge`): refetches an answer over 15 s old while more than 30 calls are left this hour,
   over 60 s with 11 to 30, never with 10 or fewer. Tapping sooner is free. It resets the automatic schedule, and after
   a give-up, a tap that brings a live answer starts polling again.
-- **Train page bar:** sticks to the top: the answer's age (ticking; "Updating…" during a fetch; once polling stops,
+- **Train page bar:** sticks to the top, or with the tabs at the bottom sits just above them (as does a board's
+  Earlier, Later, Flip and Refresh, Later at the right end; `block/tabs.css`, owner 2026-11-08: within a thumb's reach,
+  taps being quickest low on the screen and slowest in its corners): the answer's age (ticking; "Updating…" during a fetch; once polling stops,
   "Finished · updated …" for a train arrived or cancelled, "No reports · updated …" for one given up on), a refresh
   icon that spins during any fetch, Jump to train (hidden while there's no marker to jump to). It sits below the
   status bar on edge-to-edge phones. It holds the page's only live region (`widgets/announcer.ts`, kept through polls; the redrawn part has none): after a poll with news it
@@ -238,7 +249,7 @@ one line of facts; class and units are in the Train view. Explanations (an outli
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
   it's due in), under its heading and above the Saved journeys line, so a screen reader starting at the focused
-  heading meets both. Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05"
+  heading meets both (where your train shows above the heading, that line hides: it would say the same). Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05"
   for another day), never "Running now", even in that first half hour.
 - **Saved journeys** (`store/lists.ts`, `#/journeys`): a board with a "Calling at" station has a star that saves it
   (up to 8). They have a page of their own, each journey opening its board, with a red bin to remove it (owner: no
