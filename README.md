@@ -108,8 +108,7 @@ Realtime Trains allows 10 calls a minute, 100 an hour and 1000 a day on Free and
 
 - A train page asks just after the next report is due, at most once a minute, and every 2 to 3 minutes while
   nothing is due, or every half hour for a train over 2 hours off. Following one train for an hour costs about 45
-  calls. It stops when the train arrives, and never
-  runs in the background.
+  calls. It stops when the train arrives, and never runs in the background.
 - **Refresh** gets a new answer only when the one shown is over 15 seconds old, over 60 when the hour is running low,
   and not at all in its last 10 calls. Tapping it again costs nothing.
 - A board is one call for three hours, so **Earlier** and **Later** are usually free. A board for now refreshes

@@ -1,6 +1,6 @@
 // Every state a person meets, on the contact sheet, so a review sees them all: returning search, boards (arrivals,
-// empty, another day), a train on another day, a train before, during and after its run, Recent empty. The clock is fixed at 09:20
-// (support.ts), so each board time below picks a train in a known state.
+// empty, another day), a train on another day, a train before, during and after its run, Recent empty. The clock is
+// fixed at 09:20 (support.ts), so each board time below picks a train in a known state.
 import type { Page, TestInfo } from "@playwright/test";
 import { audit, expect, open, snap, test } from "./support";
 
