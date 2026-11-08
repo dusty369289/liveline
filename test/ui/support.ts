@@ -31,6 +31,13 @@ export const test = base.extend<Fixtures>({
 });
 export { expect };
 
+/**
+ * A test of behaviour, not of looks (call counts, polling, focus, what's kept): it runs at 360 px light only, as the
+ * same code runs at every size and theme (playwright.config.ts skips it at 412 px dark). A test that checks how
+ * something looks, lays out or wraps, or puts a page on the contact sheet, runs at both sizes and stays untagged.
+ */
+export const ONCE = { tag: "@once" };
+
 /** Save a key before the app starts: a made-up one, never a real key, under the core's own storage name. */
 export async function seedKey(page: Page): Promise<void> {
   await page.addInitScript((name) => localStorage.setItem(name, "made-up-key-for-the-simulator"), STORE.key);

@@ -22,7 +22,13 @@ export default defineConfig({
   },
   projects: [
     { name: "phone-360-light", use: { ...devices["Pixel 5"], viewport: { width: 360, height: 800 }, colorScheme: "light" } },
-    { name: "phone-412-dark", use: { ...devices["Pixel 7"], viewport: { width: 412, height: 915 }, colorScheme: "dark" } },
+    // Looks are checked at both sizes; behaviour once (test/ui/support.ts, ONCE): the same code runs at every size
+    // and theme, so a second run only costs time. These files test behaviour throughout, so they're left out whole.
+    {
+      name: "phone-412-dark", use: { ...devices["Pixel 7"], viewport: { width: 412, height: 915 }, colorScheme: "dark" },
+      grepInvert: /@once/,
+      testIgnore: ["calls.spec.ts", "focus.spec.ts", "train-bar.spec.ts", "calm.spec.ts"],
+    },
   ],
   webServer: {
     command: `npx vite build && npx vite preview --port ${PORT} --strictPort`,
