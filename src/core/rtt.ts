@@ -15,6 +15,7 @@ import { isoLocal, type Ms } from "./time";
 export const FETCH_WINDOW = 360;
 /** Seconds a board starting an hour or more ahead is kept. */
 export const FUTURE_BOARD_TTL = 300;
+const TOKEN_SWAP = "/api/get_access_token"; // the portal's refresh token for an access token: free (raw)
 
 export { AllowanceError, AuthError, BusyError, OfflineError, RttError } from "./errors";
 
@@ -110,7 +111,7 @@ export class RttClient {
     return this.token ? sha256Hex(this.token).slice(0, 16) : null;
   }
 
-  /** Reuse the access token from the last launch, so opening the app doesn't cost 3 calls. */
+  /** Reuse the access token from the last launch, so opening the app doesn't cost a call. */
   private async load(): Promise<void> {
     if (this.loaded) return;
     this.loaded = true;
@@ -151,19 +152,22 @@ export class RttClient {
     await this.store.set(STATE_KEY, JSON.stringify(d));
   }
 
+  /** One request, counted unless RTT doesn't charge for it (seen 2026-11-08): the token swap, or a refusal (401). */
   private async raw(path: string, params: Record<string, string>, token: string | null): Promise<HttpResponse> {
-    this.budget.spend();
+    const free = path === TOKEN_SWAP;
+    if (!free) this.budget.spend();
     let r: HttpResponse;
     try {
       r = await this.http.get(path, params, token);
     } catch (e) {
       throw new OfflineError(`Couldn't reach Realtime Trains${e instanceof NetworkError ? "" : " (network)"}. Check your connection.`);
     }
+    if (!free && r.status === 401) this.budget.refund();
     this.budget.observe(r.status, r.headers);
     return r;
   }
 
-  /** Try the key as an access token, then as a refresh token. Costs 1 to 3 calls. */
+  /** Try the key as an access token, then as a refresh token. Either way RTT charges one call (raw: the rest are free). */
   async checkToken(): Promise<TokenInfo> {
     if (!this.token) throw new AuthError("No Realtime Trains key is set.");
     this.loaded = true;
@@ -173,7 +177,7 @@ export class RttClient {
       await this.save();
       return this.info;
     }
-    const r2 = await this.raw("/api/get_access_token", {}, this.token);
+    const r2 = await this.raw(TOKEN_SWAP, {}, this.token);
     if (r2.status === 200 && isObj(r2.body) && r2.body.token) {
       this.access = String(r2.body.token);
       this.accessUntil = until(r2.body.validUntil, this.clock());
@@ -198,7 +202,7 @@ export class RttClient {
       return this.token;
     }
     if (this.access && this.accessUntil != null && now < this.accessUntil) return this.access;
-    const r = await this.raw("/api/get_access_token", {}, this.token);
+    const r = await this.raw(TOKEN_SWAP, {}, this.token);
     if (r.status !== 200 || !isObj(r.body) || !r.body.token) {
       throw new AuthError("Realtime Trains didn't accept the key. Check it in api-portal.rtt.io.");
     }
