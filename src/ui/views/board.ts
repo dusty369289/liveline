@@ -8,8 +8,8 @@ import { ago, dayLabel } from "../format";
 import { type Html, html } from "../html";
 import { qs } from "../routes";
 
-/** The board's own links: an hour either side, refresh, the other direction, show all. */
-export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string }
+/** The board's own links: an hour either side, refresh, the other direction, show all, and the search filled in. */
+export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string; change: string }
 
 function status(r: BoardRow, arr: boolean): [Html, string] {
   const t = arr ? r.arrival : r.departure;
@@ -72,7 +72,7 @@ export function boardView(res: BoardResult, nav: BoardNav, live: boolean, now: M
       <h1>${b.stationName}</h1>
       ${res.to && res.station ? html`<button type="button" class="board__star" data-save-journey aria-label="Save this journey" aria-pressed="false">${STAR_ICON}</button>` : ""}
     </div>
-    <p class="board__sub">${arr ? "Arrivals" : "Departures"}${other} · ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}</p>
+    <p class="board__sub"><a href="${nav.change}">${arr ? "Arrivals" : "Departures"}${other} · ${hm(b.timeFrom)} to ${hm(b.timeTo)}${otherDay ? ` on ${dayLabel(b.timeFrom)}` : ""}<span class="visually-hidden">. Change this search</span></a></p>
     <nav class="board__nav" aria-label="This board">
       <a class="board__step" href="${nav.earlier}"><span aria-hidden="true">‹\u00a0</span>Earlier</a>
       <a class="board__step" href="${nav.later}">Later<span aria-hidden="true">\u00a0›</span></a>

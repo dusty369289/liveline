@@ -86,7 +86,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   hours (`FETCH_WINDOW`) and every board inside it (now, Later, Earlier back to it) is served from that answer. Rows
   shown: booked in the window, plus earlier ones still running late into it. Kept 1 minute, or 5 for a board an hour or
   more ahead. A "now" board refreshes itself every 2 minutes while on screen for 15 minutes (`BOARD_REFRESH`), then
-  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all". Its controls are few and plain:
+  waits for Refresh. Empty stock and staff-only rows are hidden unless "show all". The summary line under the
+  nameboard ("Departures calling at Oxford · 10:00 to 11:00") links to the search form filled in with this board's
+  query, and Back from a board you searched for returns to the form as you filled it. Its controls are few and plain:
   Earlier, Later and the other direction as words, Refresh as an icon, and a star on the nameboard to save a journey.
 
 **Calm pages** (owner, 2026-11-07: the UI felt overstimulating; `test/ui/calm.spec.ts`): the answer first, each fact

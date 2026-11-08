@@ -45,3 +45,30 @@ test("demo mode doesn't print an allowance of a billion", async ({ page, errors 
   await expect(page.locator("main")).not.toContainText("1000000000");
   void errors;
 });
+
+test("a board's summary line opens the search filled in, to change it", async ({ page, errors }) => {
+  await open(page, "/board?station=PAD&to=OXF&time=09:00&day=2026-11-09&mode=arr");
+  await page.getByRole("link", { name: "Change this search" }).click();
+  await expect(page.locator("#station")).toHaveValue("PAD");
+  await expect(page.locator("#to")).toHaveValue("OXF");
+  await expect(page.locator("#time")).toHaveValue("09:00");
+  await expect(page.locator("#day")).toHaveValue("2026-11-09");
+  await expect(page.locator('input[name="mode"][value="arr"]')).toBeChecked();
+  void errors;
+});
+
+test("Back from a board returns to the search as it was filled in", async ({ page, errors }) => {
+  await open(page, "/");
+  await page.locator("#station").fill("PAD");
+  await page.locator("#to").fill("OXF");
+  await page.locator("#to").press("Escape"); // close the suggestions over the fold
+  await page.locator(".search__when summary").click();
+  await page.locator("#time").fill("09:00");
+  await page.locator("button[type=submit]").click();
+  await expect(page.locator(".board__sub")).toContainText("calling at Oxford");
+  await page.goBack();
+  await expect(page.locator("#station")).toHaveValue("PAD");
+  await expect(page.locator("#to")).toHaveValue("OXF");
+  await expect(page.locator("#time")).toHaveValue("09:00");
+  void errors;
+});

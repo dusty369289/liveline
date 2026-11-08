@@ -57,7 +57,9 @@ export class SearchForm {
       ev.preventDefault();
       const f = new FormData(form);
       const get = (k: string) => String(f.get(k) ?? "");
-      location.hash = `#/board${qs({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "" })}`;
+      const query = qs({ station: get("station"), to: get("to"), time: get("time"), day: get("day"), mode: get("mode") === "arr" ? "arr" : "" });
+      history.replaceState(null, "", `#/${query}`); // so Back comes to this form as it was filled in
+      location.hash = `#/board${query}`;
     });
     const label = form.querySelector('[data-label-for="to"]');
     form.querySelectorAll<HTMLInputElement>('input[name="mode"]').forEach((r) => r.addEventListener("change", () => {

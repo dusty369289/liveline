@@ -67,6 +67,7 @@ export class BoardPage extends Page {
       refresh: `#/board${qs({ ...base, ...same, refresh: 1 })}`,
       switch: `#/board${qs({ ...base, ...same, mode: q.mode === "arr" ? "dep" : "arr" })}`,
       all: `#/board${qs({ ...base, ...same, all: q.all ? "" : 1 })}`,
+      change: `#/${qs({ station: q.station, to: q.to, mode: q.mode === "arr" ? "arr" : "", ...same })}`, // the form, filled in
     };
   }
 
