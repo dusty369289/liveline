@@ -127,6 +127,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Settings:** the key folds to one line once it works and opens itself with no key or a problem. Appearance holds
   the train marker (Dot default, Bar, Arrow, Train front). About is the last group. Top bar: Search, Recent, and a cog
   for Settings (named "Settings" for screen readers).
+- **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
+  page leaves the app (minimised, as other apps do), which also lets predictive back work. The status bar has light
+  icons over the navy top bar in both themes; the gesture bar keeps the system default.
 - **Tiers** come from entitlements and reported limits: `allowDetailed` = Hobbyist features, a full-allocation
   entitlement or over 100 an hour = Team or above, nothing = Free.
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
