@@ -75,4 +75,13 @@ export abstract class Page {
   protected onDispose(stop: () => void): void {
     this.timers.push(stop);
   }
+
+  /** Catch up when the app comes back on screen (never while it's in the background), until the page goes. */
+  protected whenBack(fn: () => void): void {
+    const back = () => {
+      if (document.visibilityState === "visible") fn();
+    };
+    document.addEventListener("visibilitychange", back);
+    this.onDispose(() => document.removeEventListener("visibilitychange", back));
+  }
 }

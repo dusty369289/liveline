@@ -89,8 +89,7 @@ export class ProblemPage extends Page {
       if (document.visibilityState === "visible" && Date.now() >= due) this.ctx.rerender({ background: true });
     };
     this.after(wait, tryAgain);
-    document.addEventListener("visibilitychange", tryAgain);
-    this.onDispose(() => document.removeEventListener("visibilitychange", tryAgain));
+    this.whenBack(tryAgain);
   }
 }
 
