@@ -8,7 +8,8 @@ name: CI
 # ruleset must change with it, or no PR can merge.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    # "edited": a changed title or body is checked again (history-check.mjs), since it's public the moment it's saved
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   workflow_call:
   workflow_dispatch: # run by hand on any branch
 
@@ -26,10 +27,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the whole history, so the PR's own commits can be checked
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
+      # The PR's commits (author, committer, message) and its title and body: no local hook vouches for commits made
+      # elsewhere or for PR text. Only the PR's own commits: never main's. The text goes through env, never into the
+      # shell line. With no PR (a release calling this), there's nothing to check.
+      - name: History and PR text
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if [ -n "$HEAD" ]; then
+            # main's own commits are left out even if the PR's base is older (GitHub stamps their committer itself)
+            main=$(git rev-parse -q --verify refs/remotes/origin/main || true)
+            node scripts/history-check.mjs "$HEAD" --not "$BASE" $main
+          else
+            node scripts/history-check.mjs
+          fi
       - run: npm ci
       # The same command as locally: typecheck, unit tests (with the architecture rules and the timing review,
       # which keeps no baselines here because CI machines are thrown away), leak check, web build.
