@@ -142,7 +142,10 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   shows the departure, with "arr hh:mm" when the shown arrival is a minute or more earlier; where you get off it shows
   the arrival, as the summary does. The line under a name joins only the parts that apply (platform, "Now ends
   here"/"Now starts here", arr, Request stop, Not for passengers, status) with one dot between; your stop's
-  Board/Alight plate stands before them, no dot.
+  Board/Alight plate stands before them, no dot. A row reads across on one line: the name's first line, the booked
+  time, the live time and the ring share it, and what's under them (that line, "+7" under the live time) hangs below
+  without pushing anything up; the train marker and travelled line take their place from the rings. A board row's
+  time and destination share a baseline too (`test/ui/align.spec.ts`, every theme).
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. A
   point RTT flags as passed without a report (`realtimeNoReport`) counts as reached, "(not reported)", timed by
   RTT's forecast, unless RTT still gives it an estimate (then it's still ahead); only actuals count for lateness. Our
