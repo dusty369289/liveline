@@ -207,3 +207,29 @@ describe("once it's given up on, your stops show the timetable, not our estimate
     expect(region(tl, "", "OOO")).toContain("live__hero-num");
   });
 });
+
+describe("a train held at a platform past RTT's departure forecast", () => {
+  // Arrived Middle 15:23, RTT forecast it away at 15:27, and at 15:35 it's still there
+  const clock = (h: number, m: number) => fromLondon(2026, 11, 7, h, m);
+  const now = clock(15, 35);
+  const tl = build(parseService(fakeService([
+    { name: "Alpha", crs: "AAA", dep: { gbtt: "15:00", wtt: "15:00", actual: "15:00" } },
+    { name: "Middle", crs: "MMM", arr: { gbtt: "15:20", wtt: "15:20", actual: "15:23" },
+      dep: { gbtt: "15:21", wtt: "15:21", forecast: "15:27" } },
+    { name: "Omega", crs: "OOO", arr: { gbtt: "15:40", wtt: "15:40" } },
+  ]), () => now), now);
+
+  it("shows our time, no sooner than now, not the forecast that has gone", () => {
+    const d = tl.points[1].departure!;
+    expect(d.source).toBe("est");
+    expect(d.time).toBeGreaterThanOrEqual(now);
+    expect(tl.points[1].arrival!.source).toBe("actual");
+  });
+
+  it("never says it's due to leave at a time already gone", () => {
+    expect(tl.position.state).toBe("at-station");
+    const due = /due to leave (\d\d):(\d\d)/.exec(tl.position.headline);
+    expect(due, tl.position.headline).not.toBeNull();
+    expect(clock(Number(due![1]), Number(due![2]))).toBeGreaterThanOrEqual(now - 60_000);
+  });
+});

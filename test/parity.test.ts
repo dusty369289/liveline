@@ -17,6 +17,23 @@ function timelineJson(tl: ReturnType<typeof build>) {
   return d;
 }
 
+/**
+ * A train held at a platform past RTT's departure forecast came after the goldens (see their README): the old answer
+ * kept showing that forecast, gone by then. Where the golden does, the new answer must be our time, no sooner than a
+ * minute ago, in the departure and the headline; everything else still matches exactly.
+ */
+function heldSince(want: any, got: any, now: number) {
+  const pos = want.position;
+  const old = pos.state === "at-station" ? want.points[pos.fromIndex].departure : null;
+  if (!old || old.source !== "forecast" || old.time >= now - 60_000) return want;
+  const dep = got.points[pos.fromIndex].departure;
+  expect(dep.source).toBe("est");
+  expect(dep.time).toBeGreaterThanOrEqual(now - 60_000);
+  const due = /due to leave \d\d:\d\d/;
+  const points = want.points.map((v: any, i: number) => (i === pos.fromIndex ? { ...v, departure: dep } : v));
+  return { ...want, points, position: { ...pos, headline: pos.headline.replace(due, got.position.headline.match(due)[0]) } };
+}
+
 describe("parity with the golden answers", () => {
   for (const c of cases) {
     if (c.kind === "service") {
@@ -26,7 +43,7 @@ describe("parity with the golden answers", () => {
         for (const t of c.timelines) {
           it(`timeline at ${new Date(t.now).toISOString()}`, () => {
             const tl = build(svc, t.now);
-            expect(timelineJson(tl)).toEqual(t.timeline);
+            expect(timelineJson(tl)).toEqual(heldSince(t.timeline, timelineJson(tl), t.now));
             for (const [key, want] of Object.entries(t.stops)) {
               const [code, off] = key.split(":");
               // timetableOnly came after the goldens (see their README): no golden moment is given up on

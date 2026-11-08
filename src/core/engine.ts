@@ -253,26 +253,26 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   // `givenUp`: what it hasn't reached shows the timetable alone, since the headline says that's all we have
   const viewsOf = (givenUp: boolean): PointView[] => pts.map((p, i) => {
     const reported = last != null && i <= last;
-    const show = (t: Times, ours: Ms | null, floor: Ms) => (givenUp && !reported ? timetable(t) : shown(t, ours, floor, !reported));
+    const show = (t: Times, ours: Ms | null, floor: Ms, ahead = !reported) => (givenUp && !reported ? timetable(t) : shown(t, ours, floor, ahead));
     const oa = oursArr.get(i) ?? null;
     if (p.kind === "pass") {
       return {
         index: i,
         point: p,
-        arrival: null,
-        departure: null,
+        arrival: null, departure: null,
         passing: show(p.passing, oa, floorArr.get(i) ?? now),
         reported,
         oursArrival: oa,
         oursDeparture: null,
       };
     }
-    const od = oursDep.get(i) ?? null;
+    // Held where it was last reported, it's still to leave: so a departure forecast that has gone is stale
+    const od = oursDep.get(i) ?? null, leaving = !reported || (i === last && p.departure.actual == null);
     return {
       index: i,
       point: p,
       arrival: isEmpty(p.arrival) ? null : show(p.arrival, oa, floorArr.get(i) ?? now),
-      departure: isEmpty(p.departure) ? null : show(p.departure, od, floorDep.get(i) ?? now),
+      departure: isEmpty(p.departure) ? null : show(p.departure, od, floorDep.get(i) ?? now, leaving),
       passing: null,
       reported,
       oursArrival: oa,
