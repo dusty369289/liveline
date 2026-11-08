@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { build, DEFAULT_ENGINE, sectionFraction } from "../src/core/engine";
 import { parseService } from "../src/core/parse";
+import { pollAfter } from "../src/core/poll";
 import { fromLondon } from "../src/core/time";
 import { fakeService, type FakeLocation } from "./support";
 
@@ -38,6 +39,55 @@ describe("the headline's lateness is the public one, as on the row", () => {
       { name: "Omega", crs: "OOO", arr: { gbtt: "15:40", wtt: "15:40" } },
     ], clock(15, 9));
     expect(tl.position.headline).toContain("(2 min late)");
+  });
+});
+
+describe(`giving up ${DEFAULT_ENGINE.giveUpAfter / M} min after the booked arrival`, () => {
+  const route = (final: FakeLocation["arr"]): FakeLocation[] => [
+    { name: "Alpha", crs: "AAA", dep: { gbtt: "10:00", wtt: "10:00" } },
+    { name: "Beta", crs: "BBB", arr: { gbtt: "10:20", wtt: "10:20" }, dep: { gbtt: "10:21", wtt: "10:21" } },
+    { name: "Omega", crs: "OOO", arr: final },
+  ];
+
+  it("a train never reported, 3 h after it was due in, shows the timetable and stops asking", () => {
+    const now = clock(13, 40);
+    const tl = timeline(route({ gbtt: "10:40", wtt: "10:40" }), now);
+    expect(tl.position.state).toBe("no-data");
+    expect(tl.position.headline).toMatch(/times shown are the timetable/);
+    expect(pollAfter(tl, now, 30)).toBeNull();
+  });
+
+  it("a train never reported still polls before the cut-off", () => {
+    const now = clock(11, 10); // exactly booked arrival + 30 min: not yet past it
+    const tl = timeline(route({ gbtt: "10:40", wtt: "10:40" }), now);
+    expect(tl.position.state).toBe("at-origin");
+    expect(pollAfter(tl, now, 30)).not.toBeNull();
+  });
+
+  it("a train whose arrival was never reported, 1 h after, says so and stops asking", () => {
+    const locs = route({ gbtt: "10:40", wtt: "10:40" });
+    locs[0].dep!.actual = "10:01";
+    locs[1].arr!.actual = "10:22";
+    locs[1].dep!.actual = "10:23";
+    const now = clock(11, 40);
+    const tl = timeline(locs, now);
+    expect(tl.position.state).toBe("unreported");
+    expect(tl.position.fromIndex).toBe(1);
+    expect(tl.position.headline).toMatch(/Beta/);
+    expect(tl.position.headline).toMatch(/arrival at Omega was not reported/);
+    expect(pollAfter(tl, now, 30)).toBeNull();
+  });
+
+  it("a point RTT flags as passed without a report counts as passed", () => {
+    const locs = route({ gbtt: "10:40", wtt: "10:40" });
+    locs[0].dep!.actual = "10:01";
+    locs[1].arr!.noReport = true;
+    locs[1].dep!.noReport = true;
+    const tl = timeline(locs, clock(10, 30));
+    expect(tl.position.fromIndex).toBe(1);
+    expect(tl.points[1].reported).toBe(true);
+    expect(tl.position.headline).toMatch(/Beta \(not reported\)/);
+    expect(tl.worst).toBeNull();
   });
 });
 

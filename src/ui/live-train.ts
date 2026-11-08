@@ -173,7 +173,7 @@ export class LiveTrain {
     } else if (d.state === "not-started") {
       y = this.rowCentre(to, wrap);
       waiting = true;
-    } else if (d.state === "arrived") {
+    } else if (d.state === "arrived" || d.state === "unreported") {
       y = this.rowCentre(from, wrap);
     }
     if (y === null) {
