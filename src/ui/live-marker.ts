@@ -40,7 +40,6 @@ export class LiveMarker {
     const from = d.from === "" ? null : rows[Number(d.from)];
     const to = d.to === "" ? null : rows[Number(d.to)];
     let y: number | null = null;
-    let waiting = false;
     if (d.state === "running" || d.state === "overdue") {
       const hold = Number(d.hold) || DEFAULT_ENGINE.holdFraction;
       let rowA = from;
@@ -62,15 +61,12 @@ export class LiveMarker {
       let f = Number(d.fraction) || 0;
       if (since && expected && expected > since) f = sectionFraction(since, expected, this.clock(), hold);
       if (d.state === "overdue" && rowB === to) f = hold;
-      if (d.state === "overdue") waiting = true;
       // Once it has left, keep it clear of both points (not sitting on a ring), even early or late in a long section
       if (a !== null && b !== null) y = clampBetween(a, b, f);
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
-      waiting = true;
     } else if (d.state === "not-started") {
       y = this.rowCentre(to, wrap);
-      waiting = true;
     } else if (d.state === "arrived" || d.state === "unreported") {
       y = this.rowCentre(from, wrap);
     }
@@ -84,7 +80,6 @@ export class LiveMarker {
     }
     marker.hidden = false;
     marker.style.top = `${y}px`;
-    marker.classList.toggle("is-waiting", waiting);
     // The travelled ink starts where the line does, at the first stop's centre, not above it
     const start = this.rowCentre(rows.find((r) => !r.classList.contains("is-folded")), wrap) ?? 0;
     done.style.top = `${start}px`;

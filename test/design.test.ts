@@ -127,6 +127,17 @@ function computed(classes: string[], prop: string): string | undefined {
   return hits.at(-1)?.decls[prop];
 }
 
+describe("the train on the route stands still when it isn't moving", () => {
+  // It used to bob 2 px while waiting at a station or for a report; with the Bar marker it looked as if it were
+  // moving (owner, 2026-11-08). Only its place on the line moves, by transition, when the train does.
+  it("no rule animates the marker", () => {
+    const route = readFileSync(new URL("block/route.css", cssDir), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const animated = [...route.matchAll(/([^{}]*\.route__train[^{}]*)\{([^{}]*)\}/g)]
+      .filter(([, , body]) => /animation(?:-name)?\s*:\s*(?!none)/.test(body)).map(([, sel]) => sel.trim());
+    expect(animated).toEqual([]);
+  });
+});
+
 describe("the Train view sleeps when still", () => {
   // train-scene.ts draws only while something moves; an endless CSS animation would keep the page drawing every frame
   it("no rule in scene.css animates for ever", () => {
