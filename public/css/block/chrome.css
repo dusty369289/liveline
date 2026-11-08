@@ -25,6 +25,13 @@
 .banner--demo { background: var(--demo); color: var(--demo-ink); }
 /* The flash is always there (a live region screen readers already know), and takes no room until it has something to say */
 .flash:empty { padding: 0; }
+
+/* Waiting for the next page: a thin still line along the top. Only after 300 ms, so a quick answer doesn't flicker. */
+.is-navigating::before {
+  content: ""; position: fixed; z-index: 20; top: env(safe-area-inset-top, 0); left: 0; right: 0; height: 3px;
+  background: var(--train); opacity: 0; animation: navigating-shown 0s 300ms forwards;
+}
+@keyframes navigating-shown { to { opacity: 1; } }
 .flash.is-problem { border-left: 3px solid var(--problem); }
 main .banner { padding: var(--s-2) var(--s-3); border-left: 3px solid var(--late); background: transparent; }
 

@@ -24,14 +24,20 @@ async function setUp(hash: string): Promise<{ app: App; root: HTMLElement; rail:
   return { app: new App(root, rail), root, rail };
 }
 
+// What the app logs for a bug report. Apps from earlier tests still listen for hashchange (an app lives as long as
+// the page), so this is silenced for every test rather than counted exactly.
+let logged: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("fetch", neverFetch);
+  logged = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   neverFetch.mockClear();
+  logged.mockRestore();
 });
 
 describe("a page that fails", () => {
@@ -40,13 +46,11 @@ describe("a page that fails", () => {
     rail.service = async () => {
       throw new TypeError("x is undefined");
     };
-    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     await app.start();
     expect(root.querySelector("main h1")?.textContent).toBe("Something went wrong");
     expect(root.textContent).not.toContain("Loading…");
     expect(root.querySelector("[data-retry]")).not.toBeNull();
     expect(logged).toHaveBeenCalled(); // the real error goes to the console, for a bug report
-    logged.mockRestore();
   });
 
   it("a saved key that can't be read leaves the demo running, and the app still follows links", async () => {
@@ -54,13 +58,11 @@ describe("a page that fails", () => {
     rail.start = async () => {
       throw new Error("storage is broken");
     };
-    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     await app.start();
     expect(root.querySelector("main h1")?.textContent).toBe("Find your train");
     expect(rail.demo).toBe(true);
     location.hash = "#/recent";
     await vi.waitFor(() => expect(root.querySelector("main h1")?.textContent).toBe("Recent trains"));
-    logged.mockRestore();
   });
 
   it("a page whose wiring fails still shows, with a message saying so", async () => {
@@ -68,12 +70,10 @@ describe("a page that fails", () => {
     const broken = vi.spyOn(RecentPage.prototype, "mount").mockImplementation(() => {
       throw new TypeError("no such button");
     });
-    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     await app.start();
     expect(root.querySelector("main h1")?.textContent).toBe("Recent trains");
     expect(root.querySelector("[data-flash]")?.textContent).toContain("didn't start properly");
     broken.mockRestore();
-    logged.mockRestore();
   });
 
   it("the flash region is one element for the app's life, and a message shows once", async () => {
@@ -87,6 +87,24 @@ describe("a page that fails", () => {
     await app.render();
     expect(root.querySelector("[data-flash]")).toBe(region);
     expect(region?.textContent).toBe("");
+  });
+});
+
+describe("a slow page", () => {
+  it("marks the app busy while it waits, keeps the old page meanwhile, and clears it once the new page is drawn", async () => {
+    const { app, root, rail } = await setUp("#/recent");
+    await app.start();
+    expect(root.getAttribute("aria-busy")).toBeNull();
+    let answer!: (e: Error) => void;
+    rail.service = () => new Promise((_, reject) => (answer = reject));
+    location.hash = "#/train/C12345:2026-11-07";
+    await vi.waitFor(() => expect(root.getAttribute("aria-busy")).toBe("true"));
+    expect(root.classList.contains("is-navigating")).toBe(true);
+    expect(root.querySelector("main h1")?.textContent).toBe("Recent trains");
+    answer(new TypeError("late"));
+    await vi.waitFor(() => expect(root.querySelector("main h1")?.textContent).toBe("Something went wrong"));
+    expect(root.getAttribute("aria-busy")).toBeNull();
+    expect(root.classList.contains("is-navigating")).toBe(false);
   });
 });
 

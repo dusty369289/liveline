@@ -124,7 +124,8 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   (solid plate confirmed, outlined expected).
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (until 30 minutes after it's due in).
-- **Page changes** (`ui/app.ts`): the old page keeps running until the new one is drawn. `render` never throws: a
+- **Page changes** (`ui/app.ts`): the old page keeps running until the new one is drawn; meanwhile the root has
+  `aria-busy` and `is-navigating` (a thin still line along the top after 300 ms). `render` never throws: a
   Realtime Trains error gets its problem page; anything else is logged to the console and shown as "Something went
   wrong" with Try again. A page whose `mount()` fails stays, with a message in the flash. A key that can't be read on
   launch leaves demo mode on. Messages for the next page (`ctx.flash`, after saving a key, say) go in one persistent

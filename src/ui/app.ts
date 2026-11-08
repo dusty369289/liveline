@@ -71,6 +71,7 @@ export class App {
     const mine = ++this.seq;
     const stale = () => mine !== this.seq;
     const route = parseHash(location.hash);
+    this.navigating(true);
     try {
       const { page, view } = await this.load(route, stale);
       if (stale() || !view) return;
@@ -84,7 +85,16 @@ export class App {
       } catch (again) {
         console.error("Couldn't even show the problem page", again);
       }
+    } finally {
+      if (!stale()) this.navigating(false); // a newer navigation is still waiting: it clears it
     }
+  }
+
+  /** While the next page loads, the old one stays; screen readers hear "busy", and a slow wait shows a thin line (CSS). */
+  private navigating(on: boolean): void {
+    this.root.classList.toggle("is-navigating", on);
+    if (on) this.root.setAttribute("aria-busy", "true");
+    else this.root.removeAttribute("aria-busy");
   }
 
   /** The page's own data and markup, or a problem page when it can't be had. */
