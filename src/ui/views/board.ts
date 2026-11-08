@@ -1,26 +1,25 @@
 // A board: trains from one station in a window, with their live state and platform.
 import { booked, type BoardRow, forPassengers, isBus, rowCancelled, statusMessage } from "../../core/models";
 import type { BoardResult } from "../../core/rail";
+import { shownOf } from "../../core/engine";
 import { hm, isoDate, type Ms } from "../../core/time";
 import { timeMark } from "../components/marks";
-import { ago, dayLabel } from "../format";
+import { ago, dayLabel, delayClass } from "../format";
 import { type Html, html } from "../html";
 import { type Query, qs } from "../routes";
 
 /** The board's own links: an hour either side, refresh, the other direction, show all. */
 export interface BoardNav { earlier: string; later: string; refresh: string; switch: string; all: string }
 
+/** The live cell and its lateness class, read as the train page reads a time (the engine's Shown, delayClass). */
 function status(r: BoardRow, arr: boolean): [Html, string] {
-  const t = arr ? r.arrival : r.departure;
-  const liveT = t.actual ?? t.forecast ?? t.estimate;
-  const bk = booked(t);
-  const mins = liveT != null && bk != null ? Math.floor((liveT - bk) / 60_000) : 0;
   if (rowCancelled(r)) return [html`Cancelled`, "is-cancelled"];
-  const cls = mins >= 5 ? "is-very-late" : mins >= 2 ? "is-late" : "";
-  if (t.actual != null) return [html`${timeMark("actual")}${arr ? "Arr" : "Left"} ${hm(t.actual)}`, cls];
-  if (liveT != null && mins >= 1) return [html`${timeMark("forecast")}Exp ${hm(liveT)}`, cls];
-  if (liveT != null) return [html`${timeMark("forecast")}On time`, cls];
-  return [html`<span class="muted">No report</span>`, cls];
+  const s = shownOf(arr ? r.arrival : r.departure);
+  if (!s || s.time == null || s.source === "booked") return [html`<span class="muted">No report</span>`, ""];
+  const cls = delayClass(s);
+  if (s.source === "actual") return [html`${timeMark(s.source)}${arr ? "Arr" : "Left"} ${hm(s.time)}`, cls];
+  if (s.delayMin) return [html`${timeMark(s.source)}Exp ${hm(s.time)}`, cls];
+  return [html`${timeMark(s.source)}On time`, cls];
 }
 
 function meta(r: BoardRow): unknown[] {

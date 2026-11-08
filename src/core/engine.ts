@@ -104,6 +104,9 @@ function shown(t: Times, ours: Ms | null, floor: Ms, ahead: boolean): Shown | nu
   return { time, source, booked, delayMin };
 }
 
+/** What to show for one event from RTT's times alone (no estimate of ours), as a board row does. */
+export const shownOf = (t: Times): Shown | null => shown(t, null, 0, false);
+
 /** The latest actual at this point and which event it belongs to. */
 function actualOf(p: Point): [Ms | null, Times | null] {
   const events = p.kind === "call" ? [p.departure, p.passing, p.arrival] : [p.passing];
