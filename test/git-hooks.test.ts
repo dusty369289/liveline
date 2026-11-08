@@ -65,6 +65,36 @@ describe("pre-push", () => {
     expect(run.status).not.toBe(0);
     expect(run.stderr).toContain("Some One");
   });
+
+  it("passes a branch rebased onto a main that moved, though main's commits have GitHub's committer", () => {
+    repo.init();
+    const sha = (ref: string) => repo.git("rev-parse", ref).stdout.trim();
+    const quiet = ["-c", "core.hooksPath=/dev/null"];
+    repo.git("switch", "-q", "-c", "x");
+    repo.write("b.txt", "y");
+    repo.git("add", "b.txt");
+    repo.git(...quiet, "commit", "-q", "-m", "Mine");
+    const old = sha("x");
+    repo.git("update-ref", "refs/remotes/liveline/x", old); // pushed once already
+    // Meanwhile another PR merged: GitHub's rebase merge sets the committer to the merger's profile name
+    repo.git("switch", "-q", "main");
+    repo.write("c.txt", "z");
+    repo.git("add", "c.txt");
+    repo.git(...quiet, "-c", "user.name=The Merger", "commit", "-q", "-m", "Merged elsewhere");
+    repo.git("update-ref", "refs/remotes/liveline/main", sha("main"));
+    repo.git("switch", "-q", "x");
+    expect(repo.git(...quiet, "rebase", "-q", "liveline/main").status).toBe(0);
+    const ok = prePush("liveline", OURS, `refs/heads/x ${sha("x")} refs/heads/x ${old}\n`);
+    expect(ok.status, ok.stderr).toBe(0);
+    // The branch's own commits are still checked
+    repo.write("d.txt", "w");
+    repo.git("add", "d.txt");
+    repo.git(...quiet, "commit", "-q", "-m", "Theirs", "--author", "Some One <one@example.com>");
+    const run = prePush("liveline", OURS, `refs/heads/x ${sha("x")} refs/heads/x ${old}\n`);
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain("Some One");
+    expect(run.stderr).not.toContain("The Merger");
+  });
 });
 
 describe("pre-commit", () => {

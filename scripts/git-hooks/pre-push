@@ -24,12 +24,10 @@ case "$url" in
 esac
 check="$(dirname "$0")/../history-check.mjs"
 # git sends one line per ref: <local ref> <local sha> <remote ref> <remote sha>. An all-zero sha means "none".
-while read -r _lref lsha _rref rsha; do
+# Only the branch's own commits are checked: everything no remote branch has yet. Not "$rsha..$lsha": after a rebase
+# onto a main that moved, that range takes in main's new commits, whose committer GitHub's rebase merge sets.
+while read -r _lref lsha _rref _rsha; do
   case "$lsha" in *[!0]*) ;; *) continue ;; esac # deleting a branch: nothing to check
-  case "$rsha" in
-    *[!0]*) if git cat-file -e "$rsha^{commit}" 2>/dev/null; then node "$check" "$rsha..$lsha" || exit 1; continue; fi ;;
-  esac
-  # A new branch, or a remote tip we don't have: everything no remote has yet
   node "$check" "$lsha" --not --remotes || exit 1
 done
 exit 0
