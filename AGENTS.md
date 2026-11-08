@@ -211,7 +211,9 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   branch started (another PR merged), rebase onto `main` first, so that one run is also the run that counts. Pushing
   to an open PR re-runs CI (and cancels the older run), so fix review points in one push. No draft PRs: CI must never
   skip its jobs to save a run, because GitHub counts a skipped required check as passed.
-- Its title is the line release notes will show, in plain words.
+- Its title is the line release notes will show, in plain words. The notes are shown in Settings, so they're for users:
+  `.github/release.yml` leaves out PRs labelled `process` (merging labels `chore/`, `ci/`, `test/`, `docs/` and
+  `refactor/` branches so) and Dependabot's.
 - CI must pass both required checks, **Checks** and **Browser**, on a branch up to date with `main`. `main` takes no
   direct pushes, force-pushes or merge commits (ruleset "main: PRs and green checks"). Rebasing just before opening
   the PR keeps "up to date" from costing extra runs.
@@ -219,7 +221,8 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   there, and a release runs everything again itself.
 - **Agents open PRs; they merge only when the owner says so**, and only with `npm run merge -- <number>`
   (`scripts/merge-pr.sh`): it refuses unless every required check ran and passed on the PR's current head (skipped
-  doesn't count), then rebase-merges pinned to that commit and deletes the branch. Never `gh pr merge` directly, and
+  doesn't count), labels process work `process`, then rebase-merges pinned to that commit and deletes the branch
+  (`test/merge-pr.test.ts`). Never `gh pr merge` directly, and
   never in the same step as a push or a check: push, wait for CI, look, then merge. Merging never releases.
 
 ### Releases
