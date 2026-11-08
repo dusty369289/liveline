@@ -1,8 +1,8 @@
 // What people do, end to end, in the built app (demo mode: the simulator, at a fixed moment).
 import type { Page } from "@playwright/test";
-import { audit, expect, open, openTrain, snap, test } from "./support";
+import { audit, expect, ONCE, open, openTrain, snap, test } from "./support";
 
-test("search by typing and picking suggestions lands on the board", async ({ page, errors }) => {
+test("search by typing and picking suggestions lands on the board", ONCE, async ({ page, errors }) => {
   await open(page, "/");
   await page.locator("#station").fill("padd");
   await page.locator("#station-list [role=option]").first().click();
@@ -16,7 +16,7 @@ test("search by typing and picking suggestions lands on the board", async ({ pag
   void errors;
 });
 
-test("the station box is a named combobox, and says how many stations match as you type", async ({ page, errors }) => {
+test("the station box is a named combobox, and says how many stations match as you type", ONCE, async ({ page, errors }) => {
   await open(page, "/");
   const box = page.getByRole("combobox", { name: "Station" });
   await expect(box).toHaveAttribute("aria-expanded", "false");
@@ -35,7 +35,7 @@ test("the station box is a named combobox, and says how many stations match as y
   void errors;
 });
 
-test("the second station's label follows Departures and Arrivals", async ({ page, errors }) => {
+test("the second station's label follows Departures and Arrivals", ONCE, async ({ page, errors }) => {
   await open(page, "/");
   await expect(page.locator('[data-label-for="to"]')).toContainText("Calling at");
   await page.locator('input[name="mode"][value="arr"]').check();
@@ -58,7 +58,7 @@ test("tabbing onto the checked radio keeps the dark focus ring, not just the yel
   void errors;
 });
 
-test("Later and Earlier step the board by an hour", async ({ page, errors }) => {
+test("Later and Earlier step the board by an hour", ONCE, async ({ page, errors }) => {
   await open(page, "/board?station=PAD&time=09:00");
   await page.getByRole("link", { name: "Later", exact: true }).click();
   await expect(page.locator(".board__sub")).toContainText("10:00 to 11:00");
@@ -67,7 +67,7 @@ test("Later and Earlier step the board by an hour", async ({ page, errors }) => 
   void errors;
 });
 
-test("the passing points the train is among open by themselves, and fold away if asked", async ({ page, errors }) => {
+test("the passing points the train is among open by themselves, and fold away if asked", ONCE, async ({ page, errors }) => {
   await openTrain(page); // at 09:20 the 09:00 is between Paddington and Slough, inside the first group
   const id = await page.locator("[data-fold-toggle]").first().getAttribute("data-fold-toggle");
   const fold = page.locator(`[data-fold-toggle="${id}"]`);
@@ -94,7 +94,7 @@ async function redrawn(page: Page, step: () => Promise<void>): Promise<void> {
   await expect(page.locator(".route")).toHaveCount(1);
 }
 
-test("passing points open and fold away", async ({ page, errors }) => {
+test("passing points open and fold away", ONCE, async ({ page, errors }) => {
   await openTrain(page);
   const fold = page.locator("[data-fold-toggle]").last(); // a group the train isn't in yet
   const label = await fold.innerText();
@@ -119,7 +119,7 @@ async function scrollFar(page: Page): Promise<void> {
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(100); // the navy top bar has gone off screen
 }
 
-test("the train page bar stays on screen while scrolling the route", async ({ page, errors }) => {
+test("the train page bar stays on screen while scrolling the route", ONCE, async ({ page, errors }) => {
   await openTrain(page);
   await scrollFar(page);
   const bar = await page.locator("[data-trainbar]").boundingBox();
@@ -129,7 +129,7 @@ test("the train page bar stays on screen while scrolling the route", async ({ pa
   void errors;
 });
 
-test("the big number counts down between polls", async ({ page, errors }) => {
+test("the big number counts down between polls", ONCE, async ({ page, errors }) => {
   // About an hour off: the next poll is 3 minutes away, so a change within 90 s is the page's own tick
   await openTrain(page, "10:15");
   const num = page.locator(".live__hero-num");
@@ -140,7 +140,7 @@ test("the big number counts down between polls", async ({ page, errors }) => {
   void errors;
 });
 
-test("tabbing back to a passing-point fold brings it out from under the bar", async ({ page, errors }) => {
+test("tabbing back to a passing-point fold brings it out from under the bar", ONCE, async ({ page, errors }) => {
   await openTrain(page);
   const folds = page.locator("[data-fold-toggle]");
   expect(await folds.count()).toBeGreaterThan(1);
@@ -184,7 +184,7 @@ async function statusStrip(page: Page) {
   });
 }
 
-test("a strip in the top bar's colour sits behind the status bar on every page, however far it's scrolled", async ({ page, errors }) => {
+test("a strip in the top bar's colour sits behind the status bar on every page, however far it's scrolled", ONCE, async ({ page, errors }) => {
   // the status icons follow the phone's theme (platform/index.ts), as the top bar does: the page never shows through
   await open(page, "/board?station=PAD&time=09:00");
   await page.locator(".trains__row").first().waitFor();
@@ -200,7 +200,7 @@ test("a strip in the top bar's colour sits behind the status bar on every page, 
   void errors;
 });
 
-test("the train page bar sticks below the status bar, and adds no band before it sticks", async ({ page, errors }) => {
+test("the train page bar sticks below the status bar, and adds no band before it sticks", ONCE, async ({ page, errors }) => {
   await openTrain(page);
   const plain = (await page.locator("[data-trainbar]").boundingBox())!.height;
   await fakeStatusBar(page);
@@ -213,7 +213,7 @@ test("the train page bar sticks below the status bar, and adds no band before it
   void errors;
 });
 
-test("a train you opened is in Recent, and Recent can be cleared", async ({ page, errors }) => {
+test("a train you opened is in Recent, and Recent can be cleared", ONCE, async ({ page, errors }) => {
   await openTrain(page);
   await open(page, "/");
   await expect(page.locator(".carry__title")).toContainText("London Paddington to Oxford");
@@ -224,7 +224,7 @@ test("a train you opened is in Recent, and Recent can be cleared", async ({ page
   void errors;
 });
 
-test("the marker style is kept after reopening the app", async ({ page, errors }) => {
+test("the marker style is kept after reopening the app", ONCE, async ({ page, errors }) => {
   await open(page, "/settings");
   await page.locator("input[name=marker][value=bar]").check();
   await page.reload();
@@ -254,7 +254,7 @@ test("a key RTT refuses is not saved, and the demo stays", async ({ page, errors
   void errors;
 });
 
-test("a new page starts at the top, its heading in view", async ({ page, errors }) => {
+test("a new page starts at the top, its heading in view", ONCE, async ({ page, errors }) => {
   await open(page, "/settings");
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);

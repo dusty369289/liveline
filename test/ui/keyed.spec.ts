@@ -3,7 +3,7 @@
 // is hidden, and the last answer kept, plainly marked as older, when RTT asks us to slow down.
 import type { Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { audit, expect, open, seedKey, setVisible, snap, test } from "./support";
+import { audit, expect, ONCE, open, seedKey, setVisible, snap, test } from "./support";
 
 const ROUND = 120_000; // BOARD_REFRESH.every
 const FOR = 15 * 60_000; // BOARD_REFRESH.for
@@ -45,7 +45,7 @@ async function redrawn(page: Page, step: () => Promise<void>): Promise<void> {
   await expect(page.locator(".board__foot:not([data-drawn-before])")).toHaveCount(1);
 }
 
-test("a now board asks again each round once its answer is old, and stops after 15 minutes", async ({ page, errors }) => {
+test("a now board asks again each round once its answer is old, and stops after 15 minutes", ONCE, async ({ page, errors }) => {
   const rtt = await keyed(page);
   await open(page, "/board?station=RDG");
   expect(rtt.calls()).toBe(1);
@@ -60,7 +60,7 @@ test("a now board asks again each round once its answer is old, and stops after 
   void errors;
 });
 
-test("a now board asks nothing while hidden, and once on coming back, even just before a round", async ({ page, errors }) => {
+test("a now board asks nothing while hidden, and once on coming back, even just before a round", ONCE, async ({ page, errors }) => {
   const rtt = await keyed(page);
   await open(page, "/board?station=RDG");
   await setVisible(page, false);

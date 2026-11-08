@@ -4,13 +4,13 @@ import type { Page } from "@playwright/test";
 import { THEMES } from "../../src/ui/store/appearance";
 import { KEYS } from "../../src/ui/store/keys";
 import { fakeService } from "../support";
-import { audit, expect, open, openTrain, seedKey, snap, test } from "./support";
+import { audit, expect, ONCE, open, openTrain, seedKey, snap, test } from "./support";
 
 async function useTheme(page: Page, id: string): Promise<void> {
   await page.addInitScript(([name, value]) => localStorage.setItem(name, JSON.stringify(value)), [KEYS.theme, id]);
 }
 
-test("Operator colour is the theme until you choose another", async ({ page, errors }) => {
+test("Operator colour is the theme until you choose another", ONCE, async ({ page, errors }) => {
   await open(page, "/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "operator");
   void errors;
