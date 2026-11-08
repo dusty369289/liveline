@@ -31,24 +31,45 @@ export const test = base.extend<Fixtures>({
 });
 export { expect };
 
+/** Save a key before the app starts: a made-up one, never a real key, under the core's own storage name. */
+export async function seedKey(page: Page): Promise<void> {
+  await page.addInitScript((name) => localStorage.setItem(name, "made-up-key-for-the-simulator"), STORE.key);
+}
+
+export interface KeyedRtt {
+  count: (path: string) => number;
+  advance: (ms: number) => Promise<void>;
+  /** Answer service calls with this status instead of the simulator's answer (null: the simulator's). */
+  serviceStatus: number | null;
+  /** What x-ratelimit-remaining-hour says on every answer (null: the simulator's own count). */
+  hourLeft: number | null;
+}
+
 /**
- * The app with a key: a made-up one (never a real key), answered by the simulator through the /rtt relay, so the page
- * runs the keyed code paths (budget, background calls) and the test can count what it asks. `advance` moves the
- * page's clock and the simulator's together.
+ * The app with a key (seedKey), answered by the simulator through the /rtt relay, so the page runs the keyed code
+ * paths (budget, background calls) and the test can count what it asks. `advance` moves the page's clock and the
+ * simulator's together; `serviceStatus` and `hourLeft` are faults a test can set at any point.
  */
-export async function keyedRtt(page: Page): Promise<{ count: (path: string) => number; advance: (ms: number) => Promise<void> }> {
+export async function keyedRtt(page: Page): Promise<KeyedRtt> {
   let now = MOMENT.getTime();
   const sim = new SimTransport(() => now);
   const seen: string[] = [];
-  await page.addInitScript((name) => localStorage.setItem(name, "made-up-key-for-the-simulator"), STORE.key);
+  await seedKey(page);
   await page.route("**/rtt/**", async (r) => {
     const url = new URL(r.request().url());
     const path = url.pathname.replace(/^\/rtt/, "");
     seen.push(path);
     const res = sim.getSync(path, Object.fromEntries(url.searchParams));
-    await r.fulfill({ status: res.status, headers: res.headers, contentType: "application/json", body: res.body == null ? "" : JSON.stringify(res.body) });
+    const headers = { ...res.headers };
+    if (fake.hourLeft != null) headers["x-ratelimit-remaining-hour"] = String(fake.hourLeft);
+    if (path === "/gb-nr/service" && fake.serviceStatus != null) {
+      return r.fulfill({ status: fake.serviceStatus, headers, contentType: "application/json", body: '{"error":"no"}' });
+    }
+    await r.fulfill({ status: res.status, headers, contentType: "application/json", body: res.body == null ? "" : JSON.stringify(res.body) });
   });
-  return {
+  const fake: KeyedRtt = {
+    serviceStatus: null,
+    hourLeft: null,
     count: (path) => seen.filter((p) => p === path).length,
     // A jump, firing each due timer once (as a phone does after a while asleep), not every 1 s tick on the way. Then
     // a moment of real time, so a request a timer started has reached the count before anyone says "nothing asked"
@@ -58,6 +79,7 @@ export async function keyedRtt(page: Page): Promise<{ count: (path: string) => n
       await page.waitForTimeout(300);
     },
   };
+  return fake;
 }
 
 /** Send the app to the background (or bring it back), as a phone does: visibilityState and its event. */

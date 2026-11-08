@@ -65,7 +65,8 @@ scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run
   `platform` imports Capacitor. The UI reaches the platform through `src/platform/index.ts`.
 - **One home for each thing:** network requests only in `platform/` and `core/http.ts`. Storage names only in
   `core/keys.ts` and `ui/store/keys.ts` (any quoted `liveline.`/`rtt.` name, in any case; the key store and `Pref`
-  also take only registered names, by type). `localStorage` only through `Pref` (and the platform's browser key
+  also take only registered names, by type; browser tests seed by them too, through `seedKey` and `KEYS`).
+  `localStorage` only through `Pref` (and the platform's browser key
   store). Markup reaches the page only through `html.ts` (`render`, `fragment`), so everything is escaped: no other
   `innerHTML`/`outerHTML` (`=` or `+=`), `insertAdjacentHTML`, `setHTMLUnsafe`, `createContextualFragment` or
   `document.write` (the escaping itself is tested in `test/html.test.ts`). Raw colours only in the theme.

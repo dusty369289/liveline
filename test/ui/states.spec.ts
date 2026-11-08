@@ -3,7 +3,8 @@
 // empty. The clock is fixed at 09:20 (support.ts), so each board time below picks a train in a known state.
 import { readFileSync } from "node:fs";
 import type { Page, TestInfo } from "@playwright/test";
-import { audit, expect, open, snap, test } from "./support";
+import { KEYS } from "../../src/ui/store/keys";
+import { audit, expect, open, seedKey, snap, test } from "./support";
 
 async function firstTrain(page: Page, hash: string): Promise<void> {
   await open(page, hash);
@@ -146,7 +147,7 @@ test("settings: a key Realtime Trains refused, said under its field", async ({ p
 
 test("waiting for Realtime Trains: the old page stays, with a thin line along the top", async ({ page, errors }, info) => {
   // A made-up key (never a real one), so the board asks the faked RTT, which holds its answer until told
-  await page.addInitScript(() => localStorage.setItem("rtt.key", "made-up-key-for-tests-only-0123456789"));
+  await seedKey(page);
   let release!: () => void;
   const held = new Promise<void>((r) => (release = r));
   await page.route("**/rtt/**", async (r) => {
@@ -165,7 +166,7 @@ test("waiting for Realtime Trains: the old page stays, with a thin line along th
 
 test("something nobody planned for: a sentence and Try again, not Loading… for good", async ({ page, errors }, info) => {
   // A saved-journeys list no version of the app would write: drawing the search page throws, standing for any bug
-  await page.addInitScript(() => localStorage.setItem("liveline.journeys", "[null]"));
+  await page.addInitScript((name) => localStorage.setItem(name, "[null]"), KEYS.journeys);
   await open(page, "/");
   await expect(page.locator("main h1")).toHaveText("Something went wrong");
   await expect(page.locator("[data-retry]")).toHaveText("Try again");
