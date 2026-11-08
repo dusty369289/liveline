@@ -69,15 +69,30 @@ test("Later and Earlier step the board by an hour", async ({ page, errors }) => 
 
 test("the passing points the train is among open by themselves, and fold away if asked", async ({ page, errors }) => {
   await openTrain(page); // at 09:20 the 09:00 is between Paddington and Slough, inside the first group
-  const fold = page.locator("[data-fold-toggle]").first();
+  const id = await page.locator("[data-fold-toggle]").first().getAttribute("data-fold-toggle");
+  const fold = page.locator(`[data-fold-toggle="${id}"]`);
   await expect(fold).toHaveAttribute("aria-expanded", "true");
   await expect(fold).toContainText("Fold away");
   await fold.click();
   await expect(fold).toHaveAttribute("aria-expanded", "false"); // you folded it: it stays folded
-  await page.locator("[data-refresh-now]").click();
+  const opened = page.locator("[data-fold-toggle]").last(); // a group the train isn't in yet: you opened it
+  await opened.click();
+  await expect(opened).toHaveAttribute("aria-expanded", "true");
+  // old enough that refresh really asks again and redraws the route (a fresh answer would leave it untouched)
+  await page.clock.fastForward(20_000);
+  await redrawn(page, () => page.locator("[data-refresh-now]").click());
   await expect(fold).toHaveAttribute("aria-expanded", "false");
+  await expect(opened).toHaveAttribute("aria-expanded", "true");
   void errors;
 });
+
+/** Run a step that refetches the train, and wait until the route is redrawn: the marked one is replaced. */
+async function redrawn(page: Page, step: () => Promise<void>): Promise<void> {
+  await page.locator(".route").evaluate((e) => e.setAttribute("data-drawn-before", ""));
+  await step();
+  await expect(page.locator(".route[data-drawn-before]")).toHaveCount(0);
+  await expect(page.locator(".route")).toHaveCount(1);
+}
 
 test("passing points open and fold away", async ({ page, errors }) => {
   await openTrain(page);
