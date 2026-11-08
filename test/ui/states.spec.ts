@@ -51,9 +51,19 @@ test("board: another day", async ({ page, errors }, info) => {
 test("train: another day, opened from that board", async ({ page, errors }, info) => {
   await firstTrain(page, "/board?station=WAT&time=08:00&day=2026-11-09");
   await expect(page.locator(".train__head h1")).toContainText("Mon 9 Nov");
-  await expect(page.locator(".live__hero")).toContainText("Mon 9 Nov");
+  await expect(page.locator(".live__hero-num")).toHaveText(/^08:\d\d$/);
   await expect(page.locator(".live__hero")).not.toContainText("min");
   await shot(page, info, "13b-train-another-day");
+  void errors;
+});
+
+test("train: another day, opened with where you get off", async ({ page, errors }, info) => {
+  await firstTrain(page, "/board?station=WAT&to=WOK&time=08:00&day=2026-11-09");
+  await expect(page.locator(".live__stop").first()).toContainText("It reaches Woking at");
+  await expect(page.locator(".live__status")).not.toContainText(/in \d+ min/);
+  await expect(page.locator("main")).toContainText("Mon 9 Nov");
+  expect((await page.locator("main").innerText()).match(/Mon 9 Nov/g)).toHaveLength(1);
+  await shot(page, info, "13c-train-another-day-both-stops");
   void errors;
 });
 

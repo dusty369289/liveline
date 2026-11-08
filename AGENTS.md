@@ -123,9 +123,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   dusk or night by the sun where the train is (`core/daylight.ts`), each tuned for the light and dark themes.
   Reduced motion: the scene stands still. Layers move by CSS transforms (composited), and it sleeps while standing.
 - **Your stop:** a train opened from a board knows where you get on and off: a big "N min", stops away, platform
-  (solid plate confirmed, outlined expected). Over 3 hours off, the big number is the time instead (with the day, if
-  another day); within 3 hours it counts down, across midnight too. A train on another day says its day in the title
-  ("08:05 London Waterloo to Woking · Mon 9 Nov").
+  (solid plate confirmed, outlined expected). Over 3 hours off, the big number is the time instead, and the other
+  stop's line drops its "in N min"; within 3 hours both count down, across midnight too. A train on another day says
+  its day once, in the title ("08:05 London Waterloo to Woking · Mon 9 Nov"); a stop's time adds a day only when it
+  differs from that (an overnight train's stop after midnight).
 - **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
   shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
   it's due in). Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05" for

@@ -231,7 +231,7 @@ export class LiveTrain {
       const res = await this.rail.service(this.uid, { background: !force, force, at: this.at, to: this.to });
       if (this.stopped) return;
       const tl = res.timeline;
-      const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false), Date.now())).querySelector(".live");
+      const node = fragment(liveRegion(res, this.at, this.to, stopSummary(tl, this.at), stopSummary(tl, this.to, false))).querySelector(".live");
       if (node) this.region.replaceChildren(node);
       this.folds.apply();
       for (const fn of this.listeners) fn(res);
