@@ -88,6 +88,9 @@ function systemStatus(raw: unknown): SystemStatus {
   return { networkRail: String(r.realtimeNetworkRail || "OK"), core: String(r.rttCore || "OK") };
 }
 
+/** The feed's state from any answer (a board's is parsed into Board; a service's is kept beside Service, not on it). */
+export const parseSystemStatus = (body: unknown): SystemStatus => systemStatus(obj(body).systemStatus);
+
 function unique(meta: Json, today: () => Ms): [string, string, string] {
   let identity = String(meta.identity || "");
   let run = str(meta.departureDate);

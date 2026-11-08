@@ -99,7 +99,10 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   estimate ("On time" when it matches), **dashed ring** = our guess. A junction on time shows only its circle.
 - **Live position:** between the last reported point and the next, by elapsed time against the working timetable. It
   never passes an unreported point (holds at 95%), says "No report at X yet" 2 minutes after expected, and once
-  departed sits at least 26 px clear of the station it left.
+  departed sits at least 26 px clear of the station it left. When RTT's answer says it has no live data
+  (`SCHEDULE_ONLY` or `REALTIME_DATA_NONE`, `feedOf` in `core/models.ts`), a missing report is put down to that,
+  never to a signal, and the page says times are the timetable only. The feed's state rides on `ServiceResult.status`,
+  beside `Service` (which the goldens pin).
 - **Our estimate** carries the delay forward and lets a late train win back 75% of booked allowances and dwell over
   30 s, never leaving an advertised stop early. Used only where RTT gives no forecast or gives an impossible one. Not
   backtested: it's a reasoned guess.

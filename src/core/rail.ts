@@ -2,11 +2,11 @@
 // on the simulator (demo); with one, it talks to RTT itself.
 import { Budget } from "./budget";
 import { STORE } from "./keys";
-import { build, type Timeline } from "./engine";
+import { build, DEFAULT_ENGINE, type Timeline } from "./engine";
 import type { Http } from "./http";
-import { type Board, type BoardRow, booked, forPassengers, isEmpty, type Times } from "./models";
+import { type Board, type BoardRow, booked, feedOf, forPassengers, isEmpty, type SystemStatus, type Times } from "./models";
 import { type Formation, formationFor, parseFormations } from "./formation";
-import { parseBoard, parseService } from "./parse";
+import { parseBoard, parseService, parseSystemStatus } from "./parse";
 import { pollAfter } from "./poll";
 import { AuthError, BusyError, type Fetched, isDetailed, type KeyValueStore, RttClient, RttError, type TokenInfo } from "./rtt";
 import { SimTransport } from "./simulator";
@@ -31,6 +31,7 @@ export interface BoardResult {
 export interface ServiceResult {
   timeline: Timeline;
   formation: Formation; // how it's made up where it is now (formation.ts); kept off Service, which the goldens pin
+  status: SystemStatus; // RTT's feed when it answered; beside Service for the same reason
   fetched: Fetched;
   refreshAfter: number | null; // seconds before asking again (poll.ts), or null: nothing more will change
 }
@@ -218,8 +219,9 @@ export class Rail {
     const f = await this.client.service(uid, !background || force, ttl, force);
     if (!f.body) throw new RttError("Realtime Trains has no details for that train.");
     const now = this.clock();
-    const tl = build(parseService(f.body, this.clock), now);
+    const status = parseSystemStatus(f.body);
+    const tl = build(parseService(f.body, this.clock), now, DEFAULT_ENGINE, feedOf(status));
     const formation = formationFor(parseFormations(f.body, tl.service.vehicles), tl.position.fromIndex);
-    return { timeline: tl, formation, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
+    return { timeline: tl, formation, status, fetched: f, refreshAfter: pollAfter(tl, now, this.budget.refreshInterval(), at) };
   }
 }

@@ -142,13 +142,18 @@ export interface SystemStatus {
   core: string;
 }
 
+/** How much live data RTT has right now: all of it, some, or none (timetable only). */
+export type Feed = "ok" | "limited" | "none";
+
+export function feedOf(s: SystemStatus): Feed {
+  if (s.core === "SCHEDULE_ONLY" || s.networkRail === "REALTIME_DATA_NONE") return "none";
+  return s.networkRail !== "OK" || s.core !== "OK" ? "limited" : "ok";
+}
+
 export function statusMessage(s: SystemStatus): string | null {
-  if (s.core === "SCHEDULE_ONLY" || s.networkRail === "REALTIME_DATA_NONE") {
-    return "Realtime Trains has no live data right now, so times are the timetable only.";
-  }
-  if (s.networkRail !== "OK" || s.core !== "OK") {
-    return "Realtime Trains says live data is limited right now. Some times may be missing or late.";
-  }
+  const feed = feedOf(s);
+  if (feed === "none") return "Realtime Trains has no live data right now, so times are the timetable only.";
+  if (feed === "limited") return "Realtime Trains says live data is limited right now. Some times may be missing or late.";
   return null;
 }
 

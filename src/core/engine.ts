@@ -13,6 +13,7 @@ import {
   isEmpty,
   lastEvent,
   planned,
+  type Feed,
   type Point,
   type Service,
   type Times,
@@ -121,7 +122,8 @@ function actualOf(p: Point): [Ms | null, Times | null] {
   return [null, null];
 }
 
-export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE): Timeline {
+/** `feed` is RTT's own state (models.feedOf): with no live data, a missing report is the feed, not the train. */
+export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENGINE, feed: Feed = "ok"): Timeline {
   const pts = service.points;
   const usable = pts.map((p, i) => (isCancelled(p) ? -1 : i)).filter((i) => i >= 0);
 
@@ -235,7 +237,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   return {
     service,
     points: views,
-    position: position(service, views, usable, last, now, cfg, plannedArr),
+    position: position(service, views, usable, last, now, cfg, plannedArr, feed),
     now,
     worst: worst(pts, usable, last),
   };
@@ -267,6 +269,9 @@ function expectedAt(v: PointView): Ms | null {
   return s ? s.time : null;
 }
 
+/** Why a report is missing when RTT itself says it has no live data: never blame a signal for that. */
+const NO_FEED = "Realtime Trains has no live data right now, so no reports are coming in.";
+
 function lateText(d: number | null): string {
   if (d == null) return "";
   if (d === 0) return "on time";
@@ -281,6 +286,7 @@ function position(
   now: Ms,
   cfg: EngineConfig,
   plannedArr: Map<number, Ms>,
+  feed: Feed,
 ): Position {
   const pts = service.points;
   const P = (state: State, fromIndex: number | null, toIndex: number | null, since: Ms | null, expected: Ms | null,
@@ -297,7 +303,8 @@ function position(
       return P("not-started", null, first, null, dep, 0, null, `Not started yet. Due to leave ${p.name} at ${hm(dep)}.`);
     }
     return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null,
-      dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet.");
+      (dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet.") +
+        (feed === "none" ? ` ${NO_FEED}` : ""));
   }
 
   const lp = pts[last];
@@ -333,7 +340,7 @@ function position(
     const over = roundMin((now - expected) / 1000);
     return P("overdue", last, nxt, act, expected, cfg.holdFraction, delay,
       `${verb} ${lp.name} ${hm(act)}. No report at ${np.name} yet, ${over} min after expected. ` +
-        "It may be held at a signal, or the report is late.");
+        (feed === "none" ? NO_FEED : "It may be held at a signal, or the report is late."));
   }
   const expTxt = expected != null ? `, expected about ${hm(expected)}` : "";
   return P("running", last, nxt, act, expected, frac, delay, `${verb} ${lp.name} ${hm(act)} (${late}). Next: ${np.name}${expTxt}.`);

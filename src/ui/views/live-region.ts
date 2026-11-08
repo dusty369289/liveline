@@ -1,6 +1,6 @@
 // The part of the train page that refreshes: where the train is, your stops, and the route with every point.
 import { changed, DEFAULT_ENGINE, type PointView, type StopSummary, type Timeline } from "../../core/engine";
-import { isCancelled } from "../../core/models";
+import { isCancelled, statusMessage } from "../../core/models";
 import type { ServiceResult } from "../../core/rail";
 import { hm } from "../../core/time";
 import { markOf, timeMark } from "../components/marks";
@@ -118,6 +118,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
   const tl = res.timeline;
   const p = tl.position;
   const [heroHtml, hs] = hero(stop, off);
+  const feedNote = statusMessage(res.status);
   // Once it has arrived, the headline says so: "It has left X / It has reached Y" would only repeat it
   const lines = p.state === "arrived" ? []
     : ([[stop, "leaves"], [off, "reaches"]] as const).filter(([sm]) => sm && sm !== hs).map(([sm, v]) => stopLine(sm!, v));
@@ -138,6 +139,7 @@ export function liveRegion(res: ServiceResult, at: string, to: string, stop: Sto
     ${lines}
     ${tl.worst ? html`<p class="live__stop hint">Lost most time between ${tl.worst.fromName} and ${tl.worst.toName} (${tl.worst.minutes} min).</p>` : ""}
     ${res.fetched.stale ? html`<p class="live__age hint">Showing an older answer: ${res.fetched.note}.</p>` : ""}
+    ${feedNote ? html`<p class="live__stop hint" data-feed-note>${feedNote}</p>` : ""}
   </div>
   ${tl.service.reasons.length ? html`<ul class="reasons">${tl.service.reasons.map((r) => html`<li>${r.kind === "CANCEL" ? "Cancelled" : "Delayed"} because of ${r.text.slice(0, 1).toLowerCase() + r.text.slice(1)}.</li>`)}</ul>` : ""}
   <div class="route-wrap">
