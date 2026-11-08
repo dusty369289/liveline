@@ -138,8 +138,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Updates** (`ui/updates.ts`): Settings, or once a day quietly, asks GitHub for the latest release. If newer, one tap
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
   version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key. Its
-  "Update this app?" dialog opens only while LiveLine is on screen (or when you come back to it), and the downloaded
-  APK is deleted once the install ends.
+  "Update this app?" dialog opens only while LiveLine is on screen (or when you come back to it). While it's awaited,
+  Update stays tappable ("Open Android's update dialog" in the banner) and reopens it if it was closed; the earlier
+  plugin call then ends with `REPLACED`, which the page ignores. The downloaded APK is deleted once the install ends.
 
 ## UI
 

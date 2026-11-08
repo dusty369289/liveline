@@ -48,7 +48,8 @@ public class UpdaterPlugin extends Plugin {
     private BroadcastReceiver receiver;
     // Android's "Update this app?" dialog, kept until the install ends. Android blocks starting it while LiveLine is in
     // the background, and it would then never appear, leaving "installing" up until a restart: so it's started only
-    // while LiveLine is on screen, or when the user comes back (onScreen), and can be reopened.
+    // while LiveLine is on screen, or when the user comes back (onScreen). If the user closes it, the page keeps Update
+    // tappable (updates.ts): the new install() call takes over, the old one ends with REPLACED, and the dialog reopens.
     private volatile Intent pendingConfirm; // set on the main thread, read by install() on the plugin's thread
     private boolean confirmShown; // main thread only
     // Not handleOnResume: Capacitor calls that from inside Activity.onResume, before AndroidX moves the lifecycle to

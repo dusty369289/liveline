@@ -88,7 +88,7 @@ function updateBody(u: UpdateInfo, selfUpdate: boolean): Html {
     return html`<p><strong>Version ${u.latest} is available</strong> (you have ${u.current}).</p>
       ${u.notes ? html`<p class="hint">${u.notes}</p>` : ""}
       ${selfUpdate && u.apk
-        ? html`<p><button class="button" type="button" data-install-update ${u.progress ? html`disabled` : ""}>Update to ${u.latest}</button></p>
+        ? html`<p><button class="button" type="button" data-install-update ${u.progress && !u.confirming ? html`disabled` : ""}>Update to ${u.latest}</button></p>
           <p class="hint" data-update-progress role="status" aria-live="polite">${u.progress ?? ""}</p>
           ${u.message ? html`<p class="problem">${u.message}</p>` : ""}
           <p class="hint">Installs over this version. Your key, journeys and settings stay. Android checks it's signed by the same

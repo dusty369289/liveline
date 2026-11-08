@@ -132,4 +132,12 @@ describe("the updater's confirm dialog", () => {
     expect(body(/public void load\(\)/)).toMatch(/getLifecycle\(\)\.addObserver\(/);
     expect(body(/void handleOnDestroy\(\)/)).toMatch(/getLifecycle\(\)\.removeObserver\(/);
   });
+
+  it("is reopened by another tap while it's awaited, ending the earlier call with the REPLACED the page ignores", () => {
+    const takeover = body(/if \(installing != null && pendingConfirm != null\)/);
+    expect(takeover).toContain('"REPLACED"');
+    expect(takeover).toContain("confirmShown = false");
+    expect(takeover).toContain("showConfirm()");
+    expect(readFileSync(new URL("../src/ui/updates.ts", import.meta.url), "utf8")).toContain('"REPLACED"');
+  });
 });
