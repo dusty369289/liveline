@@ -25,17 +25,22 @@ async function setUp(hash: string): Promise<{ app: App; root: HTMLElement; rail:
   return { app: new App(root, rail), root, rail };
 }
 
-// What the app logs for a bug report. Apps from earlier tests still listen for hashchange (an app lives as long as
-// the page), so this is silenced for every test rather than counted exactly.
+// What the app logs for a bug report: kept out of the test output, and checked where it matters.
 let logged: ReturnType<typeof vi.spyOn>;
+// An app listens to the window for as long as the page lives; each test's app stops listening when the test ends,
+// or every later test's hash changes would draw pages in all the earlier apps too.
+let listens: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   localStorage.clear();
   vi.stubGlobal("fetch", neverFetch);
   logged = vi.spyOn(console, "error").mockImplementation(() => {});
+  listens = vi.spyOn(window, "addEventListener");
 });
 
 afterEach(() => {
+  for (const [type, fn] of listens.mock.calls) window.removeEventListener(type as string, fn as EventListener);
+  listens.mockRestore();
   vi.unstubAllGlobals();
   neverFetch.mockClear();
   logged.mockRestore();
