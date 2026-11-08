@@ -14,11 +14,16 @@ export type Theme = (typeof THEMES)[number][0];
 export const MARKER_STYLES = [["dot", "Dot"], ["bar", "Bar"], ["arrow", "Arrow"], ["front", "Train front"]] as const;
 export type MarkerStyle = (typeof MARKER_STYLES)[number][0];
 
-const known = <T extends string>(list: ReadonlyArray<readonly [T, string]>, v: unknown): v is T => list.some(([id]) => id === v);
+/** Where the tabs sit, the default first. Bottom only on a screen tall enough for it (public/css/block/tabs.css). */
+export const TAB_PLACES = [["bottom", "At the bottom"], ["top", "At the top"]] as const;
+export type TabPlace = (typeof TAB_PLACES)[number][0];
+
+const known =<T extends string>(list: ReadonlyArray<readonly [T, string]>, v: unknown): v is T => list.some(([id]) => id === v);
 
 export class Appearance {
   private readonly themePref = new Pref<string>(KEYS.theme, THEMES[0][0]);
   private readonly markerPref = new Pref<string>(KEYS.marker, "dot");
+  private readonly tabsPref = new Pref<string>(KEYS.tabs, TAB_PLACES[0][0]);
 
   /** How the whole app looks. Operator colour by default (the owner's choice); a value from elsewhere falls back. */
   theme(): Theme {
@@ -44,8 +49,21 @@ export class Appearance {
     this.apply();
   }
 
+  /** Where the tabs sit. At the bottom by default (owner, 2026-11-08): within a thumb's reach on a tall phone. */
+  tabs(): TabPlace {
+    const v = this.tabsPref.get();
+    return known(TAB_PLACES, v) ? v : TAB_PLACES[0][0];
+  }
+
+  setTabs(v: string): void {
+    if (!known(TAB_PLACES, v)) return;
+    this.tabsPref.set(v);
+    this.apply();
+  }
+
   apply(): void {
     document.documentElement.dataset.theme = this.theme();
     document.documentElement.dataset.marker = this.marker();
+    document.documentElement.dataset.tabs = this.tabs();
   }
 }

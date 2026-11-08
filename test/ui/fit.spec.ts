@@ -1,5 +1,6 @@
 // The search page fits one phone screen with no scrolling: 360 × 700 is a 360 × 800 phone less its status and
 // navigation bars, the smallest common app screen. First visit, and coming back with saved things.
+import { KEYS } from "../../src/ui/store/keys";
 import { expect, open, openTrain, test } from "./support";
 
 const fits = (page: import("@playwright/test").Page) =>
@@ -36,7 +37,8 @@ test("recent stations are offered as soon as you tap the empty station box", asy
   void errors;
 });
 
-test("Settings is a cog in the top bar, still named Settings", async ({ page, errors }) => {
+test("with the tabs at the top, Settings is a cog, still named Settings", async ({ page, errors }) => {
+  await page.addInitScript((name) => localStorage.setItem(name, JSON.stringify("top")), KEYS.tabs);
   await open(page, "/");
   const cog = page.getByRole("link", { name: "Settings" });
   await expect(cog.locator("svg")).toBeVisible();

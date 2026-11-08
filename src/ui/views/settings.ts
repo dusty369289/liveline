@@ -5,7 +5,7 @@ import type { TokenInfo } from "../../core/rtt";
 import { doneMark } from "../components/marks";
 import { themePreview } from "../components/theme-preview";
 import { type Html, html } from "../html";
-import { MARKER_STYLES, type MarkerStyle, type Theme, THEMES } from "../store/appearance";
+import { MARKER_STYLES, type MarkerStyle, TAB_PLACES, type TabPlace, type Theme, THEMES } from "../store/appearance";
 import type { UpdateInfo } from "../updates";
 
 export interface SettingsData {
@@ -20,6 +20,7 @@ export interface SettingsData {
   selfUpdate: boolean; // can install its own updates (Android)
   marker: MarkerStyle;
   theme: Theme;
+  tabs: TabPlace;
 }
 
 function keyForm(d: SettingsData): Html {
@@ -93,6 +94,13 @@ function appearanceSection(d: SettingsData): Html {
         <span class="markers__demo" aria-hidden="true"><span class="route__train" data-m="${value}"></span></span>
         <span class="markers__name">${label}</span>
         <input type="radio" name="marker" value="${value}" data-marker-choice ${d.marker === value ? html`checked` : ""}></label>`)}
+    </fieldset>
+    <fieldset class="markers">
+      <legend class="panel__row panel__legend">Tabs</legend>
+      ${TAB_PLACES.map(([value, label]) => html`<label class="markers__opt panel__row">
+        <span class="markers__name">${label}</span>
+        <input type="radio" name="tabs" value="${value}" data-tabs-choice ${d.tabs === value ? html`checked` : ""}></label>`)}
+      <p class="panel__row hint">At the bottom only when the screen is tall enough, such as a phone held upright.</p>
     </fieldset>`);
 }
 
