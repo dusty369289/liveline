@@ -56,7 +56,8 @@ describe("update check", () => {
 
 describe("one-tap install wording", () => {
   it("says the app closes when installing, and never promises a restart", () => {
-    expect(progressText({ stage: "installing" })).toBe("Installing… LiveLine closes when it's done: open it again from your home screen.");
+    expect(progressText({ stage: "installing" })).toBe(
+      "Installing… LiveLine closes when it's done: tap its notification, or open it again from your home screen.");
     expect(INSTALLED).not.toMatch(/restart/i);
     for (const stage of ["permission", "downloading", "confirm"] as const) expect(progressText({ stage })).not.toMatch(/restart/i);
   });

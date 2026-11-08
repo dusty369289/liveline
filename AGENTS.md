@@ -256,7 +256,10 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
   version (`UpdaterPlugin`; the check is `ApkDownload`, which deletes a download that doesn't match). Android asks
   once to allow installs and refuses an APK signed with another key. Installing closes the app and Android doesn't
-  reopen it, so the installing step says to open it again from the home screen. Its
+  reopen it (nor, since Android 10, let it reopen itself), so tapping Update asks once for notifications (Android
+  13+), the plugin notes the version, and the new version's `UpdatedNotice` (MY_PACKAGE_REPLACED) posts "LiveLine
+  updated to X. Tap to open it again", only for that update and only with the permission (`UpdatedNoticeTest`). The
+  installing step says to tap it or open the app from the home screen. Its
   "Update this app?" dialog opens only while LiveLine is on screen (or when you come back to it). While it's awaited,
   Update stays tappable ("Open Android's update dialog" in the banner) and reopens it if it was closed; the earlier
   plugin call then ends with `REPLACED`, which the page ignores. The downloaded APK is deleted once the install ends.

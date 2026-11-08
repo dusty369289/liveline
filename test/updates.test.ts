@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UpdateProgress } from "../src/platform";
 
 interface Call {
+  o: { url: string; version: string };
   progress: (p: UpdateProgress) => void;
   resolve: () => void;
   reject: (e: unknown) => void;
@@ -20,8 +21,8 @@ async function updatesOnPhone() {
     APP_VERSION: "1.0.0",
     canSelfUpdate: true,
     getJson: vi.fn(),
-    installUpdate: vi.fn((_o: unknown, progress: (p: UpdateProgress) => void) =>
-      new Promise<void>((resolve, reject) => calls.push({ progress, resolve, reject }))),
+    installUpdate: vi.fn((o: Call["o"], progress: (p: UpdateProgress) => void) =>
+      new Promise<void>((resolve, reject) => calls.push({ o, progress, resolve, reject }))),
   }));
   const { Updates } = await import("../src/ui/updates");
   const changed = vi.fn();
@@ -39,6 +40,14 @@ afterEach(() => {
 });
 
 describe("installing an update", () => {
+  it("tells the installer which version it's installing, so the notice after it names only that one", async () => {
+    // Android closes LiveLine to replace it and won't let it reopen itself: UpdatedNotice posts "tap to open"
+    const { updates, calls, root } = await updatesOnPhone();
+    void updates.install(root);
+    await settle();
+    expect(calls[0].o).toMatchObject({ url: "https://example.test/app.apk", version: "1.1.0" });
+  });
+
   it("ignores a second tap while it downloads", async () => {
     const { updates, calls, button, root } = await updatesOnPhone();
     void updates.install(root);

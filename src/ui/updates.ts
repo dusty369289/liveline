@@ -39,7 +39,9 @@ const REPLACED = "REPLACED";
 export function progressText(p: UpdateProgress): string {
   if (p.stage === "permission") return "Allow LiveLine to install updates (Android asks once), then come back.";
   if (p.stage === "downloading") return p.fraction != null && p.fraction >= 0 ? `Downloading… ${Math.round(p.fraction * 100)}%` : "Downloading…";
-  if (p.stage === "installing") return "Installing… LiveLine closes when it's done: open it again from your home screen.";
+  // Android closes the app to replace it and won't let it reopen itself; the new version posts a "tap to open" notice
+  // (UpdatedNotice), if notifications were allowed when Update was tapped
+  if (p.stage === "installing") return "Installing… LiveLine closes when it's done: tap its notification, or open it again from your home screen.";
   return CONFIRM;
 }
 export const INSTALLED = "Update installed.";
@@ -122,7 +124,8 @@ export class Updates {
     show(u.confirming ? CONFIRM : "Starting…", u.confirming);
     try {
       // While Android's dialog is awaited, Update stays tappable, to reopen it
-      await installUpdate({ url: u.apk, sha256: u.sha256 ?? null, sha256Url: u.sha256Url ?? null }, (p) => show(progressText(p), p.stage === "confirm"));
+      await installUpdate({ url: u.apk, version: u.latest ?? "", sha256: u.sha256 ?? null, sha256Url: u.sha256Url ?? null },
+        (p) => show(progressText(p), p.stage === "confirm"));
       show(INSTALLED);
     } catch (e) {
       if ((e as { code?: unknown } | null)?.code === REPLACED) return;
