@@ -5,7 +5,7 @@ import { formationFor, parseFormations } from "../src/core/formation";
 import { sha256Hex } from "../src/core/sha256";
 import { simAllocation } from "../src/core/sim-stock";
 import { h, roundHalfUp, SimTransport } from "../src/core/simulator";
-import { isoLocal } from "../src/core/time";
+import { fromLondon, isoLocal } from "../src/core/time";
 import { readJson } from "./support";
 
 const golden = readJson<any>("golden/simulator.json");
@@ -82,5 +82,33 @@ describe("the demo's trains", () => {
 
   it("a pattern with no stock listed keeps the plain count", () => {
     expect(simAllocation("XX", "C1", 6)).toEqual({ allocationIndex: 0, passengerVehicles: 6 });
+  });
+});
+
+// Real RTT gives no forecast for a train on another day (it isn't activated yet), so neither does the demo: its boards
+// and train pages for tomorrow look as they would with a real key.
+describe("another day in the demo", () => {
+  const now = fromLondon(2026, 11, 8, 20, 0);
+  const sim = new SimTransport(() => now);
+  const board = (day: number, hour: number) => (sim.getSync("/gb-nr/location", { code: "WAT",
+    timeFrom: isoLocal(fromLondon(2026, 11, day, hour, 0)), timeWindow: "60" }).body as any).services as any[];
+  const forecasts = (rows: any[]) => rows.flatMap((r) => [r.temporalData.arrival, r.temporalData.departure])
+    .filter((e) => e?.realtimeForecast != null).length;
+
+  it("tomorrow's board rows have no forecast", () => {
+    const rows = board(9, 8);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((r) => r.scheduleMetadata.departureDate === "2026-11-09")).toBe(true);
+    expect(forecasts(rows)).toBe(0);
+  });
+
+  it("nor does tomorrow's train page", () => {
+    const uid = board(9, 8)[0].scheduleMetadata.uniqueIdentity.replace("gb-nr:", "");
+    const locs = (sim.getSync("/gb-nr/service", { uniqueIdentity: uid }).body as any).service.locations as any[];
+    expect(forecasts(locs)).toBe(0);
+  });
+
+  it("today's trains still have them", () => {
+    expect(forecasts(board(8, 21))).toBeGreaterThan(0);
   });
 });
