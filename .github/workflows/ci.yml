@@ -38,6 +38,14 @@ jobs:
       # The same command as locally: typecheck, unit tests (with the architecture rules and the timing review,
       # which keeps no baselines here because CI machines are thrown away), leak check, web build.
       - run: npm run check
+      # The Android code's JVM unit tests (android/app/src/test): the checksum check that decides whether a downloaded
+      # update is installed. The runner has the Android SDK; JDK 21 matches the release build.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm run android:test
 
   browser:
     name: Browser

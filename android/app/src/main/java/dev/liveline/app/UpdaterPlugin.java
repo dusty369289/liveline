@@ -26,8 +26,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.util.Locale;
 
 /**
  * One-tap update: download the release APK, check its SHA-256, and install it over this version with PackageInstaller.
@@ -94,10 +92,11 @@ public class UpdaterPlugin extends Plugin {
                     String shaUrl = call.getString("sha256Url");
                     if (shaUrl != null && shaUrl.startsWith("https://")) want = readSha(shaUrl);
                 }
-                if (want == null || want.isEmpty()) throw new Exception("The release has no checksum, so it wasn't installed.");
-                String got = sha256(apk);
-                if (!got.equalsIgnoreCase(want.trim())) {
+                if (want == null || want.trim().isEmpty()) {
                     apk.delete();
+                    throw new Exception("The release has no checksum, so it wasn't installed.");
+                }
+                if (!ApkDownload.verify(apk, want)) {
                     throw new Exception("The download didn't match its checksum, so it wasn't installed. Try again.");
                 }
                 progress("installing", 1.0);
@@ -151,23 +150,10 @@ public class UpdaterPlugin extends Plugin {
         try (InputStream in = c.getInputStream()) {
             byte[] b = new byte[512];
             int n = in.read(b);
-            String s = n > 0 ? new String(b, 0, n, "UTF-8").trim() : "";
-            return s.split("\\s+")[0]; // sha256sum format: "<hex>  <name>"
+            return ApkDownload.parseSha(n > 0 ? new String(b, 0, n, "UTF-8") : null);
         } finally {
             c.disconnect();
         }
-    }
-
-    private static String sha256(File f) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        try (InputStream in = new FileInputStream(f)) {
-            byte[] buf = new byte[64 * 1024];
-            int n;
-            while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
-        }
-        StringBuilder sb = new StringBuilder();
-        for (byte b : md.digest()) sb.append(String.format(Locale.ROOT, "%02x", b));
-        return sb.toString();
     }
 
     private void commit(File apk) throws Exception {

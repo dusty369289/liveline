@@ -19,7 +19,8 @@
     "check": "npm run typecheck && npm test && npm run leak-check && vite build",
     "android:sync": "npm run build && cap sync android",
     "android:debug": "npm run android:sync && cd android && ./gradlew assembleDebug",
-    "android:release": "npm run android:sync && cd android && ./gradlew assembleRelease"
+    "android:release": "npm run android:sync && cd android && ./gradlew assembleRelease",
+    "android:test": "npm run android:sync && cd android && ./gradlew testDebugUnitTest"
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.0",

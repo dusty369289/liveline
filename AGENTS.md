@@ -132,7 +132,7 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
 - **Rounding:** lateness is whole minutes toward zero (railway practice). Only the simulator rounds, halves up.
 - **Updates** (`ui/updates.ts`): Settings, or once a day quietly, asks GitHub for the latest release. If newer, one tap
   ("Update now" in the banner, "Update to X" in Settings) downloads the APK, checks its SHA-256 and installs it over this
-  version (`UpdaterPlugin`). Android asks once to allow installs and refuses an APK signed with another key.
+  version (`UpdaterPlugin`; the check is `ApkDownload`, which deletes a download that doesn't match). Android asks once to allow installs and refuses an APK signed with another key.
 
 ## UI
 
@@ -235,7 +235,8 @@ gh workflow run release.yml -f version=1.2.3   # or Actions > Release > Run work
 
 It refuses a version that isn't `X.Y.Z`, is already released, or isn't newer than the latest, and a tag not on `main`.
 Then: the tests, a signed APK built as that version (checked with apksigner and aapt2), the tag, and the Release with
-the APK and its `.sha256`. Signing reads `LIVELINE_KEYSTORE_FILE/PASSWORD` and `LIVELINE_KEY_ALIAS/PASSWORD` (CI
+the APK and its `.sha256`. The Gradle wrapper jar is checked against Gradle's published checksums (Checks job) and
+the distribution it downloads is pinned by `distributionSha256Sum`. Signing reads `LIVELINE_KEYSTORE_FILE/PASSWORD` and `LIVELINE_KEY_ALIAS/PASSWORD` (CI
 secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10000 + minor*100 + patch`.
 
 ### Writing code
@@ -255,6 +256,8 @@ secrets) or a gitignored `android/keystore.properties`. versionCode is `major*10
 - `test/ui/*.spec.ts` (Playwright): pages and flows in the built app at 360 px light and 412 px dark, at a fixed
   moment on the simulated railway. Every page runs the layout audit (no sideways scroll, nothing clipped, no split sign
   plates, 44 px targets) and goes on the contact sheet.
+- `android/app/src/test/` (JUnit, plain JVM): the Android code's pure parts, such as `ApkDownload`, the checksum check
+  that decides whether an update is installed. `npm run android:test` runs them; so does the Checks job (JDK 21).
 - **Test review** (`test/harness/review.ts`, state in `.test-review/`): each test's time is kept against its baseline. A
   test clearly slower (over 2x and 100 ms, after allowing for the whole machine being slower) stays queued on every run
   until it recovers three runs running or is accepted: `npm run review -- accept "<id>" --reason "..."`. A test that
@@ -273,6 +276,7 @@ npm run test:ui                 # browser suite, then open .ui-report/index.html
 npm run review                  # what's slow or flaky, and how to clear it
 npm run readme-pictures         # remake docs/img from the demo after a visible change, then look at them
 scripts/android-build.sh debug  # an APK locally (JDK 21 and the Android SDK; see the script)
+npm run android:test            # the Android JUnit tests (JDK 21 on JAVA_HOME, the Android SDK)
 ```
 
 ## Gotchas

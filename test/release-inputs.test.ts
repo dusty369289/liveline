@@ -1,5 +1,5 @@
 // What goes into a release, pinned: the notes users read in Settings leave out process work and bots.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -35,5 +35,20 @@ describe("the Gradle build that makes the signed APK", () => {
     const props = read("android/gradle/wrapper/gradle-wrapper.properties");
     expect(props).toMatch(/^distributionUrl=https\\:\/\/services\.gradle\.org\/distributions\/gradle-[\d.]+-all\.zip$/m);
     expect(props).toMatch(/^distributionSha256Sum=[0-9a-f]{64}$/m);
+  });
+
+  it("runs the Android unit tests (the update's checksum check) on JDK 21 in Checks, never skipped", () => {
+    const checks = ciJob("checks", "browser");
+    expect(checks).toMatch(/- uses: actions\/setup-java@v\d+\n\s+with:\n\s+distribution: temurin\n\s+java-version: 21\n/);
+    expect(checks).toMatch(/- run: npm run android:test\n/);
+    expect(checks).not.toMatch(/^\s+if:/m);
+    const scripts = JSON.parse(read("package.json")).scripts as Record<string, string>;
+    expect(scripts["android:test"]).toMatch(/^npm run android:sync && cd android && \.\/gradlew .*testDebugUnitTest$/);
+  });
+
+  it("keeps no template tests from the Capacitor starter", () => {
+    expect(existsSync(new URL("../android/app/src/test/java/com/getcapacitor", import.meta.url))).toBe(false);
+    expect(existsSync(new URL("../android/app/src/androidTest", import.meta.url))).toBe(false);
+    expect(existsSync(new URL("../android/app/src/test/java/dev/liveline/app/ApkDownloadTest.java", import.meta.url))).toBe(true);
   });
 });
