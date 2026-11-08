@@ -48,6 +48,8 @@ export type State = "not-started" | "at-origin" | "at-station" | "running" | "ov
   | "unreported";
 /** States where we've stopped following the train: what it hasn't reached shows the timetable, never our estimate. */
 export const GIVEN_UP: readonly State[] = ["no-data", "unreported"];
+/** So does a bus or ship, never reported: our estimate would slide later each minute. build() and stops.ts ask this. */
+export const timetableOnly = (tl: Pick<Timeline, "service" | "position">): boolean => GIVEN_UP.includes(tl.position.state) || tl.service.mode !== "TRAIN";
 
 export interface Shown {
   time: Ms | null;
@@ -282,7 +284,7 @@ export function build(service: Service, now: Ms, cfg: EngineConfig = DEFAULT_ENG
   const pos = position(pts, followed, usable, last, now, cfg, plannedArr, feed, service.mode);
   return {
     service,
-    points: GIVEN_UP.includes(pos.state) ? viewsOf(true) : followed,
+    points: timetableOnly({ service, position: pos }) ? viewsOf(true) : followed,
     position: pos,
     now,
     worst: worst(pts, usable, last),
@@ -354,15 +356,14 @@ function position(
   views: PointView[],
   usable: number[],
   last: number | null,
-  now: Ms,
-  cfg: EngineConfig,
+  now: Ms, cfg: EngineConfig,
   plannedArr: Map<number, Ms>,
   feed: Feed, mode: string, // the service's mode: a bus or ship is never reported
 ): Position {
   const P = (state: State, fromIndex: number | null, toIndex: number | null, since: Ms | null, expected: Ms | null,
-    fraction: number, delayMin: number | null, headline: string): Position =>
-    ({ state, fromIndex, toIndex, since, expected, fraction, delayMin, headline });
-  if (!pts.length) return P("no-data", null, null, null, null, 0, null, "No route data for this train.");
+    fraction: number, delayMin: number | null, headline: string): Position => ({ state, fromIndex, toIndex, since, expected, fraction, delayMin, headline });
+  const it = mode === "TRAIN" ? "train" : mode.includes("SHIP") ? "ship" : "bus"; // in words, a bus isn't a train
+  if (!pts.length) return P("no-data", null, null, null, null, 0, null, `No route data for this ${it}.`);
   if (!usable.length) return P("cancelled", null, null, null, null, 0, null, "This train is cancelled.");
 
   // Long past the latest time it's expected at its end, with nothing there: no more reports are coming, so stop
@@ -376,7 +377,7 @@ function position(
   if (last == null) {
     if (pastEnd) {
       return P("no-data", null, null, null, null, 0, null,
-        `No reports for this train: it was due at ${end.name} at ${hm(dueIn)}. The times shown are the timetable.`);
+        `No reports for this ${it}: it was due at ${end.name} at ${hm(dueIn)}. The times shown are the timetable.`);
     }
     const first = usable[0];
     const p = pts[first];
@@ -385,8 +386,7 @@ function position(
       return P("not-started", null, first, null, dep, 0, null, `Not started yet. Due to leave ${p.name} at ${hm(dep)}.`);
     }
     // Buses and ships aren't reported at all: "no reports yet" would suggest one is coming
-    const headline = mode !== "TRAIN"
-      ? `${mode.includes("SHIP") ? "Ships" : "Buses"} aren't tracked live: the times shown are the timetable.`
+    const headline = it !== "train" ? `${it === "ship" ? "Ships" : "Buses"} aren't tracked live: the times shown are the timetable.`
       : `${dep != null ? `No reports yet. It was due to leave ${p.name} at ${hm(dep)}.` : "No reports yet."}${feed === "none" ? ` ${NO_FEED}` : ""}`;
     return P("at-origin", first, usable.length > 1 ? usable[1] : null, null, null, 0, null, headline);
   }

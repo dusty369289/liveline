@@ -1,6 +1,6 @@
 // Your stops on a train: which calls are where you get on and off, and how things stand at each. Read from the
 // engine's Timeline, so the train page and the polling (poll.ts) agree.
-import { GIVEN_UP, type Shown, type Timeline } from "./engine";
+import { type Shown, type Timeline, timetableOnly as showsTimetable } from "./engine";
 import { isCancelled, isEmpty } from "./models";
 import type { Ms } from "./time";
 
@@ -13,7 +13,7 @@ export interface StopSummary {
   status: "ahead" | "here" | "gone" | "cancelled";
   minutes: number | null; // from now until the train is due there (ahead and still followed only)
   callsBetween: number; // stops between the train and this one
-  timetableOnly: boolean; // ahead, but we've given up on the train (GIVEN_UP): `shown` is the timetable, no countdown
+  timetableOnly: boolean; // ahead, but given up on or a bus (engine.timetableOnly): `shown` is the timetable, no countdown
 }
 
 /** Whole minutes from `now` until `t`, rounded down, never below 0: the countdown everywhere ("N min"). */
@@ -66,7 +66,7 @@ export function stopSummary(tl: Timeline, code: string, boarding = true, index?:
   const sent = tl.service.points[v.index];
   const cancelled = isCancelled(p) || (boarding ? sent.departure.cancelled : sent.arrival.cancelled);
   const status = cancelled ? "cancelled" : pos.state === "at-station" && pos.fromIndex === v.index ? "here" : v.reported ? "gone" : "ahead";
-  const timetableOnly = status === "ahead" && GIVEN_UP.includes(pos.state);
+  const timetableOnly = status === "ahead" && showsTimetable(tl);
   let minutes: number | null = null;
   let between = 0;
   if (status === "ahead" && !timetableOnly) {
