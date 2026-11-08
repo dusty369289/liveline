@@ -38,6 +38,11 @@ export class TrainPage extends Page {
     const page = root.querySelector<HTMLElement>("[data-train]")!;
     const live = new LiveTrain(page, this.ctx.rail, this.uid, this.at, this.to);
     const scene = new TrainScene(page.querySelector<HTMLElement>("[data-scene-panel]")!, this.ctx.rail.stations);
+    // before anything starts: if wiring fails half way, leaving the page still stops whatever did start
+    this.onDispose(() => {
+      live.stop();
+      scene.stop();
+    });
     live.onAnswer((res) => scene.update(res));
     const tabs = new Tabs(page.querySelector<HTMLElement>("[data-train-tabs]")!, (name) => {
       this.ctx.trainTab.set(name);
@@ -49,9 +54,5 @@ export class TrainPage extends Page {
     scene.start(this.res!);
     tabs.wire();
     tabs.select(this.ctx.trainTab.get());
-    this.onDispose(() => {
-      live.stop();
-      scene.stop();
-    });
   }
 }
