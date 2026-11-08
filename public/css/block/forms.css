@@ -42,7 +42,9 @@
 .suggest { position: relative; }
 .suggest__list {
   position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 2px);
-  background: var(--surface); border: 1px solid var(--line); border-top: 0;
+  /* The page's own paper (surface-2 is the selected row), the field's edge down the sides, and a firm ink rule at
+     the foot so the list visibly ends before the next field */
+  background: var(--page); border: 1px solid var(--control-line); border-top: 0; border-bottom: 2px solid var(--ink);
   max-height: 18rem; overflow-y: auto;
 }
 .suggest__list li { padding: var(--s-3); display: flex; justify-content: space-between; gap: var(--s-3); cursor: pointer; min-height: var(--tap); align-items: center; }
