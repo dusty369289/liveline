@@ -47,11 +47,13 @@ const median = (xs: number[]) => {
 
 /**
  * Everything the tests read, so "failed then passed" only counts as flaky when none of it changed. It must cover the
- * CSS, the Android files and the scripts (the git hooks are tested) too: a test that reads them fails when they break
- * and passes when they're fixed, which is a fix, not a flake. Every file under a root counts, whatever its extension.
+ * CSS, the Android files, the scripts (the git hooks are tested) and the workflows too: a test that reads them fails
+ * when they break and passes when they're fixed, which is a fix, not a flake. Every file under a root counts, whatever
+ * its extension. Not all of android/: its build output changes on every build.
  */
-export const FINGERPRINT_ROOTS = ["src", "test", "public/css", "scripts", "android/app/build.gradle",
-  "android/app/src/main/AndroidManifest.xml", "capacitor.config.ts", "vite.config.ts", "package.json"];
+export const FINGERPRINT_ROOTS = ["src", "test", "public/css", "scripts", ".github", "android/app/build.gradle",
+  "android/app/src/main/AndroidManifest.xml", "android/app/src/test", "android/app/src/androidTest",
+  "android/gradle/wrapper/gradle-wrapper.properties", "capacitor.config.ts", "vite.config.ts", "package.json"];
 
 export function fingerprint(roots = FINGERPRINT_ROOTS): string {
   const h = createHash("sha256");
