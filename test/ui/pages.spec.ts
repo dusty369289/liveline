@@ -61,16 +61,26 @@ test("route at large system text (200%): names and times fit the screen", async 
   const narrow = await page.locator(".is-call .route__place").evaluateAll((els) =>
     els.map((el) => el.getBoundingClientRect().width).filter((w) => w < 80));
   expect(narrow).toEqual([]);
-  // "Train view" wraps here: its last line sits on Route's line, and both underlines along the same foot
-  const tabs = await page.getByRole("tab").evaluateAll((els) => els.map((el) => {
+  // "Train view" wraps here
+  const tabs = () => page.getByRole("tab").evaluateAll((els) => els.map((el) => {
     const r = document.createRange();
     r.selectNodeContents(el);
-    const lines = r.getClientRects();
-    return { text: Math.round(lines[lines.length - 1].bottom), foot: Math.round(el.getBoundingClientRect().bottom) };
+    const lines = [...r.getClientRects()];
+    const box = el.getBoundingClientRect();
+    const middle = (lines[0].top + lines[lines.length - 1].bottom) / 2;
+    return { text: Math.round(lines[lines.length - 1].bottom), foot: Math.round(box.bottom),
+      off: Math.abs(middle - (box.top + box.bottom) / 2) };
   }));
-  expect(new Set(tabs.map((t) => t.text)).size, JSON.stringify(tabs)).toBe(1);
-  expect(new Set(tabs.map((t) => t.foot)).size, JSON.stringify(tabs)).toBe(1);
+  // Operator colour (the default): one segmented control, the tabs the same height, each label in its middle
+  const segmented = await tabs();
+  expect(new Set(segmented.map((t) => t.foot)).size, JSON.stringify(segmented)).toBe(1);
+  for (const t of segmented) expect(t.off, JSON.stringify(segmented)).toBeLessThan(2);
   await snap(page, info, "26-route-large-text");
+  // Underlined tabs (Quiet, Swiss): the wrapped label's last line sits on Route's line, both underlines on one foot
+  await page.evaluate(() => { document.documentElement.dataset.theme = "quiet"; });
+  const underlined = await tabs();
+  expect(new Set(underlined.map((t) => t.text)).size, JSON.stringify(underlined)).toBe(1);
+  expect(new Set(underlined.map((t) => t.foot)).size, JSON.stringify(underlined)).toBe(1);
   void errors;
 });
 

@@ -5,7 +5,7 @@
 /* A station nameboard (you can tell a board from any other page at a glance), with the save star on it */
 .board__plate {
   display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-2) var(--s-2) var(--s-4);
-  border-radius: var(--radius); background: var(--sign); color: var(--on-sign);
+  border-radius: var(--radius-panel); background: var(--nameboard); color: var(--on-nameboard);
 }
 .board__plate h1 { flex: 1; min-width: 0; font-size: 2rem; line-height: 1.05; padding-block: var(--s-1); overflow-wrap: break-word; }
 /* Large system text (see .trains below for the 18rem): the name grows less, and the star drops under it when the
@@ -19,7 +19,7 @@
 }
 .board__star {
   flex: none; width: var(--tap); height: var(--tap); display: grid; place-items: center;
-  background: none; border: 0; color: var(--on-sign); cursor: pointer; border-radius: var(--radius);
+  background: none; border: 0; color: var(--on-nameboard); cursor: pointer; border-radius: var(--radius);
 }
 .board__star .icon--star { fill: none; }
 .board__star[aria-pressed="true"] .icon--star { fill: var(--train); stroke: var(--train); }
@@ -48,6 +48,12 @@
 .trains__dest { display: grid; min-width: 0; }
 .trains__place { font: 600 var(--t-md)/1.15 var(--sign-font); overflow-wrap: anywhere; }
 .trains__meta { color: var(--muted); font-size: var(--t-xs); }
+/* The operator's badge in its brand colour (themes/operators.css), standing in for its name under the destination:
+   only the Operator colour theme shows it (and hides the name, which screen readers still read) */
+.trains__op {
+  display: none; padding: .15rem .35rem; margin-block: .1rem; vertical-align: .05em;
+  font: 800 .6875rem/1.1 var(--font); background: var(--op-bg); color: var(--op-ink); border-radius: min(var(--radius), 6px);
+}
 .trains__plat {
   min-width: 2.75rem; min-height: 2.75rem; padding: 0 .35rem; display: grid; place-items: center; align-content: center;
   background: var(--sign); color: var(--on-sign); border-radius: var(--radius);

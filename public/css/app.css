@@ -1,6 +1,10 @@
-/* CUBE layers, lowest first. Themes are tokens only. */
+/* CUBE layers, lowest first. Themes are tokens only, each on its own [data-theme] (Settings > Appearance); what a
+   theme changes beyond tokens (row panels, a nameboard without its plate) is in exception/, under :root[data-theme]. */
 @layer tokens, base, composition, block, utility, exception;
-@import url("./themes/platform.css") layer(tokens);
+@import url("./themes/operator.css") layer(tokens);
+@import url("./themes/swiss.css") layer(tokens);
+@import url("./themes/quiet.css") layer(tokens);
+@import url("./themes/operators.css") layer(tokens);
 @import url("./themes/scene.css") layer(tokens);
 @import url("./base/elements.css") layer(base);
 @import url("./composition/layout.css") layer(composition);
@@ -9,4 +13,8 @@
 @import url("./block/board.css") layer(block);
 @import url("./block/route.css") layer(block);
 @import url("./block/scene.css") layer(block);
+@import url("./block/themes.css") layer(block);
 @import url("./utility/text.css") layer(utility);
+@import url("./exception/operator.css") layer(exception);
+@import url("./exception/swiss.css") layer(exception);
+@import url("./exception/quiet.css") layer(exception);

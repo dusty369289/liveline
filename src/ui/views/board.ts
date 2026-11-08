@@ -5,6 +5,7 @@ import { shownOf } from "../../core/engine";
 import { hm, isoDate, type Ms } from "../../core/time";
 import { REFRESH_ICON, STAR_ICON } from "../components/icons";
 import { timeMark } from "../components/marks";
+import { operatorBadge } from "../components/operators";
 import { ago, dayLabel, delayClass, statusNote } from "../format";
 import { type Html, html } from "../html";
 import { qs } from "../routes";
@@ -35,11 +36,18 @@ function status(r: BoardRow, arr: boolean, now: Ms): [Html, string] {
   return [html`${timeMark(s.source)}On time`, cls];
 }
 
+/** Who runs it. With a badge (shown by the Operator colour theme, which then hides the name but leaves it to screen
+ *  readers), the badge stands in for the name. */
+function operator(r: BoardRow): unknown {
+  const badge = operatorBadge(r.operatorCode, r.operatorName);
+  return badge && r.operatorName ? html`${badge}<span class="trains__opname">${r.operatorName}</span>` : r.operatorName || "No operator";
+}
+
 function meta(r: BoardRow): unknown[] {
   return [
     isBus(r) ? html`<strong>Bus</strong> · ` : "",
     !forPassengers(r) ? html`<strong>Not in service</strong> · ` : "",
-    r.operatorName || "No operator",
+    operator(r),
     r.headcode && r.headcode !== "0B00" ? ` · ${r.headcode}` : "",
     r.branding ? ` · ${r.branding}` : "",
     r.vehicles ? ` · ${r.vehicles} coaches` : "",

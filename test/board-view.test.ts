@@ -150,7 +150,17 @@ function rendered(): Map<string, string> {
 }
 
 const plate = (li: string) => li.match(/class="trains__plat ([^"]*)"/)![1].split(/\s+/);
-const meta = (li: string) => li.match(/trains__meta">([\s\S]*?)<\/span>/)![1];
+// The line under the destination, up to the plate after it (it holds spans of its own: the operator's badge and name)
+const meta = (li: string) => li.match(/trains__meta">([\s\S]*?)<span class="trains__plat/)![1];
+
+describe("a row's operator", () => {
+  const all = rendered();
+
+  it("has its badge and its full name, which the Operator colour theme leaves to screen readers", () => {
+    const li = all.get("Abbey Wood")!; // the Elizabeth line, XR
+    expect(meta(li)).toMatch(/<span class="trains__op" data-op="XR" aria-hidden="true">Elizabeth line<\/span><span class="trains__opname">[^<]+<\/span>/);
+  });
+});
 
 describe("a changed platform on the board", () => {
   const all = rendered();

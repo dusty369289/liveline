@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- The page's deep navy at night (the "page" token in the dark theme), behind the WebView until it draws.
-         test/shell.test.ts keeps the two equal. -->
-    <color name="window_background">#0F1420</color>
+    <!-- The default theme's page at night (the "page" token in operator.css's dark block), behind the WebView until it
+         draws. test/shell.test.ts keeps the two equal. -->
+    <color name="window_background">#0F1114</color>
 </resources>

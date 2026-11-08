@@ -1,0 +1,71 @@
+[data-theme="swiss"] {
+  /* Swiss timetable: white, black and one red, square corners, heavy tight type and hairlines, like an international
+     style timetable. Red is the train and the main button. Tokens only; contrast is checked by test/design.test.ts. */
+  --page: #ffffff;
+  --surface: #f4f4f4;
+  --surface-2: #ebebeb;
+  --ink: #111111;
+  --muted: #555555;
+  --faint: #666666;
+  --line: #dddddd;
+  --rail: #bdbdbd;
+  --control: #ffffff;
+  --control-line: #767676;
+  --primary: #d4000f;
+  --on-primary: #ffffff;
+  --sign: #111111;
+  --on-sign: #ffffff;
+  --nameboard: #ffffff;
+  --on-nameboard: #111111;
+  --bar: #ffffff;
+  --on-bar: #111111;
+  --problem: #b3000c;
+  --late: #8a5600;
+  --very-late: #c4000d;
+  --early: #1f6b33;
+  --train: #d4000f;
+  --train-edge: #ffffff;
+  --demo: #fff1c2;
+  --demo-ink: #4f3b00;
+  --font: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --sign-font: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+  --head-weight: 800;
+  --head-tracking: -.03em;
+  --hero-weight: 800;
+  --radius: 0px;
+  --radius-panel: 0px;
+  --radius-button: 0px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="swiss"] {
+    --page: #0e0e0e;
+    --surface: #1a1a1a;
+    --surface-2: #262626;
+    --ink: #f2f2f2;
+    --muted: #a6a6a6;
+    --faint: #9a9a9a;
+    --line: #333333;
+    --rail: #4a4a4a;
+    --control: #1a1a1a;
+    --control-line: #808080;
+    --primary: #d80f1b;
+    --on-primary: #ffffff;
+    --sign: #f2f2f2;
+    --on-sign: #0e0e0e;
+    --nameboard: #0e0e0e;
+    --on-nameboard: #f2f2f2;
+    --bar: #0e0e0e;
+    --on-bar: #f2f2f2;
+    --problem: #ff6b6b;
+    --late: #f2c46b;
+    --very-late: #ff5a5a;
+    --early: #8fd19e;
+    --train: #ff3b3b;
+    --train-edge: #0e0e0e;
+    --demo: #2c2614;
+    --demo-ink: #f0d9a0;
+    color-scheme: dark;
+  }
+}

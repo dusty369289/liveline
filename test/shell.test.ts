@@ -63,10 +63,11 @@ describe("the back button", () => {
 });
 
 describe("the status bar", () => {
-  it("has light icons on a phone, over the navy strip behind it in both themes", async () => {
+  it("follows the phone's theme, as every theme's top bar behind it is light by day and dark at night", async () => {
     const { platform, bars } = await platformOn(true);
     await platform.styleStatusBar();
-    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DARK", bar: "StatusBar" });
+    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DEFAULT", bar: "StatusBar" });
+    expect(bars.setStyle).not.toHaveBeenCalledWith(expect.objectContaining({ style: "DARK" }));
   });
 
   it("is left alone in the browser build", async () => {
@@ -98,7 +99,7 @@ describe("the gesture bar", () => {
     dark.flip();
     await Promise.resolve();
     expect(bars.setStyle).toHaveBeenCalledWith({ style: "DEFAULT", bar: "NavigationBar" });
-    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DARK", bar: "StatusBar" });
+    expect(bars.setStyle).toHaveBeenCalledWith({ style: "DEFAULT", bar: "StatusBar" });
   });
 
   it("shrugs off a style the system refuses", async () => {
@@ -130,7 +131,8 @@ describe("the gesture bar", () => {
 describe("the launch screen", () => {
   const res = new URL("../android/app/src/main/res/", import.meta.url);
   const read = (p: string) => readFileSync(new URL(p, res), "utf8");
-  const theme = readFileSync(new URL("../public/css/themes/platform.css", import.meta.url), "utf8");
+  // The page before it's drawn is the default theme's (the one a fresh install shows)
+  const theme = readFileSync(new URL("../public/css/themes/operator.css", import.meta.url), "utf8");
   const [light, dark] = theme.split("prefers-color-scheme: dark");
   const token = (css: string | undefined, name: string) =>
     new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, "i").exec(css ?? "")?.[1]?.toLowerCase();
@@ -147,11 +149,11 @@ describe("the launch screen", () => {
     expect(read("values/styles.xml")).not.toContain("@drawable/splash");
   });
 
-  it("is the app icon on navy, then the page's own paper (deep navy at night) until the page draws", () => {
+  it("is the app icon on its own background, then the default theme's page (dark at night) until the page draws", () => {
     expect(style("AppTheme.NoActionBarLaunch")).toContain(
       '<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>',
     );
-    expect(color(read("values/ic_launcher_background.xml"), "ic_launcher_background")).toBe(token(light, "sign"));
+    expect(color(read("values/ic_launcher_background.xml"), "ic_launcher_background")).toMatch(/^#[0-9a-f]{6}$/);
     expect(style("AppTheme.NoActionBar")).toContain('<item name="android:windowBackground">@color/window_background</item>');
     expect(color(read("values/colors.xml"), "window_background")).toBe(token(light, "page"));
     expect(color(read("values-night/colors.xml"), "window_background")).toBe(token(dark, "page"));

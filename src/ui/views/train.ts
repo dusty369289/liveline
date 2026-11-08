@@ -5,6 +5,7 @@ import type { StopSummary } from "../../core/stops";
 import { hm, type Ms } from "../../core/time";
 import { REFRESH_ICON } from "../components/icons";
 import { timeMark } from "../components/marks";
+import { operatorKey } from "../components/operators";
 import { runDay } from "../format";
 import { type Html, html } from "../html";
 import { TRAIN_TABS, type TrainTabName } from "../store/train-tab";
@@ -47,7 +48,7 @@ export function trainView(res: ServiceResult, uid: string, at: string, to: strin
   const label = [s.operatorName, s.headcode ? ` · ${s.headcode}` : "", s.vehicles ? ` · ${s.vehicles} coaches` : "",
     s.branding ? ` · ${s.branding}` : ""];
   return html`
-<article class="stack train" data-train data-uid="${uid}" data-at="${at}" data-to="${to}" data-title="${trainTitle(res)}" data-day="${s.runDate}" data-ends="${ends ?? ""}">
+<article class="stack train" data-train data-op="${operatorKey(s.operatorCode, s.operatorName)}" data-uid="${uid}" data-at="${at}" data-to="${to}" data-title="${trainTitle(res)}" data-day="${s.runDate}" data-ends="${ends ?? ""}">
   <header class="train__head">
     <p class="label">${label}</p>
     <h1>${start != null ? html`<span class="tnum">${hm(start)}</span> ` : ""}${originName(s)} to ${destinationName(s)}${day ? ` · ${day}` : ""}</h1>

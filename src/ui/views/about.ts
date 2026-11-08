@@ -53,6 +53,7 @@ export function aboutView(d: AboutData): Html {
   </ul>
   <p class="hint">Version ${d.version}. Source: <a href="https://github.com/dusty369289/liveline" target="_blank" rel="noopener">github.com/dusty369289/liveline</a> (MIT).
     Station list: <a href="https://github.com/davwheat/uk-railway-stations" target="_blank" rel="noopener">uk-railway-stations</a> (ODbL), from Trainline EU's data.
-    Typeface: Barlow (SIL OFL).</p>
+    Typefaces: Figtree, Inter Tight and Atkinson Hyperlegible Next (SIL OFL). Operator colours: Wikipedia's National
+    Rail colours, and TfL's for the Elizabeth line.</p>
 </div>`;
 }

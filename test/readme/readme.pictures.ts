@@ -45,16 +45,16 @@ test("a train: your stop, and the train on the line", async ({ page, errors }, i
 /** The banner: the name, what it does, and a Beck-style line with the train between two stops. Tokens from the theme. */
 test("banner", async ({ page, errors }, info) => {
   await page.setViewportSize({ width: 1280, height: 300 });
-  await page.goto("/fonts/OFL-barlow.txt"); // a page on the app's origin with no CSP, so the theme and fonts load
+  await page.goto("/fonts/OFL-figtree.txt"); // a page on the app's origin with no CSP, so the theme and fonts load
   const stops = ["London Paddington", "Slough", "Reading", "Didcot Parkway", "Oxford"];
   const x = (i: number) => 600 + i * 150;
   const ticks = [0.3, 0.55, 0.8, 1.35, 1.65, 2.5, 3.3, 3.6].map((f) => `<line x1="${600 + f * 150}" y1="182" x2="${600 + f * 150}" y2="198"/>`).join("");
-  await page.setContent(`<!doctype html><html><head><meta name="viewport" content="width=1280">
+  await page.setContent(`<!doctype html><html data-theme="operator"><head><meta name="viewport" content="width=1280">
   <link rel="stylesheet" href="/css/app.css">
   <style>
     html, body { margin: 0; height: 300px; overflow: hidden; background: var(--page); }
     .b { position: relative; height: 300px; }
-    h1 { position: absolute; left: 72px; top: 70px; margin: 0; font: 700 6rem/1 var(--sign-font); color: var(--ink); letter-spacing: -.01em; }
+    h1 { position: absolute; left: 72px; top: 70px; margin: 0; font: var(--head-weight) 6rem/1 var(--sign-font); color: var(--ink); letter-spacing: var(--head-tracking); }
     p { position: absolute; left: 76px; top: 178px; margin: 0; font: 500 1.6rem/1.3 var(--font); color: var(--muted); width: 420px; }
     svg { position: absolute; left: 0; top: 0; }
     .line { stroke: var(--ink); stroke-width: 10; stroke-linecap: round; }

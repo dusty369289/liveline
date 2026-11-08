@@ -1,36 +1,55 @@
-// What a screenshot can't check: every text colour in the theme is readable on what it sits on (WCAG 4.5:1), in
+// What a screenshot can't check: every text colour in every theme is readable on what it sits on (WCAG 4.5:1), in
 // both light and dark, and the train marker stands out from the page (3:1 for graphics).
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { THEMES as THEME_LIST } from "../src/ui/store/appearance";
+import { contrast } from "./support";
 
-const css = readFileSync(new URL("../public/css/themes/platform.css", import.meta.url), "utf8");
+const themeCss = (id: string) => readFileSync(new URL(`../public/css/themes/${id}.css`, import.meta.url), "utf8");
 
 function tokens(block: string): Record<string, string> {
   return Object.fromEntries([...block.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,6})\s*;/g)].map((m) => [m[1], m[2]]));
 }
-const light = tokens(css.split("@media")[0]);
-const THEMES = { light, dark: { ...light, ...tokens(css.split("@media")[1] ?? "") } };
+/** Every theme in Settings, light and dark: "operator light", "operator dark", ... */
+const THEMES: Record<string, Record<string, string>> = Object.fromEntries(THEME_LIST.flatMap(([id]) => {
+  const [lightBlock, darkBlock = ""] = themeCss(id).split("@media");
+  const light = tokens(lightBlock);
+  return [[`${id} light`, light], [`${id} dark`, { ...light, ...tokens(darkBlock) }]];
+}));
 
-function luminance(hex: string): number {
-  let h = hex.replace("#", "");
-  if (h.length === 3) h = [...h].map((c) => c + c).join("");
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const c = parseInt(h.slice(i, i + 2), 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+describe("the themes", () => {
+  it.each(THEME_LIST.map(([id]) => id))("%s sets its tokens on its own data-theme, so a preview in Settings can wear it", (id) => {
+    // [data-theme="x"], not :root: the miniature of each theme in Settings sets data-theme on itself
+    expect(themeCss(id)).toMatch(new RegExp(`^\\[data-theme="${id}"\\] \\{`, "m"));
+    expect(themeCss(id).replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/:root/);
   });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-export function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-}
+
+  it("each defines the same colours, in light and in dark", () => {
+    const names = (t: Record<string, string>) => Object.keys(t).sort();
+    const [first, ...rest] = Object.values(THEMES);
+    for (const t of rest) expect(names(t)).toEqual(names(first));
+  });
+
+  it("each sets its own type and shapes (base/elements.css sets none, or its layer would win)", () => {
+    const base = readFileSync(new URL("../public/css/base/elements.css", import.meta.url), "utf8");
+    for (const name of ["--font", "--sign-font", "--radius"]) expect(base, name).not.toMatch(new RegExp(`${name}:`));
+    for (const [id] of THEME_LIST) {
+      for (const name of ["--font:", "--sign-font:", "--radius:", "--radius-panel:", "--radius-button:", "--hero-weight:"]) {
+        expect(themeCss(id), `${id} ${name}`).toContain(name);
+      }
+    }
+  });
+});
 
 /** Every text colour, on every background it's used on. */
 const TEXT_ON: Array<[string, string]> = [
   ["ink", "page"], ["muted", "page"], ["problem", "page"], ["late", "page"], ["very-late", "page"], ["early", "page"],
   ["ink", "surface"], ["muted", "surface"], ["late", "surface"], ["ink", "surface-2"], ["muted", "surface-2"],
   ["on-primary", "primary"], ["demo-ink", "demo"], ["on-sign", "sign"], ["train-edge", "train"], ["ink", "control"],
-  ["faint", "control"], // a text box's placeholder (forms.css)
+  ["faint", "control"], ["faint", "surface-2"], // a text box's placeholder (forms.css; Operator colour fills its fields)
+  ["on-bar", "bar"], ["muted", "bar"], // the top bar: the page you're on, and the others
+  ["on-nameboard", "nameboard"], // a board's station name
+  ["very-late", "surface"], ["problem", "surface"], ["early", "surface"], // rows on a panel
 ];
 
 describe.each(Object.entries(THEMES))("the %s theme", (_name, t) => {

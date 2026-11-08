@@ -1,0 +1,61 @@
+/* Operator colour, beyond its tokens: content sits on white panels with round corners, each board row is a panel of its
+   own with the operator's badge, and a train's header wears its operator's colour (themes/operators.css). On
+   :root[data-theme], so a theme's miniature in Settings never picks these up. Tokens only, no raw colours. */
+
+/* Board rows: one panel each, a little apart, instead of hairlines */
+:root[data-theme="operator"] .trains { display: grid; gap: var(--s-2); }
+:root[data-theme="operator"] .trains__row { background: var(--surface); border-radius: var(--radius-panel); padding-inline: var(--s-3); }
+:root[data-theme="operator"] .trains__row + .trains__row { border-top: 0; }
+:root[data-theme="operator"] .trains__row.is-cancelled { background: var(--surface-2); }
+/* The operator's badge in place of its name (still read by screen readers, as the badge isn't) */
+:root[data-theme="operator"] .trains__op { display: inline-block; }
+:root[data-theme="operator"] .trains__opname {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* A train: the header in its operator's colour, the status and the route on panels */
+:root[data-theme="operator"] .train__head {
+  padding: var(--s-4); border-radius: var(--radius-panel); background: var(--op-bg); color: var(--op-ink);
+}
+:root[data-theme="operator"] .train__head .label { color: inherit; }
+:root[data-theme="operator"] .live__status,
+:root[data-theme="operator"] .route-wrap {
+  background: var(--surface); border-radius: var(--radius-panel); padding: var(--s-3) var(--s-4); border-bottom: 0;
+}
+/* No padding on the left of the route: the line, the travelled ink and the marker are placed from the panel's
+   padding edge, so it would shift the rows off them. The line's own column is the margin. Little on the right, so
+   the times still fit at large system text. */
+:root[data-theme="operator"] .route-wrap { padding-left: 0; padding-right: var(--s-2); }
+/* Figtree's figures are wider than the other themes' faces: at large system text, where the times sit under the name
+   (route.css), the two time columns need narrower gaps to stay on the screen */
+@container (max-width: 18rem) {
+  :root[data-theme="operator"] .route__pt { column-gap: var(--s-2); }
+}
+/* A ringed stop is filled with what's behind it, now the panel */
+:root[data-theme="operator"] .route-wrap .is-call .route__mark::after,
+:root[data-theme="operator"] .route-wrap .is-call.is-reported.is-cancelled .route__mark::after { background: var(--surface); }
+:root[data-theme="operator"] .route-wrap .is-call.is-reported .route__mark::after { background: var(--ink); }
+
+/* The train page's tabs as one segmented control */
+:root[data-theme="operator"] .tabs {
+  align-items: stretch; gap: 4px; padding: 4px; border: 0; border-radius: var(--radius-button); background: var(--surface-2);
+}
+:root[data-theme="operator"] .tabs__tab {
+  flex: 1; margin: 0; padding: var(--s-1) var(--s-2); border: 0; border-radius: calc(var(--radius-button) - 4px);
+  text-align: center; font-size: var(--t-base);
+}
+:root[data-theme="operator"] .tabs__tab[aria-selected="true"] { background: var(--surface); }
+
+/* Search: the train you were on and your journeys on panels. Not the form: its padding would cost the page its fit
+   on a small phone's screen (test/ui/fit.spec.ts); its fields are filled instead. Figtree's taller lines take a
+   little of the space between the parts. */
+:root[data-theme="operator"] .home { gap: var(--s-3); }
+:root[data-theme="operator"] .carry { background: var(--surface); border-radius: var(--radius-panel); padding-inline: var(--s-4); border-bottom: 0; }
+:root[data-theme="operator"] .journeys__list,
+:root[data-theme="operator"] .recents__list { background: var(--surface); border-radius: var(--radius-panel); padding-inline: var(--s-4); border-top: 0; }
+:root[data-theme="operator"] .journeys__item:last-child,
+:root[data-theme="operator"] .recents__item:last-child { border-bottom: 0; }
+:root[data-theme="operator"] .field input[type="text"],
+:root[data-theme="operator"] .field input[type="time"],
+:root[data-theme="operator"] .field input[type="date"],
+:root[data-theme="operator"] .field input[type="password"] { background: var(--surface-2); }

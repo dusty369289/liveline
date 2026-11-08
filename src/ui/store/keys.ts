@@ -10,6 +10,7 @@ export const KEYS = {
   update: "liveline.update",
   marker: "liveline.marker",
   trainTab: "liveline.trainTab", // Route or Train view, whichever you used last
+  theme: "liveline.theme", // Settings > Appearance
 } as const;
 
 export type Key = (typeof KEYS)[keyof typeof KEYS];
