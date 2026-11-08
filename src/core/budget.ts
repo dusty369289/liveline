@@ -54,9 +54,17 @@ export class Budget {
   canSpend(interactive: boolean): boolean {
     const now = this.clock();
     if (this.blockedUntil != null && now < this.blockedUntil) return false;
-    if (this.remaining("minute", now) < 1) return false;
+    return this.spent(interactive) == null;
+  }
+
+  /** Which of this key's allowances is used up for this kind of call (the shortest first), or null if none is. */
+  spent(interactive: boolean): Dim | null {
+    const now = this.clock();
     const need = interactive ? 1 : 1 + this.reserve;
-    return this.remaining("hour", now) >= need && this.remaining("day", now) >= need && this.remaining("week", now) >= 1;
+    if (this.remaining("minute", now) < 1) return "minute";
+    if (this.remaining("hour", now) < need) return "hour";
+    if (this.remaining("day", now) < need) return "day";
+    return this.remaining("week", now) < 1 ? "week" : null;
   }
 
   spend(): void {

@@ -13,7 +13,7 @@ import { SimTransport } from "./simulator";
 import type { Station, StationIndex } from "./stations";
 import { type Ms, parseDate } from "./time";
 
-export { AuthError, BusyError, OfflineError, RttError } from "./rtt";
+export { AllowanceError, AuthError, BusyError, OfflineError, RttError } from "./rtt";
 
 const KEY = STORE.key;
 

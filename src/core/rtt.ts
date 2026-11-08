@@ -1,10 +1,10 @@
 // RTT client: token handling (access or refresh), caching, and the allowance, over any Http.
 // On the phone it holds one key: its owner's.
-import { Budget } from "./budget";
+import { Budget, type Dim } from "./budget";
 import { STORE } from "./keys";
 import { type Http, type HttpResponse, NetworkError } from "./http";
 import { sha256Hex } from "./sha256";
-import { hm, isoLocal, type Ms } from "./time";
+import { isoLocal, type Ms } from "./time";
 
 /** Minutes of board asked for in one call (RTT allows up to 1439). Three hours covers now, Later and Later again. */
 export const FETCH_WINDOW = 180;
@@ -14,10 +14,31 @@ export const FUTURE_BOARD_TTL = 300;
 export class RttError extends Error {}
 /** The key is missing, wrong, expired or revoked. */
 export class AuthError extends RttError {}
-/** Not the user's fault and not permanent: out of allowance, asked to wait, or RTT unreachable. Try again soon. */
-export class BusyError extends RttError {}
+/**
+ * Not permanent: out of allowance, asked to wait, or RTT unreachable. Try again soon. `retryAt` is when RTT said
+ * to try again, if it did, so the page names that one wait instead of its own.
+ */
+export class BusyError extends RttError {
+  readonly retryAt: Ms | null;
+  constructor(message: string, retryAt: Ms | null = null) {
+    super(message);
+    this.retryAt = retryAt;
+  }
+}
 /** Busy because this device has no connection: retried the same way, but named honestly. */
 export class OfflineError extends BusyError {}
+const SPENT: Record<Dim, string> = {
+  minute: "This key's calls for this minute are used up. Searches work again within a minute.",
+  hour: "This key's calls for this hour are used up. Searches work again as the hour's calls free up.",
+  day: "This key's calls for the day are used up. Searches work again as the day's calls free up.",
+  week: "This key's calls for the week are used up. Searches work again as the week's calls free up.",
+};
+/** Busy because this key's own allowance is spent (our Budget refused before asking): not Realtime Trains' doing. */
+export class AllowanceError extends BusyError {
+  constructor(dim: Dim) {
+    super(SPENT[dim]);
+  }
+}
 
 export interface Fetched {
   body: unknown; // null for "no services" (204)
@@ -183,7 +204,7 @@ export class RttClient {
       await this.save();
       return this.info;
     }
-    if (r.status === 429 || r2.status === 429) throw new BusyError("Realtime Trains asked us to slow down. Try again shortly.");
+    if (r.status === 429 || r2.status === 429) throw new BusyError("Realtime Trains asked us to slow down.", this.budget.state().blockedUntil);
     throw new AuthError(`Realtime Trains refused the key (HTTP ${r.status}). Check it in api-portal.rtt.io.`);
   }
 
@@ -231,8 +252,8 @@ export class RttClient {
     if (!this.budget.canSpend(interactive)) {
       if (cached) return this.stale(cached, "Saving the hourly allowance");
       const st = this.budget.state();
-      if (st.blockedUntil != null) throw new BusyError(`Realtime Trains asked us to wait until ${hm(st.blockedUntil)}.`);
-      throw new BusyError("The Realtime Trains allowance is used up for now. Try again in a few minutes.");
+      if (st.blockedUntil != null) throw new BusyError("Realtime Trains asked us to wait.", st.blockedUntil);
+      throw new AllowanceError(this.budget.spent(interactive) ?? "hour");
     }
     let r: HttpResponse;
     try {
@@ -248,7 +269,7 @@ export class RttClient {
     }
     if (r.status === 429) {
       if (cached) return this.stale(cached, "Realtime Trains asked us to slow down");
-      throw new BusyError("Realtime Trains asked us to slow down. Try again shortly.");
+      throw new BusyError("Realtime Trains asked us to slow down.", this.budget.state().blockedUntil);
     }
     let f: Fetched;
     if (r.status === 204) f = { body: null, fetchedAt: now, stale: false, note: null };

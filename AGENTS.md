@@ -69,7 +69,9 @@ scripts/       leak-check.mjs, review.mjs, android-build.sh
   backups off). With no key the app is in **demo mode** (the simulator), clearly bannered.
 - **The allowance is tiny:** 10 calls a minute, 100 an hour, 1000 a day on Free and Hobbyist. Every real call goes
   through one `Budget`, which obeys `X-RateLimit-Remaining-*` and `Retry-After`. The last 10 calls of each hour are
-  kept for searches: background work never spends them. Running out shows "busy" with the last answer, never "not found".
+  kept for searches: background work never spends them. Running out shows the last answer, never "not found"; with
+  nothing kept, "Allowance used up" when this key's calls are spent (`AllowanceError`: ours, not RTT's), or "busy" when
+  RTT asked us to wait. That page names one wait: every 30 s by itself, or the time RTT gave (`BusyError.retryAt`).
 - **Be plain about limits.** Say when data is simulated, stale, estimated by us, or missing. Never pass our estimate off
   as RTT's forecast. RTT has no signal or berth data: never claim signals.
 - **Tests never touch the network.** Unit tests use the simulator or fakes; browser tests fake RTT and GitHub and fail on

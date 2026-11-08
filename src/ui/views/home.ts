@@ -1,4 +1,5 @@
 // The search page, and the page shown when something can't be shown.
+import { hm, type Ms } from "../../core/time";
 import { searchForm } from "../components/search-form";
 import { type Html, html } from "../html";
 import { type Query, qs } from "../routes";
@@ -29,12 +30,18 @@ export function homeView(d: HomeData): Html {
 </div>`;
 }
 
-export function problemView(title: string, message: string, busy: boolean, q: Query | null = null): Html {
+/** How often a busy page asks again by itself: a freed call shows up soon, and a refusal costs no call. */
+export const RETRY_SECONDS = 30;
+
+/** A busy page tries again by itself: at the time Realtime Trains gave, or every RETRY_SECONDS. */
+export interface Retry { at: Ms | null }
+
+export function problemView(title: string, message: string, retry: Retry | null, q: Query | null = null): Html {
   return html`
 <div class="stack">
   <h1>${title}</h1>
   <p class="problem" role="alert">${message}</p>
-  ${busy ? html`<p class="hint">This page tries again by itself in 30 seconds.</p>` : ""}
+  ${retry ? html`<p class="hint">This page tries again by itself ${retry.at != null ? `at ${hm(retry.at)}` : `every ${RETRY_SECONDS} seconds`}.</p>` : ""}
   ${q ? searchForm(q) : html`<p><a href="#/">Search again</a></p>`}
 </div>`;
 }

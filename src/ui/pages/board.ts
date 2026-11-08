@@ -30,7 +30,7 @@ export class BoardPage extends Page {
       at = when(q.time ?? "", q.day ?? "", this.ctx.rail.clock());
     } catch {
       this.title = "Find trains";
-      return problemView("Find trains", "That time isn't valid. Use 24-hour time like 17:45.", false, q);
+      return problemView("Find trains", "That time isn't valid. Use 24-hour time like 17:45.", null, q);
     }
     const force = this.route.params.get("refresh") === "1";
     const res = await this.request({ when: at, force });

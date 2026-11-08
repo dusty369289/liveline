@@ -1,6 +1,6 @@
 // The app shell: which page a route is, drawing it inside the chrome, and what happens when it can't load.
 // Pages live in pages/, their markup in views/, shared pieces in components/ and widgets/, stored data in store/.
-import { BusyError, OfflineError, type Rail, RttError } from "../core/rail";
+import { AllowanceError, BusyError, OfflineError, type Rail, RttError } from "../core/rail";
 import { chrome } from "./components/chrome";
 import { SearchForm } from "./components/search-form";
 import { render } from "./html";
@@ -81,9 +81,10 @@ export class App {
 
   /** A page that couldn't load says why, plainly; "busy" tries again by itself. */
   private problem(route: Route, e: RttError): Page {
-    const busy = e instanceof BusyError;
-    const title = e instanceof OfflineError ? "No connection" : busy ? "Realtime Trains is busy" : "Couldn't show that";
-    return new ProblemPage(this.ctx, route, problemView(title, e.message, busy, route.name === "board" ? queryOf(route.params) : null), busy);
+    const retry = e instanceof BusyError ? { at: e.retryAt } : null;
+    const title = e instanceof OfflineError ? "No connection" : e instanceof AllowanceError ? "Allowance used up"
+      : retry ? "Realtime Trains is busy" : "Couldn't show that";
+    return new ProblemPage(this.ctx, route, problemView(title, e.message, retry, route.name === "board" ? queryOf(route.params) : null), retry);
   }
 
   /** What any page may contain: the search form with its station boxes, and the update buttons. */

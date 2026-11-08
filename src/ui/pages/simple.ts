@@ -3,7 +3,7 @@ import { APP_VERSION } from "../../platform";
 import type { Html } from "../html";
 import { queryOf, type RouteName } from "../routes";
 import { aboutView } from "../views/about";
-import { homeView, problemView } from "../views/home";
+import { homeView, problemView, RETRY_SECONDS, type Retry } from "../views/home";
 import { recentView } from "../views/recent";
 import { Page } from "./page";
 
@@ -49,7 +49,7 @@ export class NotFoundPage extends Page {
   title = "Not found";
 
   async load(): Promise<Html> {
-    return problemView("Not found", "There's no page here.", false);
+    return problemView("Not found", "There's no page here.", null);
   }
 }
 
@@ -59,7 +59,7 @@ export class ProblemPage extends Page {
   title = "Problem";
 
   constructor(ctx: ConstructorParameters<typeof Page>[0], route: ConstructorParameters<typeof Page>[1],
-    private readonly view: Html, private readonly retry: boolean) {
+    private readonly view: Html, private readonly retry: Retry | null) {
     super(ctx, route);
   }
 
@@ -67,8 +67,9 @@ export class ProblemPage extends Page {
     return this.view;
   }
 
+  /** Busy: try again by itself, at Realtime Trains' time if it gave one (never sooner than RETRY_SECONDS). */
   mount(): void {
-    if (this.retry) this.after(30_000, () => this.ctx.rerender()); // busy: try again by itself
+    if (this.retry) this.after(Math.max(RETRY_SECONDS * 1000, (this.retry.at ?? 0) - Date.now()), () => this.ctx.rerender());
   }
 }
 
