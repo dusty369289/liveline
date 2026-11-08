@@ -17,3 +17,9 @@ never "fixed" by regenerating from the new code without saying why the old answe
 - **2026-11-08, stop summaries say when they're the timetable.** A stop summary has a new field, `timetableOnly`, true
   only once the train is given up on (`no-data` or `unreported`). No golden moment is given up on, so
   `test/parity.test.ts` checks it is false there and compares the rest exactly. The file was not regenerated.
+- **2026-11-08, a train held past its departure forecast.** The Reading recording (`C42245`) has the train at Reading
+  from 15:23 with RTT's forecast away at 15:27, and the old answers at 15:31 to 16:22 still said "due to leave 15:27",
+  as RTT's forecast, though that time had gone. That was wrong: the engine now treats a departure forecast at the
+  station it stands at like any other stale one, and shows our time, no sooner than now. `test/parity.test.ts` checks
+  that departure is ours and no sooner than a minute ago, takes its time into the headline, and compares the rest
+  exactly. The file was not regenerated.
