@@ -22,15 +22,14 @@ async function setup(start: Ms) {
 }
 
 describe("wide board fetches", () => {
-  it(`one call covers now, Later and Later again (${FETCH_WINDOW} minutes)`, async () => {
+  it("one call covers six hours: now and Later five times over", async () => {
     const t = fromLondon(2026, 11, 7, 9, 0);
     const { rail, boards } = await setup(t);
-    await rail.board({ station: "PAD" });
-    await rail.board({ station: "PAD", when: t + 60 * 60_000 });
-    await rail.board({ station: "PAD", when: t + 120 * 60_000 });
+    for (let h = 0; h <= 5; h++) await rail.board({ station: "PAD", when: t + h * 60 * 60_000 });
     expect(boards().length).toBe(1);
-    expect(boards()[0][1].timeWindow).toBe(String(FETCH_WINDOW));
-    await rail.board({ station: "PAD", when: t + 150 * 60_000 }); // runs past the fetched three hours
+    expect(boards()[0][1].timeWindow).toBe("360");
+    expect(FETCH_WINDOW).toBe(360);
+    await rail.board({ station: "PAD", when: t + 330 * 60_000 }); // runs past the fetched six hours
     expect(boards().length).toBe(2);
     await rail.board({ station: "PAD", when: t - 60 * 60_000 }); // Earlier than anything fetched
     expect(boards().length).toBe(3);
@@ -51,7 +50,7 @@ describe("wide board fetches", () => {
     expect(fromWide.board.timeFrom).toBe(later);
   });
 
-  it("a quiet board fills up to BOARD_FILL trains from the three hours already fetched, with no more calls", async () => {
+  it("a quiet board fills up to BOARD_FILL trains from the six hours already fetched, with no more calls", async () => {
     // Paddington calling at Oxford: two an hour, so the hour alone shows two (owner, 2026-11-08: "looks stupid")
     const t = fromLondon(2026, 11, 7, 9, 0);
     const { rail, boards } = await setup(t);
@@ -79,7 +78,7 @@ describe("wide board fetches", () => {
     expect(res.next).toBe(t + 120 * 60_000);
   });
 
-  it("with fewer than BOARD_FILL in the whole three hours, shows them all and says the board runs to the end", async () => {
+  it("with fewer than BOARD_FILL in the whole six hours, shows them all and says the board runs to the end", async () => {
     const t = fromLondon(2026, 11, 7, 23, 0); // late: the railway is closing
     const { rail, boards } = await setup(t);
     const res = await rail.board({ station: "PAD", to: "OXF" });

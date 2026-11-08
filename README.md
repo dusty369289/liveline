@@ -118,7 +118,7 @@ As the hour's calls run down, the app slows itself, so they last the hour:
 - **Refresh** gets a new answer only when the one shown is over 15 seconds old, over 60 when the hour is running low,
   and not at all in its last 10 calls. Tapping it again costs nothing. The search page's refresh for your train waits
   a minute between calls.
-- A board is one call for three hours, so **Earlier** and **Later** are usually free. A board for now refreshes
+- A board is one call for six hours, so **Earlier** and **Later** are usually free. A board for now refreshes
   itself every 2 minutes for 15 minutes.
 - The last 10 calls of each hour are kept for searches. If the allowance runs out you see the last answer, marked as
   old, never "not found".
