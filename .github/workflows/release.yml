@@ -32,28 +32,13 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      # From main only (by tag or Run workflow), merged commits only, a version versionCode can hold, newer than
+      # the latest. Tested in test/release-check.test.ts.
       - id: v
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT: ${{ inputs.version }}
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then v="${INPUT#v}"; else v="${GITHUB_REF_NAME#v}"; fi
-          if ! printf '%s' "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::\"$v\" isn't a version like 1.2.3."; exit 1
-          fi
-          if gh release view "v$v" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            echo "::error::v$v is already released. Pick the next version."; exit 1
-          fi
-          latest="$(gh release view -R "$GITHUB_REPOSITORY" --json tagName --jq .tagName 2>/dev/null || echo v0.0.0)"
-          if [ "$(printf '%s\n%s\n' "${latest#v}" "$v" | sort -V | tail -1)" != "$v" ]; then
-            echo "::error::v$v isn't newer than the latest release ($latest), so phones wouldn't take it as an update."; exit 1
-          fi
-          if [ "$GITHUB_EVENT_NAME" = push ] && ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::Tag $GITHUB_REF_NAME isn't on main. Release only what's been merged."; exit 1
-          fi
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-          echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
-          echo "Releasing v$v from $GITHUB_SHA"
+        run: sh scripts/release-check.sh
 
   test:
     needs: check
