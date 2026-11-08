@@ -14,6 +14,8 @@ export const MOTION = {
   brakeFrom: 160, // px/s at least when braking starts, so stopping from a crawl doesn't take half a minute
   forget: 2400, // px behind the train after which a platform is gone for good
   maxStep: 0.25, // s: one frame never moves further than this, whatever the gap (a background tab)
+  hopAccel: 120, // px/s² pulling away and braking on a hop (one answer at a station, the next at the next): a short
+  // trip, so twice the usual pull, two seconds to speed, and the whole hop well under ten seconds
 };
 
 export class Motion {
@@ -22,6 +24,9 @@ export class Motion {
   private mode: Mode;
   private platform: number | null; // the x where the train's front stands at the platform, while one is in play
   private brake: { v0: number; dist: number } | null = null;
+  // From one platform to the next while "stop" throughout: the next platform's mark is start + dist, and the old
+  // platform (behind) is the one in play until the train has gone swapAt px, when the next one takes over
+  private hopping: { start: number; dist: number; swapAt: number } | null = null;
 
   /** Placed straight into `mode`, with no animation: the page has just opened. */
   constructor(mode: Mode) {
@@ -32,16 +37,37 @@ export class Motion {
 
   /** The platform's distance ahead of the train's front (negative once passed), or null with none in sight. */
   platformAhead(): number | null {
+    if (this.hopping && this.arriving()) return this.hopping.start + this.hopping.dist - this.x;
     return this.platform == null ? null : this.platform - this.x;
   }
 
   /** Moving, or about to (just told to go): the animation must keep running. False only standing at a platform. */
   busy(): boolean {
-    return this.v > 0 || this.mode !== "stop" || this.brake != null;
+    return this.v > 0 || this.mode !== "stop" || this.brake != null || this.hopping != null;
+  }
+
+  /**
+   * Standing at one platform, the answer says it's standing at the next: go there, `dist` px, pulling away and
+   * braking. The platform in play stays the old one until `swapAt` px (when it has gone off the screen behind), then
+   * becomes the next one, which then comes in from off the screen ahead (arriving(): the scene redraws its sign).
+   */
+  hop(dist: number, swapAt: number): void {
+    this.mode = "stop";
+    this.brake = null;
+    this.hopping = { start: this.x, dist, swapAt };
+  }
+
+  /** On a hop, past the swap: the platform in play is the next station's. */
+  arriving(): boolean {
+    return this.hopping != null && this.x - this.hopping.start >= this.hopping.swapAt;
   }
 
   set(mode: Mode): void {
     if (mode === this.mode) return;
+    if (this.hopping) { // cut short by a real departure: carry on from here, with the platform in play
+      if (this.arriving()) this.platform = this.hopping.start + this.hopping.dist;
+      this.hopping = null;
+    }
     this.mode = mode;
     if (mode === "stop") {
       if (this.v === 0) {
@@ -59,6 +85,24 @@ export class Motion {
 
   step(dt: number): void {
     dt = Math.min(dt, MOTION.maxStep);
+    if (this.hopping) {
+      const { start, dist } = this.hopping;
+      const gone = this.x - start;
+      const left = dist - gone;
+      if (left <= 0.5) {
+        this.x = start + dist;
+        this.v = 0;
+        this.platform = this.x;
+        this.hopping = null;
+        return;
+      }
+      // Up to speed, along at it, down to the mark: by the distance gone and the distance left (v² = 2as each way),
+      // never under 8 px/s at either end, or the first and the last pixel would take forever
+      const a = MOTION.hopAccel;
+      this.v = Math.max(Math.min(MOTION.cruise, Math.sqrt(2 * a * (gone + 1)), Math.sqrt(2 * a * left)), 8);
+      this.x = Math.min(this.x + this.v * dt, start + dist);
+      return;
+    }
     if (this.mode === "stop") {
       if (this.platform == null || !this.brake) {
         this.v = 0;

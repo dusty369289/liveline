@@ -199,7 +199,10 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   goes only to that live region.
 - **Train view** (the train page's second tab, remembered): the same answers drawn as the train in countryside. It
   stands at a platform (under the station's sign) while stopped, accelerates away once the departure is reported,
-  runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in:
+  runs at one easy speed, crawls while a report is overdue, and brakes onto the next platform when the arrival is in.
+  When one answer has it standing at a station and the next at the next station (it left and arrived between polls),
+  it hops (`Motion.hop`): pulls away, the old platform goes off the screen behind, the next comes in from ahead and it
+  brakes onto it, so a sign is never seen to change (owner, 2026-11-08):
   a picture of what RTT reported, not a simulation. Along the bottom: the station it left (or leaves) and when, and
   the next one it's due at, with marks as on the route; passing points don't count as ends. The coaches scroll
   sideways, front first, as long as the train. Coach letters and facility icons show only when RTT sends Know Your
