@@ -64,14 +64,21 @@ const foldRow = (g: number, n: number) => html`
       <button type="button" class="route__fold-btn" data-fold-toggle="${g}" aria-expanded="false">${CHEVRON}<span data-fold-label>${plural(n, "passing point")}</span></button>
     </li>`;
 
-function pointMeta(v: PointView): unknown {
+/** The time a row shows: the departure, except where you get off (the arrival, as the summary says). */
+const mainTime = (v: PointView, isTo: boolean) =>
+  v.point.kind === "pass" ? v.passing : isTo ? (v.arrival ?? v.departure) : (v.departure ?? v.arrival);
+
+function pointMeta(v: PointView, isTo: boolean): unknown {
   const pt = v.point;
   if (isCancelled(pt)) return html`<span class="problem">${pt.display === "DIVERTED" ? "Diverted away" : "Cancelled here"}</span>`;
-  const longDwell = pt.kind === "call" && v.arrival?.booked != null && v.departure?.booked != null && v.departure.booked - v.arrival.booked >= 120_000;
+  // The row shows the departure: say the arrival too when the shown times differ by a minute or more
+  const a = v.arrival?.time;
+  const d = v.departure?.time;
+  const dwell = pt.kind === "call" && !isTo && a != null && d != null && d - a >= 60_000;
   const status = { APPROACHING: " · Approaching", AT_PLATFORM: " · At platform", DEPART_READY: " · Ready to leave", DEPARTING: " · Leaving" } as Record<string, string>;
   return [
     pt.kind === "call" && pt.platform ? html`Plat ${pt.platform}${pt.platformChanged ? html` <span class="is-changed">changed</span>` : ""}` : "",
-    longDwell ? ` · arr ${hm(v.arrival!.time)}` : "",
+    dwell ? ` · arr ${hm(a)}` : "",
     pt.requestStop ? " · Request stop" : "",
     !pt.public && pt.kind === "call" ? " · Not for passengers" : "",
     status[pt.status ?? ""] ?? "",
@@ -79,9 +86,9 @@ function pointMeta(v: PointView): unknown {
 }
 
 /** Booked time, then the live one with its mark. On time shows once ("On time" at a stop, just the mark at a junction). */
-function pointTimes(v: PointView): Html {
+function pointTimes(v: PointView, isTo: boolean): Html {
   const pt = v.point;
-  const main = pt.kind === "pass" ? v.passing : (v.departure ?? v.arrival);
+  const main = mainTime(v, isTo);
   if (!main) return html`<span class="route__booked"></span><span class="route__live"></span>`;
   let shown: Html | "" = "";
   if (!isCancelled(pt) && main.source !== "booked") {
@@ -109,8 +116,8 @@ function pointRow(v: PointView, at: string, to: string, group: number | undefine
   return html`
     <li class="route__pt ${cls}" data-index="${v.index}" data-group="${group ?? null}" id="${isAt ? "your-stop" : null}" data-t-in="${tin?.time ?? ""}" data-t-out="${tout?.time ?? ""}">
       <span class="route__mark" aria-hidden="true"></span>
-      <span class="route__name"><span class="route__place">${pt.name}</span><span class="route__meta">${tag}${pointMeta(v)}</span></span>
-      ${pointTimes(v)}
+      <span class="route__name"><span class="route__place">${pt.name}</span><span class="route__meta">${tag}${pointMeta(v, isTo)}</span></span>
+      ${pointTimes(v, isTo)}
     </li>`;
 }
 
