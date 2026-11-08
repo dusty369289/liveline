@@ -1,11 +1,13 @@
 // @vitest-environment happy-dom
-// What a screen reader hears when the train page is polled: the headline when it changes, the big number when that
-// changes, nothing when nothing did, and "Updated" when you asked and nothing changed.
+// What a screen reader hears when the train page is polled: the headline when its news changes, the hero line when its
+// news changes, nothing when only the countdown or the clock times moved, and "Updated" when you asked and nothing did.
 import { beforeEach, describe, expect, it } from "vitest";
 import { Announcer } from "../src/ui/widgets/announcer";
 
-const live = (headline: string, hero = "") =>
-  `<section class="live">${hero ? `<p class="live__hero"><span>${hero}</span> <span>min</span></p>` : ""}<p class="live__headline">${headline}</p></section>`;
+// As liveRegion draws the hero: the number, "min", then what it's until (with its clock time and platform)
+const live = (headline: string, hero = "", what = "until it leaves Reading · 09:40 · platform 9") =>
+  `<section class="live">${hero ? `<p class="live__hero"><span class="live__hero-num">${hero}</span><span class="live__hero-unit">min</span>`
+    + `<span class="live__hero-what">${what}</span></p>` : ""}<p class="live__headline">${headline}</p></section>`;
 
 let region: HTMLElement;
 let note: HTMLElement;
@@ -34,9 +36,32 @@ describe("the train page's announcer", () => {
     expect(note.textContent).toBe("At Reading, platform 9");
   });
 
-  it("adds the big number when only it changed, collapsing its spacing", () => {
+  it("says nothing when only the countdown number moved", () => {
     poll(live("Between Slough and Reading", "11"));
-    expect(note.textContent).toBe("Between Slough and Reading. 11 min");
+    expect(note.textContent).toBe("");
+  });
+
+  it("says nothing when only the headline's clock times and lateness moved", () => {
+    region.innerHTML = live("Left Slough 09:23 (2 min late). Next: Burnham, expected about 09:27.", "12");
+    a = new Announcer(note, region);
+    poll(live("Left Slough 09:23 (3 min late). Next: Burnham, expected about 09:28.", "11"));
+    expect(note.textContent).toBe("");
+  });
+
+  it("says the whole hero line when its platform changes", () => {
+    poll(live("Between Slough and Reading", "11", "until it leaves Reading · 09:40 · platform 10"));
+    expect(note.textContent).toBe("Between Slough and Reading. 11 min until it leaves Reading · 09:40 · platform 10");
+  });
+
+  it("says the whole hero line when its clock time moves", () => {
+    poll(live("Between Slough and Reading", "13", "until it leaves Reading · 09:42 · platform 9"));
+    expect(note.textContent).toBe("Between Slough and Reading. 13 min until it leaves Reading · 09:42 · platform 9");
+  });
+
+  it("says the hero when the countdown turns to 'Due'", () => {
+    poll(`<section class="live"><p class="live__hero"><span class="live__hero-num">Due</span><span class="live__hero-what">at Reading, platform 9</span></p>`
+      + `<p class="live__headline">Between Slough and Reading</p></section>`);
+    expect(note.textContent).toBe("Between Slough and Reading. Due at Reading, platform 9");
   });
 
   it("reads the page's own markup as words: no doubled full stop, and the number's parts kept apart", () => {
