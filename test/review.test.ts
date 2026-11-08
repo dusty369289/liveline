@@ -66,8 +66,10 @@ describe("flaky review", () => {
     expect(review.pending().flaky).toEqual([]);
   });
 
-  it("the fingerprint covers what the tests read beyond src/: CSS, the Android files and the scripts", () => {
-    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts"]) expect(FINGERPRINT_ROOTS).toContain(r);
+  it("the fingerprint covers what the tests read beyond src/: CSS, the Android files, the scripts and workflows", () => {
+    for (const r of ["public/css", "android/app/build.gradle", "capacitor.config.ts", "scripts", ".github"]) {
+      expect(FINGERPRINT_ROOTS).toContain(r);
+    }
   });
 
   it("the fingerprint sees a change to any file, a hook with no extension included", () => {
