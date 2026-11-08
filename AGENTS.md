@@ -47,8 +47,8 @@ test/          unit tests (*.test.ts), support.ts (shared doubles), fixtures/rtt
                answers), harness/ (the test review), ui/ (Playwright: *.spec.ts)
                readme/ (the README's pictures: playwright.readme.config.ts, not part of test:ui)
 docs/img/      the README's pictures, light and dark, made by `npm run readme-pictures`
-scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run commit), merge-pr.sh (npm run merge),
-               history-check.mjs (commits and PR text), leak-check.mjs, owner.sh (the one commit identity),
+scripts/       git-hooks/ (pre-commit, commit-msg, pre-push), commit.sh (npm run commit), open-pr.sh (npm run pr),
+               merge-pr.sh (npm run merge), history-check.mjs (commits and PR text), leak-check.mjs, owner.sh (the one commit identity),
                attribution.re (the AI attribution pattern), review.mjs, android-build.sh
 ```
 
@@ -189,7 +189,10 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
 - **Git hooks enforce this** (`scripts/git-hooks/`, switched on by `npm install`). pre-commit refuses any author or
   committer but the owner, lists what's staged (deletions and renames by name) and runs `npm run check` (the leak
   check is part of it) on **the commit itself**: with unstaged or untracked files about, on the staged snapshot in a
-  throwaway worktree, so a file the commit leaves out can't make it pass. commit-msg refuses AI attribution
+  throwaway worktree, so a file the commit leaves out can't make it pass. An amend with no file changes (a reword,
+  or resetting the author) is let through after the identity check, and its tree, already committed, isn't checked
+  again. A wrong author on a branch is repaired with
+  `git rebase --exec "git commit --amend --no-edit --reset-author" liveline/main`. commit-msg refuses AI attribution
   (`scripts/attribution.re`), personal details (the leak check's `--text` mode) and subjects over 72 characters.
   pre-push refuses while anything is staged (a commit just before it failed), any remote but this repository (a
   checkout may also carry the old one), and any pushed commit that isn't the owner's or whose message fails those
@@ -227,7 +230,12 @@ stock (`OPERATIONAL_ONLY`, operator `ZZ`) and `BUS` rows; `status` can lag an ac
   work goes on. A branch push runs no CI (there's no PR yet), so it costs nothing.
 - **Side by side, never stacked.** Independent pieces of work are separate branches and move in parallel. Work that
   depends on another piece is folded into that branch, never a branch made from another branch.
-- **Open the PR when the definition of done is met** (`gh pr create`): that's its CI run. If `main` moved since the
+- **Open the PR when the definition of done is met**, with
+  **`npm run pr -- --title "<title>" --body-file <file.md>`** (`scripts/open-pr.sh`, tested with a stand-in `gh` in
+  `test/open-pr.test.ts`): it runs `history-check.mjs` on the title and body first, because PR text is public the
+  moment it's saved, then `gh pr create` against `main` with that same file. It refuses `--body`, `--draft` and
+  `--fill`. Before a `gh pr edit` of the title or body, check the new text the same way:
+  `PR_TITLE="..." PR_BODY="$(cat file.md)" node scripts/history-check.mjs`. Opening the PR is its CI run. If `main` moved since the
   branch started (another PR merged), rebase onto `main` first, so that one run is also the run that counts. Pushing
   to an open PR re-runs CI (and cancels the older run), so fix review points in one push. No draft PRs: CI must never
   skip its jobs to save a run, because GitHub counts a skipped required check as passed.
@@ -293,6 +301,7 @@ npm run commit -- "<subject>" <path>...   # commit exactly those paths (scripts/
 npm run test:ui                 # browser suite, then open .ui-report/index.html
 npm run review                  # what's slow or flaky, and how to clear it
 npm run readme-pictures         # remake docs/img from the demo after a visible change, then look at them
+npm run pr -- --title "<title>" --body-file <file.md>   # open the PR, its text checked first (scripts/open-pr.sh)
 npm run merge -- <PR number>    # only when the owner says "merge" (scripts/merge-pr.sh)
 npm run typecheck; npm test; npm run leak-check; npm run build   # the parts of check, one at a time
 npm run android:sync            # build, then copy it into android/ (android:debug, android:release build APKs)

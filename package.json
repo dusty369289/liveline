@@ -16,6 +16,7 @@
     "review": "node scripts/review.mjs",
     "merge": "sh scripts/merge-pr.sh",
     "commit": "sh scripts/commit.sh",
+    "pr": "sh scripts/open-pr.sh",
     "leak-check": "node scripts/leak-check.mjs",
     "check": "npm run typecheck && npm test && npm run leak-check && vite build",
     "android:sync": "npm run build && cap sync android",

@@ -7,7 +7,8 @@
 //   node scripts/history-check.mjs [git rev-list arguments]   e.g. origin/main..HEAD, or <sha> --not --remotes
 //   PR_TITLE, PR_BODY (environment, never interpolated into a shell): checked too when set.
 //
-// Run by pre-push (the commits being pushed), CI's Checks job (the PR's commits and text) and merge-pr.sh.
+// Run by pre-push (the commits being pushed), CI's Checks job (the PR's commits and text), open-pr.sh (the text,
+// before it's public) and merge-pr.sh.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
