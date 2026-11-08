@@ -165,3 +165,22 @@
 @media (max-width: 380px) {
   .route__pt { grid-template-columns: 2.25rem 1fr 3.4rem 4.5rem; }
 }
+/* Large system text: the two time columns would squeeze the name to nothing and run off the screen, so the times go
+   under the name. A container query, as its rem follows the root text size (a media query's doesn't); 18rem never
+   catches normal text, where the narrowest route is 20.25rem (a 360 px phone). The first column keeps its 2.25rem. */
+.route { container-type: inline-size; }
+@container (max-width: 18rem) {
+  .route__pt { grid-template-columns: 2.25rem auto 1fr; grid-template-areas: "mark name name" "mark booked live"; gap: 0 var(--s-3); }
+  .route__pt .route__mark { grid-area: mark; } /* not the fold row's mark: its grid has no such area */
+  .route__name { grid-area: name; }
+  .route__booked { grid-area: booked; text-align: start; }
+  .route__live { grid-area: live; }
+}
+/* The key under the route, likewise: each sample time above its meaning, rather than squeezing "Happened:" off the
+   screen */
+.legend { container-type: inline-size; }
+@container (max-width: 18rem) {
+  .legend__list { grid-template-columns: 1fr; gap: var(--s-1); }
+  .legend__list dt { text-align: start; }
+  .legend__list dd + dt { margin-top: var(--s-2); }
+}
