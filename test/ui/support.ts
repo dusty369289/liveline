@@ -90,6 +90,13 @@ export async function setVisible(page: Page, visible: boolean): Promise<void> {
   }, visible);
 }
 
+/** The phone's text size at 200%, as Android's largest font setting gives a web view: the root text size doubles. */
+export async function largeText(page: Page): Promise<void> {
+  await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
+    document.documentElement.style.fontSize = "200%";
+  }));
+}
+
 /** Open a hash route and wait for its main heading. */
 export async function open(page: Page, hash: string): Promise<void> {
   await page.goto(`/#${hash}`);

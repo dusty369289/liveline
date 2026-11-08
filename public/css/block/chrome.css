@@ -8,9 +8,10 @@ body::before {
   background: var(--sign); z-index: 20; pointer-events: none;
 }
 
-/* The top bar is a band of ink, like the name strip along a station sign. */
+/* The top bar is a band of ink, like the name strip along a station sign. At large system text the nav drops to a line
+   of its own rather than pushing the page wider than the screen. */
 .topbar {
-  display: flex; align-items: center; gap: var(--s-4);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-4);
   padding: var(--s-1) var(--gutter);
   padding-top: max(var(--s-1), var(--inset-top));
   background: var(--sign); color: var(--on-sign);
