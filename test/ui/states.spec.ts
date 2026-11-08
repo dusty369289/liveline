@@ -32,8 +32,9 @@ test("board: arrivals", async ({ page, errors }, info) => {
   void errors;
 });
 
-test("board: nothing in the hour", async ({ page, errors }, info) => {
-  await open(page, "/board?station=PAD&to=OXF&time=02:00");
+// No train links the two demo lines, so this board is empty whatever the fetch window
+test("board: no trains at all", async ({ page, errors }, info) => {
+  await open(page, "/board?station=PAD&to=WOK&time=02:00");
   await expect(page.locator(".empty")).toBeVisible();
   await shot(page, info, "12-board-empty");
   void errors;

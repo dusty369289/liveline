@@ -131,7 +131,7 @@ Realtime Trains allows 10 calls a minute, 100 an hour and 1000 a day on Free and
   calls. It stops when the train arrives, and never runs in the background.
 - **Refresh** gets a new answer only when the one shown is over 15 seconds old, over 60 when the hour is running low,
   and not at all in its last 10 calls. Tapping it again costs nothing.
-- A board is one call for three hours, so **Earlier** and **Later** are usually free. A board for now refreshes
+- A board is one call for six hours, so **Earlier** and **Later** are usually free. A board for now refreshes
   itself every 2 minutes for 15 minutes.
 - The last 10 calls of each hour are kept for searches. If the allowance runs out you see the last answer, marked as
   old, never "not found".

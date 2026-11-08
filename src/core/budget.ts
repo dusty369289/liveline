@@ -6,7 +6,7 @@ import type { Ms } from "./time";
 export const DIMENSIONS = { minute: 60, hour: 3600, day: 86400, week: 604800 } as const;
 export type Dim = keyof typeof DIMENSIONS;
 const DIMS = Object.keys(DIMENSIONS) as Dim[];
-export const FREE_LIMITS: Record<Dim, number> = { minute: 10, hour: 100, day: 1000, week: 7000 };
+export const FREE_LIMITS: Record<Dim, number> = { minute: 10, hour: 100, day: 1000, week: 10000 }; // as RTT sent them, 2026-11-08
 
 export interface BudgetState {
   limits: Record<Dim, number>;
