@@ -232,8 +232,9 @@ export class Timetable {
 
 const REPORT_LAG = 30_000;
 
+/** `forecasting`: false for a train on a later day, which real RTT doesn't forecast (it isn't activated yet). */
 function event(planned: Ms | null, truth: Ms | null, now: Ms, advertised: boolean, delayNow: number, cancelled: boolean,
-  isDep: boolean): Record<string, unknown> | null {
+  isDep: boolean, forecasting: boolean): Record<string, unknown> | null {
   if (planned == null) return null;
   const ev: Record<string, unknown> = { scheduleInternal: iso(planned) };
   if (advertised) ev.scheduleAdvertised = iso(floorMinute(planned));
@@ -246,7 +247,7 @@ function event(planned: Ms | null, truth: Ms | null, now: Ms, advertised: boolea
     ev.realtimeActual = iso(act);
     ev.realtimeInternalLateness = roundHalfUp((act - planned) / 60_000);
     if (advertised) ev.realtimeAdvertisedLateness = roundHalfUp((act - floorMinute(planned)) / 60_000);
-  } else if (advertised) {
+  } else if (advertised && forecasting) {
     // RTT-style forecast at calls: current delay carried forward, never leaving early
     ev.realtimeForecast = iso(floorMinute(planned + Math.max(delayNow, isDep ? 0 : -60) * 1000));
   }
@@ -329,15 +330,16 @@ export class SimTransport implements Http {
     const p = s.points[i];
     const cancelled = s.cancelled || p.cancelled;
     const delay = this.delayBefore(s, i + 1, now);
+    const fc = s.runDate <= dayOf(now); // a later day's train isn't forecast, as with real RTT
     const t: Record<string, unknown> = {};
     if (p.calls) {
-      if (p.arr != null) t.arrival = event(p.arr, p.trueArr, now, true, delay, cancelled, false);
-      if (p.dep != null) t.departure = event(p.dep, p.trueDep, now, true, delay, cancelled, true);
+      if (p.arr != null) t.arrival = event(p.arr, p.trueArr, now, true, delay, cancelled, false, fc);
+      if (p.dep != null) t.departure = event(p.dep, p.trueDep, now, true, delay, cancelled, true, fc);
       t.scheduledCallType = "ADVERTISED_OPEN";
       t.realtimeCallType = cancelled ? null : "ADVERTISED_OPEN";
       t.displayAs = cancelled ? "CANCELLED" : "CALL";
     } else {
-      t.pass = event(p.pas, p.truePas, now, false, delay, cancelled, false);
+      t.pass = event(p.pas, p.truePas, now, false, delay, cancelled, false, fc);
       t.scheduledCallType = null;
       t.realtimeCallType = null;
       // both forms seen: "PASS", and null meaning a pass
