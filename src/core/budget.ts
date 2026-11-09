@@ -8,12 +8,14 @@ export type Dim = keyof typeof DIMENSIONS;
 const DIMS = Object.keys(DIMENSIONS) as Dim[];
 export const FREE_LIMITS: Record<Dim, number> = { minute: 10, hour: 100, day: 1000, week: 10000 }; // as RTT sent them, 2026-11-08
 /**
- * The windows RTT counts by the clock: all their calls come back at the top of the minute or hour (seen 2026-11-08:
- * a full 10 at 22:19:06 after a call at 22:18:54; a full 100 at 23:00:08 after calls from 22:20). The day and week
- * aren't known to, so they're counted as rolling windows, which can only be too careful. UK time is a whole number of
- * hours from UTC, so the clock's minutes and hours start on UTC's.
+ * The windows RTT counts by the clock: all their calls come back at the top of the minute, hour or day (seen
+ * 2026-11-08/09: a full 10 at 22:19:06 after a call at 22:18:54; a full 100 at 23:00:08 after calls from 22:20; a full
+ * 1000 at 00:00:09 UTC after 915 at 23:02). UK time is a whole number of hours from UTC, so minutes and hours start on
+ * UTC's. The day is taken to start at midnight UTC: that was midnight in London too, so which one RTT uses in summer
+ * is unknown; if it's London's, the first answer's headers put the count right. The week didn't turn at that midnight
+ * (a Monday), so it's counted as rolling, which can only be too careful.
  */
-const CLOCK_WINDOWS: ReadonlySet<Dim> = new Set<Dim>(["minute", "hour"]);
+const CLOCK_WINDOWS: ReadonlySet<Dim> = new Set<Dim>(["minute", "hour", "day"]);
 
 export interface BudgetState {
   limits: Record<Dim, number>;
