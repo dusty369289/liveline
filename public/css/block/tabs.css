@@ -10,7 +10,8 @@
    room is better spent on the page. */
 @media (min-height: 600px) {
   :root[data-tabs="top"] .topbar { position: sticky; top: 0; z-index: 15; }
-  :root[data-tabs="top"] .trainbar { top: var(--topbar-h, var(--inset-top)); }
+  /* a pixel under the tabs, padded so nothing in it moves, so no rounding leaves a sliver between them (bars.spec.ts) */
+  :root[data-tabs="top"] .trainbar { top: calc(var(--topbar-h, var(--inset-top)) - 1px); padding-top: 1px; }
   :root[data-tabs="top"] .route__fold-btn { scroll-margin-top: calc(var(--tap) + var(--topbar-h, var(--inset-top)) + var(--s-2)); }
 }
 
@@ -48,7 +49,11 @@
   }
   :root[data-tabs="bottom"] .trainbar,
   :root[data-tabs="bottom"] .board__nav {
-    position: fixed; z-index: 14; left: 0; right: 0; top: auto; bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom, 0px));
+    position: fixed; z-index: 14; left: 0; right: 0; top: auto;
+    /* A pixel under the tabs (which draw over it), with that pixel padded so nothing in it moves: a phone draws a CSS
+       pixel as 2.625 device pixels or so and rounds each fixed bar's edge on its own, which could leave a sliver of the
+       page between them (owner, 2026-11-09; bars.spec.ts) */
+    bottom: calc(var(--tabs-height) + env(safe-area-inset-bottom, 0px) - 1px); padding-bottom: 1px;
     margin: 0; padding-inline: var(--gutter); background: var(--page); border-top: 1px solid var(--line); border-bottom: 0;
   }
   /* The page's end clears the bar too; twice its line, as at large text it can wrap to two */

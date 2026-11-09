@@ -281,7 +281,8 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   as `data-tabs`), where they're words beside the name, with a cog for Settings (named for screen readers),
   and, on a screen at least 600 px tall, stay at the top while a page scrolls (owner, 2026-11-09): the train page's bar
   sticks just under them, by their measured height (`--topbar-h`, `widgets/topbar-height.ts`).
-  `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`). No page overscrolls
+  `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`). A bar meeting the tabs runs a
+  pixel under them, so a phone's rounding can't leave a sliver of page between (`test/ui/bars.spec.ts`). No page overscrolls
   (`overscroll-behavior: none`): Android's stretch takes the whole view, fixed bars and all (owner, 2026-11-09).
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
   page leaves the app (minimised, as other apps do), which also lets predictive back work. Both system bars

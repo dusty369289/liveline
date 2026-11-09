@@ -9,7 +9,8 @@ export class TopbarHeight {
     this.observer?.disconnect();
     const bar = root.querySelector<HTMLElement>(".topbar");
     if (!bar) return;
-    const set = () => document.documentElement.style.setProperty("--topbar-h", `${bar.offsetHeight}px`);
+    // exactly, fractions and all: offsetHeight rounds to a whole pixel
+    const set = () => document.documentElement.style.setProperty("--topbar-h", `${bar.getBoundingClientRect().height}px`);
     set();
     if (typeof ResizeObserver === "undefined") return; // a test DOM without it: the first measure stands
     this.observer = new ResizeObserver(set);
