@@ -129,6 +129,8 @@
   background: var(--train); border: 2px solid var(--train-edge); border-radius: 6px 6px 3px 3px;
   transition: top .9s linear; z-index: 3; pointer-events: none;
 }
+/* Past the last report, placed by the timetable alone (live-marker.ts): a dashed ring round it, as round our guessed times */
+.route__train.is-estimated { outline: 2px dashed var(--ink); outline-offset: 2px; }
 .route__train::before { /* windscreen */
   content: ""; position: absolute; left: 2px; right: 2px; top: 3px; height: 7px; background: var(--train-edge); border-radius: 3px 3px 1px 1px;
 }
