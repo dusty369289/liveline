@@ -40,7 +40,7 @@ function glanceView(t: RecentTrain, g: Glance, now: Ms): Html {
   return html`
   <section class="home__glance" aria-labelledby="glance-h">
     <div class="home__glance-head">
-      <h2 id="glance-h" class="home__glance-label">Your train · ${t.title}</h2>
+      <h2 id="glance-h" class="home__glance-label">Your train<span class="home__glance-title"> · ${t.title}</span></h2>
       <button type="button" class="home__refresh" data-refresh-train="${t.href}" aria-label="Refresh your train" title="Refresh">${REFRESH_ICON}</button>
       <button type="button" class="home__dismiss" data-dismiss-train="${t.href}" aria-label="Stop showing this train here" title="Not on this train">${CROSS}</button>
     </div>

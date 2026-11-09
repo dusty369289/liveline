@@ -145,12 +145,14 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   time or day" (otherwise, now) beside "Find trains". Recent stations are offered in an
   empty station box as soon as it's tapped; each station box is an ARIA combobox with a status line saying how many
   match. The page fits a 360 × 700 app screen with no scrolling, first visit or
-  coming back (`test/ui/fit.spec.ts`). With the tabs at the bottom of a screen at least 760 px tall
+  coming back (`test/ui/fit.spec.ts`). With the tabs at the bottom of a screen at least 800 px tall
   (`block/tabs.css`), it sits low, within a thumb's reach: its spare room goes above the heading, and holds your train
   (`pages/home.ts`, `homeTop`): the big number as the train page last counted it (`glanceOf`, saved after each answer,
   so no call), with a small refresh (one call, never within `GLANCE_REFRESH_MIN` = 60 s of the last answer, and the
   train page's `manualMinAge` too; owner, 2026-11-08) and a cross that stops showing it there (it stays in Recent;
-  opening it brings it back). With no train, or its time 2 minutes gone, the time and the day. There the Time and Day
+  opening it brings it back). With no train, or its time 2 minutes gone, the time and the day. That room is only what's spare, so the page fits one
+  screen (`fit.spec.ts`, tall sizes with a status bar): with less, your train shrinks to two lines and the clock to one, then
+  none. There the Time and Day
   are always out, not folded: opening a fold would push everything above it up. Nothing opening moves what's above
   it, anywhere (`test/ui/stable.spec.ts`).
 - **Train page:** every location RTT returns. Calls are full rows; passing points fold into one "N passing points" row
@@ -274,7 +276,8 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   to the page and only the strip under the status bar stays. Only on a screen at least 600 px tall: a short one
   (landscape) keeps them at the top. Settings > Appearance > Tabs moves them to the top (`liveline.tabs`, on `<html>`
   as `data-tabs`), where they're words beside the name, with a cog for Settings (named for screen readers).
-  `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`).
+  `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`). No page overscrolls
+  (`overscroll-behavior: none`): Android's stretch takes the whole view, fixed bars and all (owner, 2026-11-09).
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
   page leaves the app (minimised, as other apps do), which also lets predictive back work. Both system bars
   follow the phone's theme, including a day/night switch while the app is open: under the status bar is a fixed strip
