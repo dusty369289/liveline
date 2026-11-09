@@ -91,10 +91,10 @@ reasoned guess, not a tested model, and it's always drawn as a dashed ring.
 
 ### How it spends your allowance
 
-Your key's allowance is 10 calls a minute, 100 an hour and 1000 a day (Free and Hobbyist). The minute and the hour
-are the clock's: all their calls come back at the top of each minute and hour. The day is counted as rolling (a call
-counts until it's a day old), as Realtime Trains doesn't say when it starts. Every call goes through one budget, which also obeys the limits Realtime
-Trains reports with each answer, and any "wait until" it sends.
+Your key's allowance is 10 calls a minute, 100 an hour and 1000 a day (Free and Hobbyist). They're the clock's: all
+of a minute's, an hour's or a day's calls come back at once when it turns (the day at midnight). Every call goes
+through one budget, which also obeys the limits Realtime Trains reports with each answer, and any "wait until" it
+sends.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/img/allowance-call-dark.png">
