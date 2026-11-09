@@ -59,6 +59,11 @@
 :root[data-theme="operator"] .recents__list { background: var(--surface); border-radius: var(--radius-panel); padding-inline: var(--s-4); border-top: 0; }
 :root[data-theme="operator"] .journeys__item:last-child,
 :root[data-theme="operator"] .recents__item:last-child { border-bottom: 0; }
+/* Recent drawn newest at the foot (block/tabs.css): a panel has no outer rules, so the one at its top goes, as below */
+@media (min-height: 760px) {
+  :root[data-theme="operator"][data-tabs="bottom"] .recents__list { border-bottom: 0; }
+  :root[data-theme="operator"][data-tabs="bottom"] .recents__item:last-child { border-top: 0; }
+}
 :root[data-theme="operator"] .field input[type="text"],
 :root[data-theme="operator"] .field input[type="time"],
 :root[data-theme="operator"] .field input[type="date"],

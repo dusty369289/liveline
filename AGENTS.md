@@ -249,7 +249,10 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   if that is later (measured by the rail clock), only while on screen
   (coming back after the time it said tries at once), and as a background call, so it never spends the search
   reserve. A key refusal is kept and shown in Settings; a busy or offline key check isn't, and the next call tries again.
-- **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train; the search page
+- **Recent** (`store/recent-trains.ts`): the 30 trains you opened, newest first, one entry per train (with the tabs at
+  the bottom of a screen at least 760 px tall, drawn the other way up: the newest at the foot, just above the tabs, where
+  the thumb is, Clear this list at the top; owner, 2026-11-09; `test/ui/recent.spec.ts`. The page keeps newest first for
+  screen readers); the search page
   shows one "Carry on" line for the newest still running (from 30 minutes before it sets off until 30 minutes after
   it's due in), under its heading and above the Saved journeys line, so a screen reader starting at the focused
   heading meets both (where your train shows above the heading, that line hides: it would say the same). Until a train sets off, Recent says when it leaves ("Leaves 08:05", or "Runs Mon 9 Nov, 08:05"
@@ -322,7 +325,8 @@ by `store/appearance.ts` (`liveline.theme`); what a theme changes beyond tokens 
 as a marker with an edge, one giant "N min" number, and sign plates for platforms. CUBE
 layers `tokens, base, composition, block, utility, exception`; themes are token-only files. Phone first (412 px and
 360 px), 44 px touch targets (links inside sentences excepted; a link that is a whole line is a control and isn't), edge to edge with `env(safe-area-inset-*)`. A new
-page opens at the top; redrawing the same page keeps its place. Every text
+page opens at the top (but Recent with the tabs at the bottom opens on its newest train, at the foot); redrawing the
+same page keeps its place. Every text
 colour is at least 4.5:1 on what it sits on, in every theme, light and dark, and the train marker 3:1
 (`test/design.test.ts`, which also works out the cascade for the board's platform plate); `test/ui/themes.spec.ts`
 lays out every main page in each theme. Text grows with the phone's text size: content sets

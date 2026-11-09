@@ -63,11 +63,20 @@
    the heading, the train to carry on with, the saved journeys and the form sit together low on the screen. Smaller,
    the page stands at the top as before, where a fold opening downwards moves nothing above it (stable.spec.ts). */
 @media (min-height: 760px) {
-  :root[data-tabs="bottom"] #app:has(.home) {
+  :root[data-tabs="bottom"] #app:has(.home, .recents) {
     display: flex; flex-direction: column; min-height: calc(100svh - var(--tabs-height) - env(safe-area-inset-bottom, 0px));
   }
-  :root[data-tabs="bottom"] main:has(> .home) { flex: 1; display: flex; flex-direction: column; }
-  :root[data-tabs="bottom"] .home { flex: 1; }
+  :root[data-tabs="bottom"] main:has(> .home, > .recents) { flex: 1; display: flex; flex-direction: column; }
+  :root[data-tabs="bottom"] .home, :root[data-tabs="bottom"] .recents { flex: 1; }
+  /* Recent the same way (owner, 2026-11-09): the newest train at the foot, just above the tabs, older ones a scroll
+     up, and the page opens on the newest (pages/simple.ts). Drawn reversed only: the page, and so a screen reader,
+     still has the newest first. Clear this list goes to the top, out of the way of a thumb. */
+  :root[data-tabs="bottom"] .recents__list {
+    display: flex; flex-direction: column-reverse; order: 2; margin-top: auto;
+    border-top: 0; border-bottom: 1px solid var(--line); /* the rules between rows turn round with them */
+  }
+  :root[data-tabs="bottom"] .recents__item { border-bottom: 0; border-top: 1px solid var(--line); }
+  :root[data-tabs="bottom"] .recents > p { order: 1; }
   :root[data-tabs="bottom"] .home > :first-child { margin-top: auto; }
   /* The time and day show already, empty for now, rather than fold: opening them would push everything above it up,
      as the page sits on its foot (owner, 2026-11-08; test/ui/stable.spec.ts). There's room for them on a tall screen. */
