@@ -28,3 +28,36 @@ test("between two passing points the marker moves along, not sat still till the 
   expect(after).toBeGreaterThan(before);
   void errors;
 });
+
+// Owner, 2026-11-09: passing points can come four to a minute, between two polls. The marker runs on past one that
+// hasn't reported yet, by the timetable, drawn dashed as our guess, rather than sitting until the next answer.
+test("past a passing point that hasn't reported yet, the marker runs on, dashed", ONCE, async ({ page, errors }) => {
+  await openTrain(page);
+  const live = page.locator(".live");
+  // on until it's heading for a passing point with another after it
+  const heading = () => live.evaluate((el) => {
+    const d = (el as HTMLElement).dataset;
+    const rows = [...el.querySelectorAll<HTMLElement>(".route__pt")];
+    const to = Number(d.to);
+    const pass = (r?: HTMLElement) => !!r && r.classList.contains("is-pass") && !r.classList.contains("is-folded");
+    const due = Number(rows[to]?.dataset.tIn); // the time shown on its row, which the marker runs by
+    return d.state === "running" && pass(rows[to]) && pass(rows[to + 1]) && due > Date.now() ? due - Date.now() : -1;
+  });
+  let wait = -1;
+  for (let i = 0; i < 30 && (wait = await heading()) < 0; i++) await page.clock.runFor(30_000);
+  expect(wait).toBeGreaterThanOrEqual(0);
+  const to = Number(await live.getAttribute("data-to"));
+  await page.clock.runFor(wait + 5000); // 5 s after it was due there: before the poll (20 s after), so no report yet
+  expect(Number(await live.getAttribute("data-to"))).toBe(to); // still no report there
+  const [marker, row] = await page.evaluate((i) => {
+    const wrap = document.querySelector(".route-wrap")!.getBoundingClientRect().top;
+    // where the point's tick is, as the marker reads it (live-marker.ts, rowCentre): the first line, not the row's middle
+    const row = document.querySelectorAll<HTMLElement>(".route__pt")[i];
+    const mark = row.querySelector(".route__mark")!;
+    const tick = mark.getBoundingClientRect().top - wrap + parseFloat(getComputedStyle(mark, "::after").top);
+    return [parseFloat(document.querySelector<HTMLElement>("[data-train-marker]")!.style.top), tick];
+  }, to);
+  expect(marker).toBeGreaterThan(row);
+  await expect(page.locator("[data-train-marker]")).toHaveClass(/is-estimated/);
+  void errors;
+});

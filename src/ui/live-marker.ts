@@ -1,11 +1,12 @@
 // The train marker and the travelled line on the train page's route: where they stand at this second, against the rows
 // as they're laid out now (folds, fonts and resizes all move them). live-train.ts calls place() every second.
-import { DEFAULT_ENGINE, sectionFraction } from "../core/engine";
+import { DEFAULT_ENGINE } from "../core/engine";
 import type { Ms } from "../core/time";
-import { clampBetween, MIN_AWAY, PASS_AWAY } from "./route-place";
+import { clampBetween, estimateAlong, keepAhead, MIN_AWAY, PASS_AWAY, type RowTimes } from "./route-place";
 
 export class LiveMarker {
   private jumped = false;
+  private reached = -1; // how far along the route the marker has got (rows, a + f): it never goes back (keepAhead)
 
   /** `jumpButton` is "Jump to train": hidden while there's no marker to jump to. */
   constructor(private region: HTMLElement, private clock: () => Ms, private jumpButton: HTMLElement | null) {}
@@ -42,29 +43,44 @@ export class LiveMarker {
     let y: number | null = null;
     if (d.state === "running" || d.state === "overdue") {
       const hold = Number(d.hold) || DEFAULT_ENGINE.holdFraction;
-      let rowA = from;
-      let rowB = to;
-      let since = Number(d.since);
-      let expected = Number(d.expected);
-      const folded = (r: HTMLElement | null) => !!r && r.classList.contains("is-folded");
-      if (folded(from) || folded(to)) {
-        // A folded row has no height, so run between the nearest rows you can see, by their times
-        const ia = from ? rows.indexOf(from) : -1;
-        const ib = to ? rows.indexOf(to) : rows.length;
-        for (let i = ia; i >= 0; i--) if (!folded(rows[i])) { rowA = rows[i]; break; }
-        for (let i = ib; i < rows.length; i++) if (!folded(rows[i])) { rowB = rows[i]; break; }
-        if (rowA && rowA !== from) since = Number(rowA.dataset.tOut) || since;
-        if (rowB && rowB !== to) expected = Number(rowB.dataset.tIn) || expected;
+      const now = this.clock();
+      const iFrom = Number(d.from);
+      const times: RowTimes[] = rows.map((r) => ({
+        tin: Number(r.dataset.tIn) || null, tout: Number(r.dataset.tOut) || null, call: r.classList.contains("is-call"),
+      }));
+      // On by the shown times through passing points that haven't reported, never past the next stop (route-place.ts);
+      // an overdue point holds it short of that point, as before
+      const overdue = d.state === "overdue";
+      const est = overdue ? { a: iFrom, b: Number(d.to), f: hold } : estimateAlong(times, iFrom, now, hold);
+      // Never back when an answer puts the train behind the marker: it waits there (unless a point is overdue)
+      const at = keepAhead(this.reached, est.a + est.f, overdue);
+      this.reached = at;
+      const ia = Math.min(Math.floor(at), rows.length - 1);
+      const f = at - ia;
+      const ib = Math.min(ia + 1, rows.length - 1);
+      marker.classList.toggle("is-estimated", ia > iFrom); // past the last report: drawn as our guess
+      // A folded row has no height: run between the nearest rows you can see, the time at the marker set against theirs
+      const folded = (r: HTMLElement | undefined) => !r || r.classList.contains("is-folded");
+      let va = ia;
+      let vb = ib;
+      while (va > 0 && folded(rows[va])) va--;
+      while (vb < rows.length - 1 && folded(rows[vb])) vb++;
+      const startOf = (i: number) => times[i].tout ?? times[i].tin;
+      const endOf = (i: number) => times[i].tin ?? times[i].tout;
+      let fv = f;
+      if (va !== ia || vb !== ib) {
+        const s = startOf(ia);
+        const e = endOf(ib);
+        const tv0 = startOf(va);
+        const tv1 = endOf(vb);
+        if (s != null && e != null && tv0 != null && tv1 != null && tv1 > tv0) fv = (s + f * (e - s) - tv0) / (tv1 - tv0);
       }
-      const a = this.rowCentre(rowA, wrap);
-      const b = this.rowCentre(rowB, wrap);
-      let f = Number(d.fraction) || 0;
-      if (since && expected && expected > since) f = sectionFraction(since, expected, this.clock(), hold);
-      if (d.state === "overdue" && rowB === to) f = hold;
+      const a = this.rowCentre(rows[va], wrap);
+      const b = this.rowCentre(rows[vb], wrap);
       // Once it has left, keep it clear of both points (not sitting on a station's ring), even early or late in a long
       // section; a passing point is only a tick, so less, which leaves it room to move between passes
-      const away = (r: HTMLElement | null) => (r?.classList.contains("is-pass") ? PASS_AWAY : MIN_AWAY);
-      if (a !== null && b !== null) y = clampBetween(a, b, f, away(rowA), away(rowB));
+      const away = (r: HTMLElement | undefined) => (r?.classList.contains("is-pass") ? PASS_AWAY : MIN_AWAY);
+      if (a !== null && b !== null) y = clampBetween(a, b, Math.min(Math.max(fv, 0), 1), away(rows[va]), away(rows[vb]));
     } else if (d.state === "at-station" || d.state === "at-origin") {
       y = this.rowCentre(from ?? to, wrap);
     } else if (d.state === "not-started") {
