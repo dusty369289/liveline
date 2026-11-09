@@ -30,6 +30,16 @@ test("chosen in Settings, the tabs go back to the top at once, and stay there", 
   void errors;
 });
 
+// Owner, 2026-11-09: scrolling past a page's end stretched the bottom tabs with it (Android stretches the whole view,
+// fixed bars and all). The page doesn't overscroll, so nothing stretches.
+test("scrolling past a page's end stretches nothing, the tabs included", async ({ page, errors }) => {
+  await open(page, "/settings");
+  const behaviour = await page.evaluate(() => [getComputedStyle(document.documentElement).overscrollBehaviorY,
+    getComputedStyle(document.body).overscrollBehaviorY]);
+  expect(behaviour).toEqual(["none", "none"]);
+  void errors;
+});
+
 test.describe("on a short screen", () => {
   test.use({ viewport: { width: 640, height: 360 } });
 

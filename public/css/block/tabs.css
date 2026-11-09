@@ -58,15 +58,16 @@
   :root[data-tabs="bottom"] .trainbar__jump { order: 2; }
 }
 
-/* The search page on a screen with room to spare (760 px: a 360 × 700 app screen, which the page must fit, has none):
+/* The search page on a screen with room to spare (800 px: smaller, with your train above it, it ran past the screen; fit.spec.ts):
    the room it doesn't need goes above it all (owner, 2026-11-08: a gap between the heading and the form looked odd), so
    the heading, the train to carry on with, the saved journeys and the form sit together low on the screen. Smaller,
    the page stands at the top as before, where a fold opening downwards moves nothing above it (stable.spec.ts). */
-@media (min-height: 760px) {
+@media (min-height: 800px) {
   :root[data-tabs="bottom"] #app:has(.home) {
     display: flex; flex-direction: column; min-height: calc(100svh - var(--tabs-height) - env(safe-area-inset-bottom, 0px));
   }
-  :root[data-tabs="bottom"] main:has(> .home) { flex: 1; display: flex; flex-direction: column; }
+  :root[data-tabs="bottom"] main:has(> .home) { flex: 1; display: flex; flex-direction: column; padding-bottom: var(--s-3); }
+  :root[data-tabs="bottom"] #app:has(.home) .footer { padding-block: var(--s-3); } /* room for the page itself */
   :root[data-tabs="bottom"] .home { flex: 1; }
   :root[data-tabs="bottom"] .home > :first-child { margin-top: auto; }
   /* The time and day show already, empty for now, rather than fold: opening them would push everything above it up,
@@ -76,7 +77,14 @@
   :root[data-tabs="bottom"] .home .search__go { flex-direction: column; align-items: stretch; }
   /* That room holds something to read, the top of the screen being the hardest to tap (owner, 2026-11-08): your train
      as the train page last counted it, or the time and the day. It sits on the room's foot, just above the heading. */
-  :root[data-tabs="bottom"] .home > .home__top { display: flex; flex-direction: column; justify-content: flex-end; flex: 1 1 auto; }
+  /* It takes only the room that's spare, so the page always fits one screen (fit.spec.ts; owner, 2026-11-09: it ran a
+     little over while a train was tracked, and wiggled). What's in it fits itself to that room (below): your train
+     always keeps room for its compact form, and the clock, only filling space, goes when there's none. */
+  :root[data-tabs="bottom"] .home > .home__top {
+    display: flex; flex-direction: column; justify-content: flex-end; flex: 1 1 0; min-height: 0;
+    container: hometop / size; overflow-x: visible; overflow-y: clip; /* only top to bottom: the cross reaches the edge */
+  }
+  :root[data-tabs="bottom"] .home > .home__top:has(.home__glance) { min-height: calc(2 * var(--tap) + 1rem); } /* its compact form */
   /* Your train above says what the Carry on line would: that line hides here, and stays where this block doesn't show */
   :root[data-tabs="bottom"] .home:has(.home__glance) .carry:not(.carry--saved) { display: none; }
 }
@@ -101,3 +109,22 @@
 .home__clock { display: grid; gap: var(--s-1); margin: 0; font-family: var(--sign-font); }
 .home__time { font-weight: var(--hero-weight); font-size: min(6.5rem, 28vw); line-height: .9; letter-spacing: -.04em; }
 .home__date { font-weight: 600; font-size: var(--t-md); color: var(--muted); }
+
+/* Less room than the full forms need: your train on two lines (its label with the buttons, then "42 min until it
+   reaches Oxford"), the clock on one, and with too little for that the clock not at all */
+@container hometop (max-height: 11rem) { /* the full form is about 10 rem */
+  .home__glance { gap: 0; }
+  .home__glance .live__hero { flex-wrap: nowrap; align-items: baseline; gap: .35rem; }
+  .home__glance .live__hero-num { font-size: var(--t-lg); line-height: 1.2; letter-spacing: 0; }
+  .home__glance .live__hero-unit { font-size: var(--t-lg); }
+  .home__glance .live__hero-what { flex-basis: auto; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+  .home__glance .live__hero-at, .home__glance-said, .home__glance-title { display: none; } /* the title: a tap away */
+  .home__glance-go { display: flex; align-items: center; min-height: var(--tap); }
+}
+@container hometop (max-height: 8.5rem) {
+  .home__clock { display: flex; align-items: baseline; gap: var(--s-3); }
+  .home__time { font-size: var(--t-lg); line-height: 1.2; letter-spacing: 0; }
+}
+@container hometop (max-height: 2.75rem) {
+  .home__clock { display: none; }
+}

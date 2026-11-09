@@ -39,6 +39,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* No stretch past a page's end: Android stretches the whole view, the fixed tabs and bars with it, which looks broken
+   (owner, 2026-11-09). A page still stops at its ends. */
+html, body { overscroll-behavior-y: none; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
