@@ -278,7 +278,9 @@ one line of facts; class and units are in the Train view. Explanations (an outli
   2026-11-08), a bar fixed along the screen's foot, each tab its icon over its word; the top bar then gives its room
   to the page and only the strip under the status bar stays. Only on a screen at least 600 px tall: a short one
   (landscape) keeps them at the top. Settings > Appearance > Tabs moves them to the top (`liveline.tabs`, on `<html>`
-  as `data-tabs`), where they're words beside the name, with a cog for Settings (named for screen readers).
+  as `data-tabs`), where they're words beside the name, with a cog for Settings (named for screen readers),
+  and, on a screen at least 600 px tall, stay at the top while a page scrolls (owner, 2026-11-09): the train page's bar
+  sticks just under them, by their measured height (`--topbar-h`, `widgets/topbar-height.ts`).
   `test/ui/tabs.spec.ts`; the contact sheet draws the bar at the page's end (`snap`). No page overscrolls
   (`overscroll-behavior: none`): Android's stretch takes the whole view, fixed bars and all (owner, 2026-11-09).
 - **Android shell** (`platform/index.ts`, started in `main.ts`): Back goes to the previous page, and from the first
