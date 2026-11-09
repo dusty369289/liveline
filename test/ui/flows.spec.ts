@@ -216,6 +216,8 @@ test("a strip in the top bar's colour sits behind the status bar on every page, 
 
 test("the train page bar sticks below the status bar, and adds no band before it sticks", ONCE, async ({ page, errors }) => {
   await openTrain(page);
+  // as short as scrollFar makes it, so the bar is the same sticky one throughout (a tall screen puts it at the foot)
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 420 });
   const plain = (await page.locator("[data-trainbar]").boundingBox())!.height;
   await fakeStatusBar(page);
   // in the page's flow (not stuck) it is the same bar as on a phone with no inset: no navy band above it
