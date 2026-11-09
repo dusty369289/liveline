@@ -17,6 +17,9 @@ export class RecentPage extends Page {
   }
 
   mount(root: HTMLElement): void {
+    // With the tabs at the bottom of a tall screen the newest is drawn at the foot (block/tabs.css): open on it there
+    const list = root.querySelector<HTMLElement>(".recents__list");
+    if (list && getComputedStyle(list).flexDirection === "column-reverse") window.scrollTo(0, document.documentElement.scrollHeight);
     root.querySelector("[data-clear-recent]")?.addEventListener("click", () => {
       this.ctx.trains.clear();
       this.ctx.rerender();
