@@ -1,6 +1,7 @@
 // Where the tabs sit: along the foot of a tall screen by default, at the top if chosen in Settings, and at the top on a
 // short screen whatever was chosen (owner, 2026-11-08). The bar never hides the page: its last line clears it.
-import { expect, open, test } from "./support";
+import { KEYS } from "../../src/ui/store/keys";
+import { expect, open, openTrain, test } from "./support";
 
 const navBox = (page: import("@playwright/test").Page) =>
   page.locator(".topbar__nav").evaluate((el) => {
@@ -37,6 +38,22 @@ test("scrolling past a page's end stretches nothing, the tabs included", async (
   const behaviour = await page.evaluate(() => [getComputedStyle(document.documentElement).overscrollBehaviorY,
     getComputedStyle(document.body).overscrollBehaviorY]);
   expect(behaviour).toEqual(["none", "none"]);
+  void errors;
+});
+
+// Owner, 2026-11-09: tabs set to the top stay in reach while scrolling, as the bottom ones do; the train page's own
+// bar sticks just under them rather than behind them
+test("tabs at the top stay at the top while a page scrolls, with the train page's bar just under them", async ({ page, errors }) => {
+  await page.addInitScript((name) => localStorage.setItem(name, JSON.stringify("top")), KEYS.tabs);
+  await open(page, "/settings");
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  expect((await page.locator(".topbar").boundingBox())!.y).toBe(0);
+  await openTrain(page);
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  const bar = (await page.locator(".topbar").boundingBox())!;
+  const train = (await page.locator("[data-trainbar]").boundingBox())!;
+  expect(bar.y).toBe(0);
+  expect(Math.abs(train.y - (bar.y + bar.height))).toBeLessThanOrEqual(1);
   void errors;
 });
 

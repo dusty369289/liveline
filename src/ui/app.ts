@@ -19,6 +19,7 @@ import { RecentTrains } from "./store/recent-trains";
 import { Updates } from "./updates";
 import { problemView, type Retry } from "./views/home";
 import { StationSuggest } from "./widgets/station-suggest";
+import { TopbarHeight } from "./widgets/topbar-height";
 
 type PageClass = new (ctx: AppContext, route: Route) => Page;
 
@@ -39,6 +40,7 @@ const PAGES: Record<RouteName, PageClass> = {
 export class App {
   private readonly ctx: AppContext;
   private page: Page | null = null;
+  private readonly topbarHeight = new TopbarHeight(); // --topbar-h, for what sticks under the top bar
   private seq = 0; // a newer navigation wins over a slow answer
   private flashRegion: HTMLElement | null = null;
   private drawnPath: string | null = null; // the page on screen, to tell a new page from the same one drawn again
@@ -132,6 +134,7 @@ export class App {
     this.drawnPath = route.path;
     render(this.root, chrome({ route: page.tab, demo: this.ctx.rail.demo, budget: this.ctx.rail.budget.state(), banner: this.ctx.updates.banner(page.tab) }, view));
     this.keepFlashRegion();
+    this.topbarHeight.watch(this.root);
     document.title = page.title ? `${page.title} · LiveLine` : "LiveLine";
     this.wireShared();
     // A new page starts at the top, its heading in view; a redraw keeps its place. Before mount, so a page that

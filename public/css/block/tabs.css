@@ -4,6 +4,16 @@
    screen tall enough to spare the room (a phone held upright); a short one keeps them at the top. */
 .topbar__nav a:not(.topbar__cog) .topbar__icon { display: none; }
 .topbar__cog .topbar__word { display: none; }
+/* Tabs set to the top stay there while a page scrolls (owner, 2026-11-09), as the bottom ones do. What sticks below
+   them goes under them: the train page's bar, and a fold tabbed to while scrolled. --topbar-h is the bar's measured
+   height, status bar included (widgets/topbar-height.ts). Not on a short screen (a phone on its side), where the
+   room is better spent on the page. */
+@media (min-height: 600px) {
+  :root[data-tabs="top"] .topbar { position: sticky; top: 0; z-index: 15; }
+  :root[data-tabs="top"] .trainbar { top: var(--topbar-h, var(--inset-top)); }
+  :root[data-tabs="top"] .route__fold-btn { scroll-margin-top: calc(var(--tap) + var(--topbar-h, var(--inset-top)) + var(--s-2)); }
+}
+
 .home__top { display: none; } /* the search page's room above its heading: only with the tabs at the bottom of a tall screen */
 
 @media (min-height: 600px) {
